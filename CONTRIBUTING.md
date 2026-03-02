@@ -27,6 +27,27 @@ All starters share these baseline conventions to keep things consistent for user
 
 Starter lock files are gitignored at the root level. Users generate their own on `pnpm install`. The root lock file (for DX deps) is committed.
 
+## Working on a single starter
+
+You don't need every starter on disk. Use sparse checkout to scope your clone:
+
+```sh
+git clone --sparse --filter=blob:none https://github.com/sanity-labs/starters.git
+cd starters
+git sparse-checkout set agentic-localization   # only this starter + root files
+pnpm install                                    # root DX tools (husky, oxfmt, eslint)
+cd agentic-localization
+pnpm install                                    # starter deps
+```
+
+To switch to or add another starter later:
+
+```sh
+git sparse-checkout add ai-shopping-assistant   # adds it alongside existing ones
+```
+
+Commits, pushes, and PRs work normally — git still tracks the full repo.
+
 ## Formatting and linting
 
 The root husky hook auto-formats and lint-fixes staged files on commit. No lint-staged needed — each starter keeps `format`/`lint` scripts for standalone use.
