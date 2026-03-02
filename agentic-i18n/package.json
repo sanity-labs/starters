@@ -1,0 +1,58 @@
+{
+  "name": "starter-agentic-l10n",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Store translation glossaries, style guides, and locale rules as structured content in Sanity. Assemble them into prompts that guide AI translation agents on terminology, tone, and brand voice.",
+  "keywords": [
+    "agent-actions",
+    "agentic",
+    "ai",
+    "app-sdk",
+    "automation",
+    "dashboard",
+    "glossary",
+    "groq",
+    "i18n",
+    "l10n",
+    "localization",
+    "prompt-assembly",
+    "sanity",
+    "studio",
+    "style-guide",
+    "translation"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "SANITY_STUDIO_SERVER_OPEN=true concurrently -n studio,dashboard,functions,frontend -c \"#f03e2f,#43b1b0,#f5a623,#8b5cf6\" \"pnpm --filter studio dev\" \"pnpm --filter @starter/translations-dashboard dev\" \"pnpm --filter @starter/functions dev\" \"pnpm --filter @starter/frontend dev\"",
+    "build": "pnpm -r build",
+    "deploy": "pnpm -r deploy",
+    "bootstrap": "pnpm --filter studio bootstrap",
+    "test": "pnpm -r test",
+    "lint": "eslint --cache --cache-location node_modules/.cache/eslint/ .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "typegen": "pnpm --filter studio typegen",
+    "typecheck": "pnpm -r typecheck",
+    "validate": "sanity-template-validate",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@sanity/blueprints": "0.12.2",
+    "@sanity/client": "catalog:",
+    "@sanity/template-validator": "^3.0.0",
+    "@starter/eslint-config": "workspace:*",
+    "@types/node": "^22.19.13",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.3",
+    "groq": "catalog:",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.1",
+    "oxfmt": "^0.36.0",
+    "sanity": "catalog:"
+  },
+  "engines": {
+    "node": ">=20.19 <22 || >=22.12"
+  },
+  "packageManager": "pnpm@10.30.3"
+}
