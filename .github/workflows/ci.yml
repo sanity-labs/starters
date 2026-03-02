@@ -10,6 +10,7 @@ jobs:
   agentic-localization:
     name: agentic-localization
     runs-on: ubuntu-latest
+    environment: agentic-localization
     defaults:
       run:
         working-directory: agentic-localization
@@ -27,10 +28,8 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
         env:
-          # Dummy values — typegen needs a project ID for schema extraction
-          # but doesn't make API calls, so any value works
-          SANITY_STUDIO_PROJECT_ID: dummy
-          SANITY_STUDIO_DATASET: production
+          SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
+          SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET }}
       - name: Unit tests
         run: pnpm run test
       - name: Validate template
@@ -38,13 +37,13 @@ jobs:
       - name: Manifest extract
         run: pnpm --filter studio exec sanity manifest extract
         env:
-          # Same dummy values for manifest extraction
-          SANITY_STUDIO_PROJECT_ID: dummy
-          SANITY_STUDIO_DATASET: production
+          SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
+          SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET }}
 
   ai-shopping-assistant:
     name: ai-shopping-assistant
     runs-on: ubuntu-latest
+    environment: ai-shopping-assistant
     defaults:
       run:
         working-directory: ai-shopping-assistant
