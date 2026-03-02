@@ -1,0 +1,7 @@
+{
+  "name": "seed",
+  "private": true,
+  "scripts": {
+    "prepare-seed": "sanity dataset export production data.tar.gz --types brand,category,color,material,product,size,sanity.imageAsset,agent.config,sanity.agentContext --overwrite --no-drafts"
+  }
+}

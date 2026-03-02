@@ -1,0 +1,44 @@
+name: Prettier
+
+on:
+  push:
+    branches: [main, test-prettier]
+    paths-ignore:
+      - 'package-lock.json'
+      - '**/package-lock.json'
+      - 'pnpm-lock.yaml'
+      - '**/pnpm-lock.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  run:
+    name: Can the code be prettier?
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+          node-version: lts/*
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter studio exec prettier --check "**/*.{ts,tsx,js,json}"
+        continue-on-error: true
+      - run: pnpm --filter studio exec prettier --write "**/*.{ts,tsx,js,json}"
+      - uses: peter-evans/create-pull-request@84ae59a2cdc2258d6fa0732dd66352dddae2a412 # v7
+        with:
+          body: I ran `pnpm exec prettier --write` 🧑‍💻
+          branch: actions/prettier
+          commit-message: 'chore(prettier): format studio code'
+          labels: bot
+          sign-commits: true
+          title: 'chore(prettier): format studio code'
