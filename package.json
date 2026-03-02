@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.3",
+    "husky": "^9.1.7",
+    "oxfmt": "^0.36.0"
+  },
+  "packageManager": "pnpm@10.30.3"
+}

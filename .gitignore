@@ -1,6 +1,13 @@
+# Dependencies
+node_modules/
+
 # OS files
 .DS_Store
 
 # IDE
 .vscode/
 .idea/
+
+# Starter lock files — users generate their own on install
+*/pnpm-lock.yaml
+

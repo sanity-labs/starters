@@ -1,0 +1,13 @@
+staged=$(git diff --cached --name-only --diff-filter=d)
+
+# Format all supported files
+format_files=$(echo "$staged" | grep -E '\.(js|mjs|ts|tsx|json|css|md|html|yaml|yml)$')
+[ -n "$format_files" ] && echo "$format_files" | xargs npx oxfmt && echo "$format_files" | xargs git add
+
+# Lint fix per starter
+lint_files=$(echo "$staged" | grep -E '\.(js|mjs|ts|tsx)$')
+
+for starter in agentic-localization ai-shopping-assistant; do
+  starter_files=$(echo "$lint_files" | grep "^$starter/" | tr '\n' ' ')
+  [ -n "$starter_files" ] && npx eslint --fix --cache --cache-location "$starter/node_modules/.cache/eslint/" $starter_files && echo "$starter_files" | xargs git add
+done
