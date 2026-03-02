@@ -19,9 +19,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: pnpm
-          cache-dependency-path: agentic-localization/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install
       - name: Format check
         run: pnpm run format:check
       - name: Lint
@@ -47,9 +45,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: pnpm
-          cache-dependency-path: ai-shopping-assistant/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install
       - name: Lint app
         run: pnpm --filter app run lint
       - name: Typecheck app
