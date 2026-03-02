@@ -6,7 +6,8 @@
 2. Follow the conventions in the [starter skill](./.agents/skills/starter/SKILL.md) — it covers required files, env management, shared configs, typegen, blueprints, and more
 3. The starter must work standalone when cloned via `sanity init --template`
 4. Wire it into the monorepo:
-   - Add a job to `.github/workflows/ci.yml`
+   - Add a job to `.github/workflows/ci.yml` (with `environment: <starter-name>`)
+   - Create a GitHub Environment in repo settings with `SANITY_PROJECT_ID` and `SANITY_DATASET` (add `SANITY_AUTH_TOKEN` as a secret if the starter deploys)
    - Add the starter name to the lint loop in `.husky/pre-commit`
    - Add a row to the table in `README.md`
 
