@@ -26,12 +26,21 @@ jobs:
         run: pnpm run lint
       - name: Typecheck
         run: pnpm run typecheck
+        env:
+          # Dummy values — typegen needs a project ID for schema extraction
+          # but doesn't make API calls, so any value works
+          SANITY_STUDIO_PROJECT_ID: dummy
+          SANITY_STUDIO_DATASET: production
       - name: Unit tests
         run: pnpm run test
       - name: Validate template
         run: pnpm run validate
       - name: Manifest extract
         run: pnpm --filter studio exec sanity manifest extract
+        env:
+          # Same dummy values for manifest extraction
+          SANITY_STUDIO_PROJECT_ID: dummy
+          SANITY_STUDIO_DATASET: production
 
   ai-shopping-assistant:
     name: ai-shopping-assistant
@@ -53,6 +62,4 @@ jobs:
       - name: Typecheck studio
         run: cd studio && pnpm exec tsc --noEmit
       - name: Validate template
-        uses: sanity-io/template-validator@v2
-        with:
-          directory: ai-shopping-assistant
+        run: pnpm dlx sanity-template-validate
