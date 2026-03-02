@@ -33,9 +33,9 @@
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "typegen": "pnpm --filter studio typegen",
+    "pretypecheck": "pnpm run typegen",
     "typecheck": "pnpm -r typecheck",
-    "validate": "sanity-template-validate",
-    "prepare": "husky"
+    "validate": "sanity-template-validate"
   },
   "devDependencies": {
     "@sanity/blueprints": "0.12.2",
@@ -46,8 +46,6 @@
     "concurrently": "^9.2.1",
     "eslint": "^9.39.3",
     "groq": "catalog:",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.3.1",
     "oxfmt": "^0.36.0",
     "sanity": "catalog:"
   },
