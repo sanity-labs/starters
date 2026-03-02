@@ -1,5 +1,5 @@
 {
-  'packages': ['studio', 'functions', 'packages/*', 'packages/@starter/*', 'apps/*'],
+  'packages': ['studio', 'functions', 'packages/*', 'apps/*'],
   'catalog':
     {
       '@sanity/client': '^7.16.0',

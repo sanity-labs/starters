@@ -31,6 +31,6 @@ export default defineCliConfig({
       '../apps/translations-dashboard/src/**/*.{ts,tsx}',
       '../functions/*.ts',
     ],
-    generates: '../packages/@starter/sanity-types/sanity.types.ts',
+    generates: '../packages/sanity-types/sanity.types.ts',
   },
 })
