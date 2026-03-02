@@ -5,10 +5,10 @@ Production-ready starter templates for building with Sanity.
 Each starter is a standalone project you can spin up with the Sanity CLI:
 
 ```sh
-pnpm dlx sanity@latest init --template sanity-labs/starters/<starter-name>
+pnpm create sanity@latest --template sanity-labs/starters/<starter-name>
 ```
 
-> Using npm? Run `npx sanity@latest init -- --template sanity-labs/starters/<starter-name>` (note the extra `--`).
+> Using npm? Run `npm create sanity@latest -- --template sanity-labs/starters/<starter-name>` (note the extra `--`).
 
 ## Starters
 

@@ -20,8 +20,8 @@ Without structured context, AI translates "Releases" as "Veröffentlichungen" in
 ### 1. Create the project
 
 ```sh
-pnpm create sanity@latest --template sanity-labs/starter-agentic-l10n
-cd starter-agentic-l10n
+pnpm create sanity@latest --template sanity-labs/starters/agentic-localization
+cd agentic-localization
 ```
 
 This prompts you to select (or create) a Sanity project and dataset, then writes your `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` to a root `.env.local`. All workspaces in the monorepo read from this single file — a checked-in `.env` maps the values to the prefixes each workspace expects.
