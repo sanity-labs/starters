@@ -40,7 +40,7 @@ An ecommerce storefront with an AI shopping assistant that operates directly on 
 ### 1. Create the project
 
 ```bash
-pnpm create sanity@latest --template sanity-labs/starters/ai-shopping-assistant
+pnpm create sanity@latest --template sanity-labs/starters/ai-shopping-assistant --package-manager pnpm
 ```
 
 This scaffolds the project and walks you through Sanity project setup.

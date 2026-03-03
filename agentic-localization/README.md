@@ -20,8 +20,7 @@ Without structured context, AI translates "Releases" as "Veröffentlichungen" in
 ### 1. Create the project
 
 ```sh
-pnpm create sanity@latest --template sanity-labs/starters/agentic-localization
-cd agentic-localization
+pnpm create sanity@latest --template sanity-labs/starters/agentic-localization --package-manager pnpm
 ```
 
 This prompts you to select (or create) a Sanity project and dataset, then writes your `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` to `.env`. All workspaces in the monorepo read from this single file — prefix mappings at the bottom resolve the values to each workspace's expected env var names.
@@ -31,7 +30,8 @@ This prompts you to select (or create) a Sanity project and dataset, then writes
 ### 2. Install and bootstrap
 
 ```sh
-pnpm install
+cd your-project
+
 pnpm bootstrap
 ```
 
