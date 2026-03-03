@@ -37,6 +37,12 @@ export default defineBlueprint({
     }),
 
     // ── CORS ────────────────────────────────────────────────────────
+    // TODO: attach the Studio dev-server CORS origin (http://localhost:3333)
+    // once the blueprints backend supports colons in ownershipAction.id.
+    // `sanity init` creates this origin — attaching it would let the stack
+    // manage it without a duplicate-origin conflict on redeploy.
+
+    // Dashboard dev server
     defineCorsOrigin({
       name: 'dashboard-dev',
       origin: 'http://localhost:3334',
