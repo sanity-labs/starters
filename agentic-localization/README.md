@@ -31,7 +31,6 @@ This prompts you to select (or create) a Sanity project and dataset, then writes
 
 ```sh
 cd your-project
-
 pnpm bootstrap
 ```
 
