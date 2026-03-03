@@ -8,6 +8,14 @@
       "source": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./types": {
+      "source": "./src/types.ts",
+      "default": "./src/types.ts"
+    },
+    "./utils": {
+      "source": "./src/utils.ts",
+      "default": "./src/utils.ts"
+    },
     "./promptAssembly": {
       "source": "./src/promptAssembly.ts",
       "default": "./src/promptAssembly.ts"

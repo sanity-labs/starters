@@ -2,7 +2,7 @@ import {defineConfig} from 'vitest/config'
 
 // Load eval-specific overrides (API keys, auth tokens)
 try {
-  process.loadEnvFile(`${import.meta.dirname}/.env.local`)
+  process.loadEnvFile(`${import.meta.dirname}/.env`)
 } catch {}
 
 export default defineConfig({

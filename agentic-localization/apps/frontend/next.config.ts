@@ -1,9 +1,9 @@
 import type {NextConfig} from 'next'
 
-// Load root .env.local — Next.js only reads env files from its own directory,
+// Load root .env — Next.js only reads env files from its own directory,
 // but the monorepo keeps all Sanity env vars at the repo root.
 try {
-  process.loadEnvFile(`${__dirname}/../../.env.local`)
+  process.loadEnvFile(`${__dirname}/../../.env`)
 } catch {}
 
 const nextConfig: NextConfig = {

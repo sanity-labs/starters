@@ -1,17 +1,18 @@
 import {
   defineBlueprint,
+  defineCorsOrigin,
   defineDataset,
   defineDocumentFunction,
   defineRobotToken,
 } from '@sanity/blueprints'
 
 // Load env — jiti (which loads this file) doesn't support process.loadEnvFile,
-// so we parse .env.local manually. import.meta.dirname is synthesized by jiti.
+// so we parse .env manually. import.meta.dirname is synthesized by jiti.
 import {readFileSync} from 'node:fs'
 import {resolve} from 'node:path'
 
 try {
-  const envFile = resolve(import.meta.dirname ?? process.cwd(), '.env.local')
+  const envFile = resolve(import.meta.dirname ?? process.cwd(), '.env')
   for (const line of readFileSync(envFile, 'utf8').split('\n')) {
     const match = line.match(/^([^#=]+)=(.*)$/)
     if (match) process.env[match[1].trim()] ??= match[2].trim()
@@ -33,6 +34,13 @@ export default defineBlueprint({
         deletionPolicy: 'retain',
         ownershipAction: {type: 'attach', id: datasetName, projectId},
       },
+    }),
+
+    // ── CORS ────────────────────────────────────────────────────────
+    defineCorsOrigin({
+      name: 'dashboard-dev',
+      origin: 'http://localhost:3334',
+      allowCredentials: true,
     }),
 
     // ── Robot Token ──────────────────────────────────────────────────

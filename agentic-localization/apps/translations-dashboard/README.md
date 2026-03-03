@@ -78,10 +78,9 @@ src/
 
 ## Deploying
 
-Add your organization ID to the root `.env.local`, then deploy:
+Deploy the dashboard (`pnpm bootstrap` already wrote your organization ID to `.env`):
 
 ```sh
-echo 'SANITY_STUDIO_ORGANIZATION_ID=your-org-id' >> .env.local
 pnpm --filter @starter/translations-dashboard exec sanity deploy
 ```
 

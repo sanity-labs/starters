@@ -2,7 +2,7 @@ import {defineCliConfig} from 'sanity/cli'
 
 // Load root env for CLI config (Vite's envDir only affects browser builds)
 try {
-  process.loadEnvFile(`${__dirname}/../../.env.local`)
+  process.loadEnvFile(`${__dirname}/../../.env`)
 } catch {}
 
 export default defineCliConfig({

@@ -24,9 +24,9 @@ pnpm create sanity@latest --template sanity-labs/starters/agentic-localization
 cd agentic-localization
 ```
 
-This prompts you to select (or create) a Sanity project and dataset, then writes your `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` to a root `.env.local`. All workspaces in the monorepo read from this single file — a checked-in `.env` maps the values to the prefixes each workspace expects.
+This prompts you to select (or create) a Sanity project and dataset, then writes your `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` to `.env`. All workspaces in the monorepo read from this single file — prefix mappings at the bottom resolve the values to each workspace's expected env var names.
 
-> **Cloning manually?** Copy `.env.example` to `.env.local` and fill in your project ID and dataset from [sanity.io/manage](https://www.sanity.io/manage).
+> **Cloning manually?** Copy `.env.example` to `.env` and fill in your project ID and dataset from [sanity.io/manage](https://www.sanity.io/manage).
 
 ### 2. Install and bootstrap
 
@@ -35,17 +35,9 @@ pnpm install
 pnpm bootstrap
 ```
 
-`pnpm bootstrap` deploys the schema, seeds locale documents, imports sample content, and adds CORS for the dashboard dev server.
+`pnpm bootstrap` resolves the organization ID, deploys the blueprint (CORS, dataset, robot token, serverless functions), deploys the schema, generates types, seeds locale documents, and imports sample content.
 
-### 3. Deploy functions
-
-```sh
-pnpm exec sanity blueprints deploy
-```
-
-This deploys the two serverless functions that power the automation: one marks translations as stale when a source document is published, the other runs AI analysis on stale translations.
-
-### 4. Start developing
+### 3. Start developing
 
 ```sh
 pnpm dev
@@ -53,7 +45,7 @@ pnpm dev
 
 Opens the Studio at [localhost:3333](http://localhost:3333), the translations dashboard at [localhost:3334](http://localhost:3334), and the Next.js frontend at [localhost:3000](http://localhost:3000).
 
-> **Frontend env:** The frontend inherits `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` from the root `.env.local` automatically. For server-side data fetching with a private dataset, add a `SANITY_API_READ_TOKEN` (create one at [sanity.io/manage](https://www.sanity.io/manage) → API → Tokens).
+> **Frontend env:** The frontend inherits `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` from the root `.env` automatically. For server-side data fetching with a private dataset, add a `SANITY_API_READ_TOKEN` (create one at [sanity.io/manage](https://www.sanity.io/manage) → API → Tokens).
 
 ## How it works
 
@@ -67,7 +59,7 @@ Only glossary entries whose terms appear in the source document are injected (co
 ## Project structure
 
 ```
-sanity.blueprint.ts              Infrastructure-as-code: dataset, robot token, functions
+sanity.blueprint.ts              Infrastructure-as-code: dataset, CORS, robot token, functions
 functions/                       Serverless automation (Sanity Functions)
   mark-translations-stale.ts       Detects source changes, flags affected translations
   analyze-stale-translations.ts    AI-analyzes what changed, pre-translates affected fields
@@ -91,17 +83,16 @@ Deploy the Studio:
 pnpm --filter studio exec sanity deploy
 ```
 
-To deploy the dashboard app, add your organization ID to `.env.local` (find it at [sanity.io/manage](https://www.sanity.io/manage) → organization settings), then deploy:
+To deploy the dashboard app (`pnpm bootstrap` already wrote your organization ID to `.env`):
 
 ```sh
-echo 'SANITY_STUDIO_ORGANIZATION_ID=your-org-id' >> .env.local
 pnpm --filter @starter/translations-dashboard exec sanity deploy
 ```
 
 If you want "Open in Studio" links in the deployed dashboard to point to your production Studio, also add:
 
 ```sh
-echo 'SANITY_STUDIO_URL=https://your-studio.sanity.studio' >> .env.local
+echo 'SANITY_STUDIO_URL=https://your-studio.sanity.studio' >> .env
 ```
 
 ## Tests and evals

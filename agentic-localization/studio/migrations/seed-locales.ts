@@ -1,6 +1,7 @@
 import {createOrReplace, defineMigration} from 'sanity/migrate'
 
-import {localeTypeName, resolveLocaleDefaults} from '@starter/l10n'
+import {localeTypeName} from '@starter/l10n/types'
+import {resolveLocaleDefaults} from '@starter/l10n/utils'
 
 /**
  * Locale codes to seed. Edit this array before running to customize.

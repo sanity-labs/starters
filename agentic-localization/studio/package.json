@@ -12,10 +12,10 @@
     "schema:extract": "sanity schema extract",
     "schema:deploy": "sanity schema deploy",
     "typegen": "sanity schema extract && sanity typegen generate",
-    "seed": "sanity migration run seed-locales --no-dry-run",
+    "seed": "sanity migration run seed-locales --no-dry-run --no-confirm",
     "generate-sample-data": "sanity exec scripts/generate-sample-data.ts --with-user-token -- --out sample-data.ndjson",
     "import-sample-data": "sanity exec scripts/import-sample-data.ts --with-user-token",
-    "bootstrap": "pnpm schema:deploy && pnpm typegen && sanity cors add http://localhost:3334 --credentials --no-interactive && pnpm seed && pnpm import-sample-data"
+    "bootstrap": "sanity exec scripts/bootstrap.ts --with-user-token"
   },
   "dependencies": {
     "@sanity/icons": "catalog:",
