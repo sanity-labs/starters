@@ -246,40 +246,8 @@ heading("Deploy blueprint");
 try {
   const blueprintConfig = resolve(root, ".sanity/blueprint.config.json");
   if (!existsSync(blueprintConfig)) {
-    try {
-      execFileSync(
-        "pnpm",
-        [
-          "exec",
-          "sanity",
-          "blueprints",
-          "init",
-          "--stack-name",
-          "production",
-          "--project-id",
-          projectId!,
-        ],
-        { cwd: root, stdio: "pipe" },
-      );
-    } catch {
-      // Stack already exists — link local config to it
-      console.log("Stack already exists — linking local config");
-      run(
-        "pnpm",
-        [
-          "exec",
-          "sanity",
-          "blueprints",
-          "config",
-          "--edit",
-          "--project-id",
-          projectId!,
-          "--stack",
-          "production",
-        ],
-        { cwd: root },
-      );
-    }
+    // Interactive — lets the user pick or create a stack
+    run("pnpm", ["exec", "sanity", "blueprints", "init"], { cwd: root });
   }
 
   run("pnpm", ["exec", "sanity", "blueprints", "deploy"], { cwd: root });
@@ -305,7 +273,7 @@ try {
 heading("Import sample data");
 
 try {
-  sanity("dataset", "import", "seed/data.tar.gz", dataset!);
+  sanity("dataset", "import", "seed/data.tar.gz", dataset!, "--replace");
   success("Import sample data");
 } catch (err) {
   failed("Import sample data", err, "pnpm import-sample-data");
