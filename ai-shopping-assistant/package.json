@@ -2,21 +2,21 @@
   "name": "ai-shopping-assistant",
   "description": "An e-commerce starter kit that turns your Content Lake into an AI-powered shopping assistant. Built with Next.js 16, the Studio, and Claude — the bot queries real-time structured content via Context MCP, so product answers are always accurate, up-to-date, and grounded in your actual data.",
   "keywords": [
-    "Sanity",
-    "Next.js",
-    "Content Agent",
-    "Sanity Context",
     "AI",
-    "MCP",
-    "E-commerce",
+    "Content Agent",
+    "Content Lake",
     "Context MCP",
-    "Content Lake"
+    "E-commerce",
+    "MCP",
+    "Next.js",
+    "Sanity",
+    "Sanity Context"
   ],
-  "license": "MIT",
   "homepage": "https://github.com/sanity-labs/starters/tree/main/ai-shopping-assistant#readme",
   "bugs": {
     "url": "https://github.com/sanity-labs/starters/issues"
   },
+  "license": "MIT",
   "scripts": {
     "dev": "pnpm --parallel --recursive run dev",
     "dev:app": "pnpm --filter app run dev",
@@ -29,6 +29,7 @@
     "init:blueprints": "npx sanity blueprints init",
     "dev:functions": "npx sanity functions dev",
     "dev:functions:logs": "npx sanity functions logs agent-conversation",
+    "bootstrap": "pnpm --filter studio exec sanity exec scripts/bootstrap.ts --with-user-token",
     "deploy:studio": "pnpm --filter studio exec npx sanity deploy"
   },
   "dependencies": {
