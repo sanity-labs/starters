@@ -369,10 +369,10 @@ try {
 heading("Restore dependencies");
 
 try {
-  run("pnpm", ["install", "--force"], { cwd: root });
+  run("pnpm", ["install"], { cwd: root });
   success("Restore dependencies");
 } catch (err) {
-  failed("Restore dependencies", err, "pnpm install --force");
+  failed("Restore dependencies", err, "pnpm install");
 }
 
 // ── Summary ──────────────────────────────────────────────────────────────────
