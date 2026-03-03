@@ -39,10 +39,14 @@ export function useDocumentLanguage(
 
   const language$ = useMemo(
     () =>
-      documentStore.listenQuery(query, {draftId, publishedId}, {
-        ...DEFAULT_STUDIO_CLIENT_OPTIONS,
-        perspective: 'raw',
-      }),
+      documentStore.listenQuery(
+        query,
+        {draftId, publishedId},
+        {
+          ...DEFAULT_STUDIO_CLIENT_OPTIONS,
+          perspective: 'raw',
+        },
+      ),
     [documentStore, query, draftId, publishedId],
   )
 

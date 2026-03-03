@@ -7,9 +7,7 @@ describe('getTranslationMetadataId', () => {
   })
 
   it('strips drafts prefix before computing', () => {
-    expect(getTranslationMetadataId('drafts.article-123')).toBe(
-      'translation.metadata.article-123',
-    )
+    expect(getTranslationMetadataId('drafts.article-123')).toBe('translation.metadata.article-123')
   })
 
   it('strips versions prefix before computing', () => {

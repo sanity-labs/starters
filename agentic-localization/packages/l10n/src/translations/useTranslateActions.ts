@@ -418,17 +418,15 @@ export function useTranslateActions(
           .append('translations', [translationRef]),
       )
       tx.patch(metaId, (p) =>
-        p
-          .unset([`workflowStates[_key=="${localeId}"]`])
-          .append('workflowStates', [
-            {
-              _key: localeId,
-              status: 'needsReview',
-              source: 'ai',
-              updatedAt: new Date().toISOString(),
-              sourceRevision,
-            },
-          ]),
+        p.unset([`workflowStates[_key=="${localeId}"]`]).append('workflowStates', [
+          {
+            _key: localeId,
+            status: 'needsReview',
+            source: 'ai',
+            updatedAt: new Date().toISOString(),
+            sourceRevision,
+          },
+        ]),
       )
       await tx.commit()
     },
@@ -539,7 +537,14 @@ export function useTranslateActions(
         scheduleRefresh()
       })
     },
-    [client, effectiveMetadataId, currentUser, scheduleRefresh, startApproveTransition, getPatchOperation],
+    [
+      client,
+      effectiveMetadataId,
+      currentUser,
+      scheduleRefresh,
+      startApproveTransition,
+      getPatchOperation,
+    ],
   )
 
   const dismissStale = useCallback(
