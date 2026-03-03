@@ -17,10 +17,6 @@
   "bugs": {
     "url": "https://github.com/sanity-labs/starters/issues"
   },
-  "workspaces": [
-    "app",
-    "studio"
-  ],
   "scripts": {
     "dev": "pnpm --parallel --recursive run dev",
     "dev:app": "pnpm --filter app run dev",
