@@ -1,5 +1,6 @@
 import {defineConfig} from 'sanity'
 import {structureTool, type StructureResolver} from 'sanity/structure'
+import {assist} from '@sanity/assist'
 import {visionTool} from '@sanity/vision'
 import {EarthGlobeIcon} from '@sanity/icons'
 import {createL10n, withLocaleFilter} from '@starter/l10n'
@@ -70,6 +71,7 @@ export default defineConfig({
     }),
     visionTool(),
     l10n.plugin,
+    assist(),
   ],
 
   schema: {
