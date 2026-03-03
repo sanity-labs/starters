@@ -246,8 +246,31 @@ heading("Deploy blueprint");
 try {
   const blueprintConfig = resolve(root, ".sanity/blueprint.config.json");
   if (!existsSync(blueprintConfig)) {
-    // Interactive — lets the user pick or create a stack
-    run("pnpm", ["exec", "sanity", "blueprints", "init"], { cwd: root });
+    try {
+      execFileSync(
+        "pnpm",
+        ["exec", "sanity", "blueprints", "init", "--stack-name", "production", "--project-id", projectId!],
+        { cwd: root, stdio: "pipe" },
+      );
+    } catch {
+      // Stack already exists — link local config to it
+      console.log("Stack already exists — linking local config");
+      run(
+        "pnpm",
+        [
+          "exec",
+          "sanity",
+          "blueprints",
+          "config",
+          "--edit",
+          "--project-id",
+          projectId!,
+          "--stack",
+          "production",
+        ],
+        { cwd: root },
+      );
+    }
   }
 
   run("pnpm", ["exec", "sanity", "blueprints", "deploy"], { cwd: root });
