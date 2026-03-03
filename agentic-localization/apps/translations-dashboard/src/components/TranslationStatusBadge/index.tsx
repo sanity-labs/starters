@@ -96,11 +96,7 @@ export default function TranslationStatusBadge({locale, metadataId}: Translation
 /**
  * Build a contextual tooltip that includes the locale name.
  */
-function buildTooltip(
-  status: string,
-  locale: LanguageData,
-  fallbackLocale?: LanguageData,
-): string {
+function buildTooltip(status: string, locale: LanguageData, fallbackLocale?: LanguageData): string {
   switch (status) {
     case 'draft':
       return `This document has a draft translation to ${locale.title} (not yet published)`

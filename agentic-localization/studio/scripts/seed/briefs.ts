@@ -197,9 +197,7 @@ function daysAgo(base: Date, n: number): string {
 }
 
 /** Lookup map for article briefs by published ID. */
-const source_briefs_by_id = new Map(
-  articleBriefs.map((b) => [getPublishedId(b._id), b] as const),
-)
+const source_briefs_by_id = new Map(articleBriefs.map((b) => [getPublishedId(b._id), b] as const))
 
 // ─── Translation brief builders ─────────────────────────────────────────────
 // Called by the generate script after fetching locales from the dataset.
@@ -317,8 +315,7 @@ export function buildTranslationBriefs(locales: {code: string; title: string}[])
                 },
                 {
                   fieldName: 'excerpt',
-                  explanation:
-                    'Minor punctuation change — an em-dash was replaced with a comma.',
+                  explanation: 'Minor punctuation change — an em-dash was replaced with a comma.',
                   recommendation: 'dismiss' as const,
                   changeSummary: 'Punctuation fix in excerpt',
                   reasonCode: 'formatting_only' as const,
