@@ -1,11 +1,11 @@
-import { defineCliConfig } from "sanity/cli";
+import {defineCliConfig} from 'sanity/cli'
 
 // Load env files — highest priority first (loadEnvFile won't overwrite).
 // Matches Vite's precedence: .env.local > .env, workspace > root.
 for (const dir of [__dirname, `${__dirname}/..`]) {
-  for (const suffix of [".env.local", ".env"]) {
+  for (const suffix of ['.env.local', '.env']) {
     try {
-      process.loadEnvFile(`${dir}/${suffix}`);
+      process.loadEnvFile(`${dir}/${suffix}`)
     } catch {}
   }
 }
@@ -16,13 +16,13 @@ export default defineCliConfig({
     dataset: process.env.SANITY_STUDIO_DATASET!,
   },
   reactCompiler: {
-    target: "19",
+    target: '19',
   },
   reactStrictMode: true,
   vite: {
-    envDir: "..",
+    envDir: '..',
     server: {
-      open: process.env.SANITY_STUDIO_SERVER_OPEN === "true",
+      open: process.env.SANITY_STUDIO_SERVER_OPEN === 'true',
     },
   },
   deployment: {
@@ -31,11 +31,11 @@ export default defineCliConfig({
   typegen: {
     enabled: true,
     path: [
-      "./src/**/*.{ts,tsx}",
-      "../packages/l10n/src/**/*.{ts,tsx}",
-      "../apps/translations-dashboard/src/**/*.{ts,tsx}",
-      "../functions/*.ts",
+      './src/**/*.{ts,tsx}',
+      '../packages/l10n/src/**/*.{ts,tsx}',
+      '../apps/translations-dashboard/src/**/*.{ts,tsx}',
+      '../functions/*.ts',
     ],
-    generates: "../packages/sanity-types/sanity.types.ts",
+    generates: '../packages/sanity-types/sanity.types.ts',
   },
-});
+})

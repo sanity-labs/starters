@@ -1,5 +1,3 @@
-import type {SanityDocument} from 'sanity'
-
 import {useClient, useCurrentUser} from '@sanity/sdk-react'
 import {useAgentTranslate} from '@sanity/sdk-react'
 import {useCallback, useEffect, useRef} from 'react'
@@ -19,11 +17,6 @@ type AvailableLanguage = {
   releaseId?: string
   title: string
 }
-
-type BatchTranslationDoc = {
-  _type: string
-  language: null | string
-} & SanityDocument
 
 type TranslationProgressCallback = (
   documentId: string,

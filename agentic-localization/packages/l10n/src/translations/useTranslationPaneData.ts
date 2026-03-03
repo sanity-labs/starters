@@ -193,8 +193,6 @@ async function computeTranslationSnapshot(
   metadata: TRANSLATION_METADATA_QUERY_RESULT,
   config: ResolvedTranslationsConfig,
 ): Promise<TranslationPaneSnapshot> {
-  const publishedId = getPublishedId(documentId)
-
   let publishedIds = new Set<string>()
   let draftIds = new Set<string>()
   let versionRefs = new Set<string>()
