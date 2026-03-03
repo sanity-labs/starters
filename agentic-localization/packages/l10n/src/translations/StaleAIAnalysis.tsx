@@ -748,9 +748,7 @@ export function StaleAIAnalysis({
 
   // --- Render ---
 
-  const explanation =
-    analysis.explanation ||
-    [analysis.summary, analysis.materialityExplanation].filter(Boolean).join(' ')
+  const {explanation} = analysis
 
   return (
     <>

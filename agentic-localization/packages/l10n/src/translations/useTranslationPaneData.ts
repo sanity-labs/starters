@@ -279,7 +279,6 @@ async function computeTranslationSnapshot(
         translatedDocumentId: ref ?? undefined,
         flag: locale.flag,
         fallbackLocale: locale.fallbackLocale ?? undefined,
-        isPublished: ref ? publishedIds.has(ref) : undefined,
       }
     })
 

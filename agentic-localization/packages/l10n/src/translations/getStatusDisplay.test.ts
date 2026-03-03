@@ -9,11 +9,6 @@ const ALL_STATUSES: TranslationStatus[] = [
   'needsReview',
   'approved',
   'stale',
-  // Legacy document-lifecycle
-  'published',
-  'draft',
-  'inRelease',
-  'missingWithFallback',
   // In-flight
   'translating',
   'failed',

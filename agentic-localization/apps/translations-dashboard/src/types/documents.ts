@@ -1,3 +1,5 @@
+import type {KeyedObject} from 'sanity'
+
 export interface BaseDocument {
   _createdAt?: string
   _id: string
@@ -18,8 +20,7 @@ export interface DocumentDetailData {
   title: null | string
 }
 
-export interface ReleaseTranslation {
-  _key: string
+export interface ReleaseTranslation extends KeyedObject {
   published?: null | TranslationDocument
   publishedId: string
   version?: null | TranslationDocument
