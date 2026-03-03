@@ -15,7 +15,10 @@ try {
   const envFile = resolve(import.meta.dirname ?? process.cwd(), '.env')
   for (const line of readFileSync(envFile, 'utf8').split('\n')) {
     const match = line.match(/^([^#=]+)=(.*)$/)
-    if (match) process.env[match[1].trim()] ??= match[2].trim()
+    if (match) {
+      const value = match[2].trim().replace(/^(['"])(.*)\1$/, '$2')
+      process.env[match[1].trim()] ??= value
+    }
   }
 } catch {}
 

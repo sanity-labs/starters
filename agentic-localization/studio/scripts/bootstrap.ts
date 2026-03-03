@@ -44,12 +44,50 @@ function heading(label: string) {
 
 heading("Consolidate env");
 
-if (existsSync(studioEnv) && existsSync(rootEnv)) {
-  copyFileSync(studioEnv, rootEnv);
-  console.log("Copied studio/.env → .env");
-} else if (existsSync(studioEnv)) {
-  copyFileSync(studioEnv, rootEnv);
-  console.log("Created .env from studio/.env");
+// Precedence: studio/.env (written by `sanity init`) → root .env → root .env.example
+// Case A: studio/.env exists, root .env missing  → seed from .env.example, merge studio values
+// Case B: studio/.env exists, root .env exists    → merge studio values into root
+// Case C: studio/.env missing, root .env exists   → nothing to do (contributor path)
+// Case D: neither exists, .env.example exists     → seed from .env.example (values empty)
+// Case E: nothing exists                          → fail early with guidance
+
+const rootExample = resolve(dir, "../../.env.example");
+
+function parseEnvFile(path: string): Record<string, string> {
+  const vars: Record<string, string> = {};
+  for (const line of readFileSync(path, "utf8").split("\n")) {
+    const match = line.match(/^([^#=]+)=(.*)$/);
+    if (match) vars[match[1].trim()] = match[2].trim().replace(/^(['"])(.*)\1$/, "$2");
+  }
+  return vars;
+}
+
+if (!existsSync(rootEnv)) {
+  if (existsSync(rootExample)) {
+    copyFileSync(rootExample, rootEnv);
+    console.log("Created .env from .env.example");
+  } else if (!existsSync(studioEnv)) {
+    throw new Error(
+      "No .env, .env.example, or studio/.env found. Run `sanity init --template` first.",
+    );
+  }
+}
+
+if (existsSync(studioEnv)) {
+  const studioVars = parseEnvFile(studioEnv);
+
+  let content = existsSync(rootEnv) ? readFileSync(rootEnv, "utf8") : "";
+  for (const [key, value] of Object.entries(studioVars)) {
+    if (!value) continue;
+    const pattern = new RegExp(`^#?\\s*(${key})=.*$`, "m");
+    if (pattern.test(content)) {
+      content = content.replace(pattern, `$1="${value}"`);
+    } else {
+      content = content.trimEnd() + `\n${key}="${value}"\n`;
+    }
+  }
+  writeFileSync(rootEnv, content);
+  console.log("Merged studio/.env values into .env");
 } else {
   console.log("No studio/.env found — using existing root .env");
 }
@@ -107,7 +145,16 @@ if (!existsSync(blueprintConfig)) {
   try {
     execFileSync(
       "pnpm",
-      ["exec", "sanity", "blueprints", "init", "--stack-name", "production", "--project-id", projectId!],
+      [
+        "exec",
+        "sanity",
+        "blueprints",
+        "init",
+        "--stack-name",
+        "production",
+        "--project-id",
+        projectId!,
+      ],
       { cwd: root, stdio: "pipe" },
     );
   } catch {
