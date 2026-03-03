@@ -63,7 +63,7 @@ function LocaleSwitcherButton() {
   useEffect(() => {
     if (!open) return
 
-    const {signal, abort} = new AbortController()
+    const controller = new AbortController()
 
     document.addEventListener(
       'mousedown',
@@ -72,7 +72,7 @@ function LocaleSwitcherButton() {
         if (buttonRef.current?.contains(target) || popoverRef.current?.contains(target)) return
         setOpen(false)
       },
-      {signal},
+      {signal: controller.signal},
     )
 
     document.addEventListener(
@@ -80,10 +80,10 @@ function LocaleSwitcherButton() {
       (e) => {
         if (e.key === 'Escape') setOpen(false)
       },
-      {signal},
+      {signal: controller.signal},
     )
 
-    return () => abort()
+    return () => controller.abort()
   }, [open])
 
   if (!languages) {
