@@ -172,6 +172,7 @@ export interface PreTranslatedSuggestion {
  * Keyed by `sourceRevision` — automatically stale when a new revision triggers staleness.
  */
 export interface ReviewProgress {
+  _key: string
   sourceRevision: string
   localeId: string
   fields: Record<string, 'applied' | 'skipped'>

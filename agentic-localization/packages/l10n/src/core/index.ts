@@ -5,6 +5,7 @@
  * Safe to import in Sanity Functions, Node.js scripts, and browser contexts.
  *
  * The rule: no `react`, no `sanity`, no `@sanity/ui`, no plugins.
+ * Lightweight `@sanity/*` leaf packages (e.g. `@sanity/id-utils`) are fine.
  * Type-only imports from `@sanity/client` are fine (erased at compile time).
  */
 
@@ -46,6 +47,9 @@ export {extractBlockText} from './extractBlockText'
 // AI analysis prompt + field summary
 export {buildFieldSummary, type TextExtracts} from './buildFieldSummary'
 export {ANALYSIS_PROMPT_INSTRUCTION} from './staleAnalysisPrompt'
+
+// Deterministic metadata IDs
+export {getTranslationMetadataId} from './ids'
 
 // Translation value sanitization
 export {sanitizeTranslationValue} from './sanitizeTranslationValue'

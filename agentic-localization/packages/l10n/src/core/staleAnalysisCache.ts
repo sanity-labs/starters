@@ -79,6 +79,8 @@ export async function writeAnalysisCache(
 /**
  * Read persisted review progress for a specific locale from the cache.
  * Returns the `fields` record if the `sourceRevision` matches, `null` otherwise.
+ *
+ * Entries are keyed by `${sourceRevision}--${localeId}` via the `_key` field.
  */
 export function getReviewProgress(
   cache: StaleAnalysisCache | null | undefined,
@@ -86,18 +88,19 @@ export function getReviewProgress(
   localeId: string,
 ): Record<string, 'applied' | 'skipped'> | null {
   if (!cache || cache.sourceRevision !== currentStaleSourceRev) return null
-  const entry = cache.reviewProgress?.find(
-    (rp) => rp.sourceRevision === currentStaleSourceRev && rp.localeId === localeId,
-  )
+  const progressKey = `${currentStaleSourceRev}--${localeId}`
+  const entry = cache.reviewProgress?.find((rp) => rp._key === progressKey)
   return entry?.fields ?? null
 }
 
 /**
  * Persist per-field review decisions for a locale on the metadata document.
  *
- * Reads the existing `reviewProgress` array, upserts the entry for the given
- * locale, and writes the full array back. Fire-and-forget — callers should
- * NOT await this; UI state is updated optimistically via React state.
+ * Uses atomic Sanity array patch operations (unset + append) instead of
+ * read-modify-write, preventing concurrent editors from overwriting each other.
+ *
+ * Fire-and-forget — callers should NOT await this; UI state is updated
+ * optimistically via React state.
  */
 export async function writeReviewProgress(
   client: SanityClient,
@@ -106,19 +109,18 @@ export async function writeReviewProgress(
   localeId: string,
   fields: Record<string, 'applied' | 'skipped'>,
 ): Promise<void> {
-  const entry: ReviewProgress = {sourceRevision: staleSourceRev, localeId, fields}
-
-  const doc = await client.getDocument<{staleAnalysis?: StaleAnalysisCache}>(metadataId)
-  const existing = doc?.staleAnalysis?.reviewProgress ?? []
-  const idx = existing.findIndex(
-    (rp) => rp.sourceRevision === staleSourceRev && rp.localeId === localeId,
-  )
-  const updated = [...existing]
-  if (idx >= 0) {
-    updated[idx] = entry
-  } else {
-    updated.push(entry)
+  const progressKey = `${staleSourceRev}--${localeId}`
+  const entry: ReviewProgress = {
+    _key: progressKey,
+    sourceRevision: staleSourceRev,
+    localeId,
+    fields,
   }
 
-  await client.patch(metadataId).set({'staleAnalysis.reviewProgress': updated}).commit()
+  await client
+    .patch(metadataId)
+    .setIfMissing({'staleAnalysis.reviewProgress': []})
+    .unset([`staleAnalysis.reviewProgress[_key=="${progressKey}"]`])
+    .append('staleAnalysis.reviewProgress', [entry])
+    .commit()
 }

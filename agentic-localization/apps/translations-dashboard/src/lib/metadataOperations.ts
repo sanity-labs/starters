@@ -7,6 +7,8 @@ import type {SanityClient} from 'sanity'
 
 import {getPublishedId} from 'sanity'
 
+import {getTranslationMetadataId} from '@starter/l10n/core/ids'
+
 import type {TranslationReference} from '../types'
 import {METADATA_WITH_TRANSLATIONS_QUERY} from '../queries/metadataQueries'
 import {createReference} from './createReference'
@@ -18,6 +20,7 @@ export type MetadataDoc = {
 
 /**
  * Fetch the metadata document for a base document, or create one if missing.
+ * Uses `createIfNotExists` with a deterministic ID to prevent race-condition duplicates.
  */
 export async function fetchOrCreateMetadata(
   client: SanityClient,
@@ -25,19 +28,22 @@ export async function fetchOrCreateMetadata(
   baseLanguage: string,
   documentType: string,
 ): Promise<MetadataDoc> {
+  const publishedId = getPublishedId(baseDocumentId)
   const fetched = await client.fetch<MetadataDoc | null>(METADATA_WITH_TRANSLATIONS_QUERY, {
-    documentId: getPublishedId(baseDocumentId),
+    documentId: publishedId,
   })
 
   if (fetched) return fetched
 
   const sourceRef = createReference(baseLanguage, baseDocumentId, documentType)
-  const created = await client.create({
+  const metadataId = getTranslationMetadataId(publishedId)
+  await client.createIfNotExists({
+    _id: metadataId,
     _type: 'translation.metadata',
     schemaTypes: [documentType],
     translations: [sourceRef],
   })
-  return {_id: created._id, translations: [sourceRef]}
+  return {_id: metadataId, translations: [sourceRef]}
 }
 
 /**

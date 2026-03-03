@@ -189,6 +189,18 @@ export const articleBriefs = [
   },
 ]
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+/** ISO string for `n` days before `base`. */
+function daysAgo(base: Date, n: number): string {
+  return new Date(base.getTime() - n * 86_400_000).toISOString()
+}
+
+/** Lookup map for article briefs by published ID. */
+const source_briefs_by_id = new Map(
+  articleBriefs.map((b) => [getPublishedId(b._id), b] as const),
+)
+
 // ─── Translation brief builders ─────────────────────────────────────────────
 // Called by the generate script after fetching locales from the dataset.
 
@@ -244,9 +256,83 @@ export function buildTranslationBriefs(locales: {code: string; title: string}[])
     }
   }
 
-  // Build translation metadata documents
+  // Build translation metadata documents with realistic workflow states
+  const seedDate = new Date('2026-02-25T10:00:00Z')
+
   const translationMetadata = []
   for (const [sourceId, translations] of metadataBySource) {
+    const workflowStates: Array<Record<string, unknown>> = []
+
+    for (const t of translations) {
+      const brief = source_briefs_by_id.get(sourceId)
+      const translationOpts = brief?.translations?.[t.localeCode]
+      const isDraft = translationOpts?.isDraft ?? false
+
+      // Special case: article-simultaneous-global-launch ja-JP → stale demo
+      if (sourceId === 'article-simultaneous-global-launch' && t.localeCode === 'ja-JP') {
+        workflowStates.push({
+          _key: t.localeCode,
+          status: 'stale',
+          source: 'ai',
+          updatedAt: daysAgo(seedDate, 1),
+          staleSourceRev: 'seed-stale-rev-001',
+        })
+      } else if (isDraft) {
+        workflowStates.push({
+          _key: t.localeCode,
+          status: 'needsReview',
+          source: 'ai',
+          updatedAt: daysAgo(seedDate, 1 + Math.random()),
+        })
+      } else {
+        workflowStates.push({
+          _key: t.localeCode,
+          status: 'approved',
+          source: 'ai',
+          updatedAt: daysAgo(seedDate, 3 + Math.random() * 4),
+          reviewedBy: 'person-mei-tanaka',
+        })
+      }
+    }
+
+    // Build staleAnalysis cache for the stale demo article
+    const staleAnalysis =
+      sourceId === 'article-simultaneous-global-launch'
+        ? {
+            sourceRevision: 'seed-stale-rev-001',
+            analyzedAt: daysAgo(seedDate, 0.5),
+            result: {
+              explanation:
+                'The introduction paragraph was reworded for clarity and a new sentence was added about regulatory timelines. These are cosmetic changes that do not alter the core advice.',
+              materiality: 'cosmetic' as const,
+              suggestions: [
+                {
+                  fieldName: 'body',
+                  explanation:
+                    'Introduction reworded for flow; no factual changes. A sentence about regulatory lead times was added.',
+                  recommendation: 'dismiss' as const,
+                  changeSummary: 'Introduction reworded, regulatory sentence added',
+                  reasonCode: 'tone_only' as const,
+                  impactTags: ['Wording improved'],
+                },
+                {
+                  fieldName: 'excerpt',
+                  explanation:
+                    'Minor punctuation change — an em-dash was replaced with a comma.',
+                  recommendation: 'dismiss' as const,
+                  changeSummary: 'Punctuation fix in excerpt',
+                  reasonCode: 'formatting_only' as const,
+                  impactTags: ['Formatting only'],
+                },
+              ],
+            },
+            // preTranslations are populated at runtime by analyze-stale-translations.
+            // Omitted from seed data because suggestedValue is polymorphic (string | PT blocks)
+            // and not representable in the Sanity schema.
+            preTranslations: [],
+          }
+        : undefined
+
     translationMetadata.push({
       _id: `translation.metadata.${sourceId}`,
       _type: 'translation.metadata',
@@ -258,6 +344,8 @@ export function buildTranslationBriefs(locales: {code: string; title: string}[])
         })),
       ],
       schemaTypes: ['article'],
+      workflowStates,
+      ...(staleAnalysis && {staleAnalysis}),
     })
   }
 

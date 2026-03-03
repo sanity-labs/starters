@@ -8,9 +8,14 @@
  * - AbortController for cancellation on retry and unmount
  * - Promise-based semaphore for max-5 concurrency
  * - CSS-driven progress animation (zero re-renders)
+ *
+ * Studio integration:
+ * - documentStore.pair.editOperations() for approve/dismiss/apply (permission-aware)
+ * - useDocumentPairPermissions for RBAC gating on metadata writes
+ * - client.transaction() for atomic metadata create+patch in translate flow
  */
 
-import {useCallback, useEffect, useReducer, useRef, useTransition} from 'react'
+import {useCallback, useEffect, useMemo, useReducer, useRef, useTransition} from 'react'
 import {
   DEFAULT_STUDIO_CLIENT_OPTIONS,
   getDraftId,
@@ -18,14 +23,20 @@ import {
   getVersionId,
   useClient,
   useCurrentUser,
+  useDocumentPairPermissions,
+  useDocumentStore,
   usePerspective,
+  type KeyedObject,
+  type Reference,
 } from 'sanity'
+import {filter, firstValueFrom} from 'rxjs'
 import {defineQuery} from 'groq'
 import type {
   LocaleTranslation,
   ResolvedTranslationsConfig,
   TranslationInFlightStatus,
 } from '../core/types'
+import {getTranslationMetadataId} from '../core/ids'
 import {useTranslationContext} from './useTranslationContext'
 
 // ---------------------------------------------------------------------------
@@ -35,14 +46,6 @@ import {useTranslationContext} from './useTranslationContext'
 // vX API version required for client.agent.action.translate() calls.
 // Dated versions (e.g. '2026-02-01') don't support agent actions.
 const TRANSLATE_API_VERSION = 'vX'
-
-const EXISTING_METADATA_QUERY = defineQuery(`*[
-  _type == "translation.metadata"
-  && (references($docId) || references($publishedId))
-][0]{
-  _id,
-  translations
-}`)
 
 const SOURCE_DOC_QUERY = defineQuery(`*[_id == $id][0]`)
 
@@ -57,6 +60,10 @@ const DISMISS_WORKFLOW_QUERY = defineQuery(
 const DISMISS_SOURCE_REV_QUERY = defineQuery(`*[_id == $publishedId][0]{ _rev }`)
 
 const MAX_CONCURRENT_TRANSLATIONS = 5
+
+const METADATA_TYPE = 'translation.metadata'
+
+const LOG_PREFIX = '[l10n:translate]'
 
 // ---------------------------------------------------------------------------
 // Pure helpers (module scope)
@@ -75,34 +82,12 @@ function sanitySlugify(input: string): string {
     .replace(/^-|-$/g, '')
 }
 
-/**
- * Upserts a single locale entry in the `workflowStates` array on a metadata document.
- * Removes any existing entry for the locale, then appends the new one.
- */
-async function patchWorkflowState(
-  client: ReturnType<typeof useClient>,
-  metadataId: string,
-  localeId: string,
-  entry: Record<string, unknown>,
-) {
-  await client
-    .patch(metadataId)
-    .setIfMissing({workflowStates: []})
-    .unset([`workflowStates[_key=="${localeId}"]`])
-    .append('workflowStates', [{_key: localeId, ...entry}])
-    .commit()
-}
-
 /** Create a translation.metadata reference entry. */
 function createMetadataReference(
   localeId: string,
   documentId: string,
   _documentType: string,
-): {
-  _key: string
-  _type: 'internationalizedArrayReferenceValue'
-  value: {_ref: string; _type: 'reference'; _weak: true}
-} {
+): {_type: 'internationalizedArrayReferenceValue'; value: Reference} & KeyedObject {
   const publishedId = getPublishedId(documentId)
   return {
     _key: localeId,
@@ -222,6 +207,8 @@ export interface TranslateActionsResult {
   inFlightStates: Record<string, LocaleInFlightState>
   /** Whether any translation is in progress (isPending from useTransition) */
   isTranslating: boolean
+  /** Whether the user has permission to update metadata (null while loading) */
+  metadataPermission: boolean | null
 }
 
 // ---------------------------------------------------------------------------
@@ -246,8 +233,28 @@ export function useTranslateActions(
   const agentClient = useClient({apiVersion: TRANSLATE_API_VERSION})
   const client = useClient(DEFAULT_STUDIO_CLIENT_OPTIONS)
   const currentUser = useCurrentUser()
+  const documentStore = useDocumentStore()
   const {perspectiveStack, selectedReleaseId} = usePerspective()
   const {getContextForLocale} = useTranslationContext()
+
+  // Deterministic metadata ID derived from the source document
+  const computedMetadataId = useMemo(
+    () => (documentId ? getTranslationMetadataId(documentId) : null),
+    [documentId],
+  )
+  // Use provided metadataId if available (may come from an existing non-deterministic doc),
+  // otherwise fall back to the computed deterministic ID.
+  const effectiveMetadataId = metadataId ?? computedMetadataId
+
+  // Permission gating — check if user can update metadata docs
+  const [metadataPermissions, metadataPermissionsLoading] = useDocumentPairPermissions({
+    id: effectiveMetadataId ?? '',
+    type: METADATA_TYPE,
+    permission: 'update',
+  })
+  const metadataPermission = metadataPermissionsLoading
+    ? null
+    : (metadataPermissions?.granted ?? false)
 
   // Transitions — isPending tracks whether async work is in-flight
   const [isTranslating, startTranslateTransition] = useTransition()
@@ -282,6 +289,27 @@ export function useTranslateActions(
   }, [])
 
   // ---------------------------------------------------------------------------
+  // Studio operations helper — get patch operation for any document
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Resolve the `patch` operation from `documentStore.pair.editOperations()`.
+   * Waits until the operation is ready (disabled === false).
+   * Used for approve, dismiss, and apply actions that need permission-aware writes.
+   */
+  const getPatchOperation = useCallback(
+    async (id: string, type: string, version?: string) => {
+      const ops = await firstValueFrom(
+        documentStore.pair
+          .editOperations(id, type, version)
+          .pipe(filter((o) => o.patch.disabled === false)),
+      )
+      return ops.patch
+    },
+    [documentStore],
+  )
+
+  // ---------------------------------------------------------------------------
   // Core translation logic (pure async — throws on failure, no status management)
   // ---------------------------------------------------------------------------
 
@@ -298,14 +326,6 @@ export function useTranslateActions(
 
       const publishedId = getPublishedId(documentId)
 
-      // Fetch existing metadata for updating after translation
-      const existingMetadata = await client.fetch<{
-        _id: string
-        translations: Array<{_key: string}> | null
-      } | null>(EXISTING_METADATA_QUERY, {docId: documentId, publishedId}, {signal})
-
-      if (signal.aborted) return
-
       // Fetch source doc for glossary context and to capture _rev for diff tracking
       const sourceDoc = await client.fetch<Record<string, unknown> | null>(
         SOURCE_DOC_QUERY,
@@ -316,8 +336,6 @@ export function useTranslateActions(
       const translationContext = await getContextForLocale(locale.localeId, sourceDoc ?? undefined)
 
       if (signal.aborted) return
-
-      // Call the AI translation API with glossary/style guide context
       const result = await agentClient.agent.action.translate({
         documentId,
         fromLanguage: {id: baseLanguage, title: baseLanguage},
@@ -336,6 +354,10 @@ export function useTranslateActions(
         throw new Error('Translation returned no result')
       }
 
+      if (typeof result._id !== 'string' || !result._id) {
+        throw new Error('Translation returned a result without a valid document ID')
+      }
+
       if (signal.aborted) return
 
       // Normalize slug if present (strip diacritics) and add locale prefix
@@ -348,7 +370,7 @@ export function useTranslateActions(
       }
 
       // Create document as draft or in release
-      const resultPublishedId = getPublishedId(result._id as string)
+      const resultPublishedId = getPublishedId(result._id)
 
       if (!selectedReleaseId) {
         const draftId = getDraftId(resultPublishedId)
@@ -374,38 +396,31 @@ export function useTranslateActions(
 
       if (signal.aborted) return
 
-      // Update or create metadata + write workflow state
+      // Atomic metadata create-or-update + workflow state in a single transaction.
+      // Uses deterministic ID and createIfNotExists to prevent race-condition duplicates.
+      const metaId = getTranslationMetadataId(publishedId)
       const sourceRef = createMetadataReference(baseLanguage, publishedId, documentType)
       const translationRef = createMetadataReference(localeId, resultPublishedId, documentType)
 
-      if (existingMetadata) {
-        const sourceExists = existingMetadata.translations?.some((t) => t._key === baseLanguage)
-        const translationExists = existingMetadata.translations?.some((t) => t._key === localeId)
-
-        let patch = client.patch(existingMetadata._id).setIfMissing({translations: []})
-
-        if (!sourceExists) {
-          patch = patch.insert('before', 'translations[0]', [sourceRef])
-        }
-        if (translationExists) {
-          patch = patch.unset([`translations[_key=="${localeId}"]`])
-        }
-        patch = patch.append('translations', [translationRef])
-
-        await patch.commit()
-
-        await patchWorkflowState(client, existingMetadata._id, localeId, {
-          status: 'needsReview',
-          source: 'ai',
-          updatedAt: new Date().toISOString(),
-          sourceRevision,
-        })
-      } else {
-        await client.create({
-          _type: 'translation.metadata',
-          translations: [sourceRef, translationRef],
-          schemaTypes: [documentType],
-          workflowStates: [
+      const tx = client.transaction()
+      tx.createIfNotExists({
+        _id: metaId,
+        _type: METADATA_TYPE,
+        translations: [sourceRef],
+        schemaTypes: [documentType],
+      })
+      // Split into two patches because @sanity/client's Patch stores `insert`
+      // as a single slot — chaining two .append() calls overwrites the first.
+      tx.patch(metaId, (p) =>
+        p
+          .setIfMissing({translations: [], workflowStates: []})
+          .unset([`translations[_key=="${localeId}"]`])
+          .append('translations', [translationRef]),
+      )
+      tx.patch(metaId, (p) =>
+        p
+          .unset([`workflowStates[_key=="${localeId}"]`])
+          .append('workflowStates', [
             {
               _key: localeId,
               status: 'needsReview',
@@ -413,9 +428,9 @@ export function useTranslateActions(
               updatedAt: new Date().toISOString(),
               sourceRevision,
             },
-          ],
-        })
-      }
+          ]),
+      )
+      await tx.commit()
     },
     [
       documentId,
@@ -450,6 +465,7 @@ export function useTranslateActions(
           await processTranslation(localeId, controller.signal)
           if (!controller.signal.aborted) dispatch({type: 'complete', localeId})
         } catch (err) {
+          console.error(`${LOG_PREFIX} [${localeId}] Failed:`, err)
           if (!controller.signal.aborted) {
             const locale = locales.find((l) => l.localeId === localeId)
             dispatch({
@@ -489,31 +505,46 @@ export function useTranslateActions(
 
   const approveLocale = useCallback(
     (localeId: string) => {
-      if (!metadataId) return
+      if (!effectiveMetadataId) return
 
       startApproveTransition(async () => {
         const existingMeta = await client.fetch<{
           workflowStates: Array<{_key: string; sourceRevision?: string; source?: string}> | null
-        } | null>(APPROVE_METADATA_QUERY, {metadataId})
+        } | null>(APPROVE_METADATA_QUERY, {metadataId: effectiveMetadataId})
         const existing = existingMeta?.workflowStates?.find((s) => s._key === localeId)
 
-        await patchWorkflowState(client, metadataId, localeId, {
-          status: 'approved',
-          source: existing?.source ?? 'ai',
-          updatedAt: new Date().toISOString(),
-          reviewedBy: currentUser?.id,
-          ...(existing?.sourceRevision && {sourceRevision: existing.sourceRevision}),
-        })
+        // Use Studio operations for permission-aware metadata patch.
+        // translation.metadata has liveEdit: true, so patch writes directly to published.
+        const patch = await getPatchOperation(effectiveMetadataId, METADATA_TYPE)
+        patch.execute([
+          {setIfMissing: {workflowStates: []}},
+          {unset: [`workflowStates[_key=="${localeId}"]`]},
+          {
+            insert: {
+              after: 'workflowStates[-1]',
+              items: [
+                {
+                  _key: localeId,
+                  status: 'approved',
+                  source: existing?.source ?? 'ai',
+                  updatedAt: new Date().toISOString(),
+                  reviewedBy: currentUser?.id,
+                  ...(existing?.sourceRevision && {sourceRevision: existing.sourceRevision}),
+                },
+              ],
+            },
+          },
+        ])
 
         scheduleRefresh()
       })
     },
-    [client, metadataId, currentUser, scheduleRefresh, startApproveTransition],
+    [client, effectiveMetadataId, currentUser, scheduleRefresh, startApproveTransition, getPatchOperation],
   )
 
   const dismissStale = useCallback(
     (localeKeys: string | string[]) => {
-      if (!metadataId || !documentId) return
+      if (!effectiveMetadataId || !documentId) return
 
       startDismissTransition(async () => {
         const keys = Array.isArray(localeKeys) ? localeKeys : [localeKeys]
@@ -525,22 +556,37 @@ export function useTranslateActions(
           client.fetch(DISMISS_SOURCE_REV_QUERY, {publishedId}, {perspective: perspectiveStack}),
           client.fetch<{workflowStates: Array<{_key: string; source?: string}> | null} | null>(
             DISMISS_WORKFLOW_QUERY,
-            {metadataId},
+            {metadataId: effectiveMetadataId},
           ),
         ])
 
         const currentSourceRev = sourceDoc?._rev
         const existingStates = new Map((existingMeta?.workflowStates ?? []).map((s) => [s._key, s]))
 
+        // Use Studio operations for permission-aware metadata patch
+        const patch = await getPatchOperation(effectiveMetadataId, METADATA_TYPE)
+
         for (const localeKey of keys) {
           const existing = existingStates.get(localeKey)
-          await patchWorkflowState(client, metadataId, localeKey, {
-            status: 'approved',
-            updatedAt: new Date().toISOString(),
-            reviewedBy: currentUser?.id,
-            ...(existing?.source && {source: existing.source}),
-            ...(currentSourceRev && {sourceRevision: currentSourceRev}),
-          })
+          patch.execute([
+            {setIfMissing: {workflowStates: []}},
+            {unset: [`workflowStates[_key=="${localeKey}"]`]},
+            {
+              insert: {
+                after: 'workflowStates[-1]',
+                items: [
+                  {
+                    _key: localeKey,
+                    status: 'approved',
+                    updatedAt: new Date().toISOString(),
+                    reviewedBy: currentUser?.id,
+                    ...(existing?.source && {source: existing.source}),
+                    ...(currentSourceRev && {sourceRevision: currentSourceRev}),
+                  },
+                ],
+              },
+            },
+          ])
         }
 
         scheduleRefresh()
@@ -548,52 +594,53 @@ export function useTranslateActions(
     },
     [
       client,
-      metadataId,
+      effectiveMetadataId,
       documentId,
       currentUser,
       perspectiveStack,
       scheduleRefresh,
       startDismissTransition,
+      getPatchOperation,
     ],
   )
 
-  /** Apply a single pre-translated field. Returns a promise for consumer sequencing. */
+  /** Apply a single pre-translated field via Studio operations. */
   const applyPreTranslation = useCallback(
     async (translatedDocId: string, fieldName: string, suggestedValue: unknown) => {
+      if (!documentType) return
       const publishedId = getPublishedId(translatedDocId)
-      const targetId = selectedReleaseId
-        ? getVersionId(publishedId, selectedReleaseId)
-        : getDraftId(publishedId)
-
-      await client
-        .patch(targetId)
-        .set({[fieldName]: suggestedValue})
-        .commit()
+      const patch = await getPatchOperation(
+        publishedId,
+        documentType,
+        selectedReleaseId || undefined,
+      )
+      patch.execute([{set: {[fieldName]: suggestedValue}}])
     },
-    [client, selectedReleaseId],
+    [documentType, selectedReleaseId, getPatchOperation],
   )
 
-  /** Apply multiple pre-translated fields in a single patch. */
+  /** Apply multiple pre-translated fields via Studio operations. */
   const applyAllPreTranslations = useCallback(
     async (
       translatedDocId: string,
       translations: Array<{fieldName: string; suggestedValue: unknown}>,
     ) => {
-      if (translations.length === 0) return
+      if (translations.length === 0 || !documentType) return
 
       const publishedId = getPublishedId(translatedDocId)
-      const targetId = selectedReleaseId
-        ? getVersionId(publishedId, selectedReleaseId)
-        : getDraftId(publishedId)
-
       const setPayload: Record<string, unknown> = {}
       for (const {fieldName, suggestedValue} of translations) {
         setPayload[fieldName] = suggestedValue
       }
 
-      await client.patch(targetId).set(setPayload).commit()
+      const patch = await getPatchOperation(
+        publishedId,
+        documentType,
+        selectedReleaseId || undefined,
+      )
+      patch.execute([{set: setPayload}])
     },
-    [client, selectedReleaseId],
+    [documentType, selectedReleaseId, getPatchOperation],
   )
 
   return {
@@ -606,5 +653,6 @@ export function useTranslateActions(
     applyAllPreTranslations,
     inFlightStates,
     isTranslating,
+    metadataPermission,
   }
 }

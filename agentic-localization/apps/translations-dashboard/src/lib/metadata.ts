@@ -1,9 +1,10 @@
-import {uuid} from '@sanity/uuid'
 import {getPublishedId} from 'sanity'
+
+import {getTranslationMetadataId} from '@starter/l10n/core/ids'
 
 import type {TranslationReference} from '../types'
 
-/** Shape accepted by `client.create()` for new metadata documents. */
+/** Shape accepted by `client.createIfNotExists()` for metadata documents. */
 type NewTranslationMetadata = {
   _id: string
   _type: 'translation.metadata'
@@ -13,6 +14,7 @@ type NewTranslationMetadata = {
 
 /**
  * Build a complete translation metadata document for a source document.
+ * Uses a deterministic ID based on the source document's published ID.
  */
 export function buildMetadataDocument(
   documentId: string,
@@ -20,7 +22,7 @@ export function buildMetadataDocument(
   schemaType: string,
 ): NewTranslationMetadata {
   return {
-    _id: uuid(),
+    _id: getTranslationMetadataId(documentId),
     _type: 'translation.metadata',
     schemaTypes: [schemaType],
     translations: [buildTranslationReference(documentId, languageKey)],
