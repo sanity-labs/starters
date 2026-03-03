@@ -5,6 +5,8 @@
  * Lives in `packages/shared/` so neither surface owns the definition.
  */
 
+import type {KeyedObject} from 'sanity'
+
 /**
  * Configuration for the translations system.
  * Passed to `createL10n()` and used by the SDK dashboard.
@@ -70,32 +72,15 @@ export type DocumentState = 'none' | 'draft' | 'published' | 'inRelease'
 export type TranslationInFlightStatus = 'translating' | 'failed'
 
 /**
- * Union of all possible translation statuses (workflow + in-flight + legacy document-lifecycle).
+ * Union of all possible translation statuses (workflow + in-flight).
  */
-export type TranslationStatus =
-  | TranslationWorkflowStatus
-  | TranslationInFlightStatus
-  | LegacyDocumentStatus
-
-/**
- * Legacy document-lifecycle statuses used by the SDK dashboard aggregate views.
- * These map to `DocumentState` conceptually but are preserved for backward compat
- * with existing dashboard components that call `getStatusDisplay()`.
- * @deprecated Prefer `TranslationWorkflowStatus` + `DocumentState` for new code.
- */
-export type LegacyDocumentStatus = 'draft' | 'inRelease' | 'missingWithFallback' | 'published'
-
-/**
- * @deprecated Use `TranslationWorkflowStatus` instead. This alias exists for backward compat.
- */
-export type TranslationDataStatus = TranslationWorkflowStatus | LegacyDocumentStatus
+export type TranslationStatus = TranslationWorkflowStatus | TranslationInFlightStatus
 
 /**
  * Shape of a single entry in the `workflowStates` array on `translation.metadata`.
  * Each item is keyed by locale ID via the `_key` field (e.g., `_key: 'es-MX'`).
  */
-export interface WorkflowStateEntry {
-  _key: string
+export interface WorkflowStateEntry extends KeyedObject {
   status: TranslationWorkflowStatus
   source?: 'ai' | 'manual'
   updatedAt?: string
@@ -116,10 +101,6 @@ export interface StaleAnalysisResult {
   explanation: string
   /** Overall impact assessment */
   materiality: 'cosmetic' | 'minor' | 'material'
-  /** @deprecated Use `explanation` — kept for backward compat with cached data */
-  summary?: string
-  /** @deprecated Use `explanation` — kept for backward compat with cached data */
-  materialityExplanation?: string
   /** Per-field suggestions */
   suggestions: StaleAnalysisSuggestion[]
   /** Number of AI suggestions dropped due to hallucinated field names (R5) */
@@ -171,8 +152,7 @@ export interface PreTranslatedSuggestion {
  * Stored on the metadata doc so progress survives navigation.
  * Keyed by `sourceRevision` — automatically stale when a new revision triggers staleness.
  */
-export interface ReviewProgress {
-  _key: string
+export interface ReviewProgress extends KeyedObject {
   sourceRevision: string
   localeId: string
   fields: Record<string, 'applied' | 'skipped'>
@@ -264,11 +244,6 @@ export interface LocaleTranslation {
   releaseName?: string
   /** Fallback locale ID (e.g., 'en-US') */
   fallbackLocale?: string
-  /**
-   * Whether the translated document is published.
-   * @deprecated Inspect `documentState === 'published'` instead.
-   */
-  isPublished?: boolean
 }
 
 /**

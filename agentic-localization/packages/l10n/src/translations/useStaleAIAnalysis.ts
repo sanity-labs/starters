@@ -69,7 +69,7 @@ function parseAnalysisResponse(raw: string, validFieldNames: Set<string>): Stale
   const cleaned = raw.replace(/^```json\s*|\s*```$/g, '').trim()
   const parsed = JSON.parse(cleaned)
 
-  if (!parsed.materiality || !parsed.suggestions || (!parsed.explanation && !parsed.summary)) {
+  if (!parsed.materiality || !parsed.suggestions || !parsed.explanation) {
     throw new Error('AI response missing required fields')
   }
 
@@ -100,10 +100,7 @@ function parseAnalysisResponse(raw: string, validFieldNames: Set<string>): Stale
   const droppedCount = parsed.suggestions.length - validSuggestions.length
 
   return {
-    // R8: prefer explanation, fall back to concatenating legacy fields
-    explanation:
-      parsed.explanation ||
-      [parsed.summary, parsed.materialityExplanation].filter(Boolean).join(' '),
+    explanation: parsed.explanation,
     materiality: parsed.materiality,
     suggestions: validSuggestions,
     droppedSuggestionCount: droppedCount > 0 ? droppedCount : undefined,

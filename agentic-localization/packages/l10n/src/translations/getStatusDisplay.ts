@@ -11,7 +11,6 @@
 import {
   CheckmarkCircleIcon,
   CircleIcon,
-  ClockIcon,
   EditIcon,
   ErrorOutlineIcon,
   WarningOutlineIcon,
@@ -63,32 +62,6 @@ const STATUS_DISPLAY_MAP: Record<TranslationStatus, StatusDisplay> = {
     tone: 'caution',
     label: 'Stale',
     tooltip: 'Source document has changed since this translation was created',
-  },
-
-  // Legacy document-lifecycle statuses (backward compat for SDK dashboard)
-  published: {
-    icon: CheckmarkCircleIcon,
-    tone: 'positive',
-    label: 'Published',
-    tooltip: 'Translation is published and live',
-  },
-  draft: {
-    icon: EditIcon,
-    tone: 'caution',
-    label: 'Draft',
-    tooltip: 'Translation exists as draft only',
-  },
-  inRelease: {
-    icon: ClockIcon,
-    tone: 'suggest',
-    label: 'In Release',
-    tooltip: 'Translation exists in a scheduled Sanity release',
-  },
-  missingWithFallback: {
-    icon: CircleIcon,
-    tone: 'caution',
-    label: 'Missing',
-    tooltip: 'No direct translation, but a fallback locale has one',
   },
 
   // In-flight states (transient, not persisted)

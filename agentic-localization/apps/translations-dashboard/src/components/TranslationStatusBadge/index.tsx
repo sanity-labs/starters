@@ -1,16 +1,15 @@
 /**
  * Translation status badge for document list rows.
  *
- * Uses `getStatusDisplay()` from the shared package as the single source
- * of truth for icon, tone, and label — ensuring visual consistency with
- * the summary bar, charts, and Surface 2 document pane.
- *
- * Contextual tooltips include the locale name for clarity.
+ * Uses `getStatusDisplay()` from the shared package for workflow/in-flight
+ * statuses and a local display map for document-lifecycle statuses
+ * (published, draft, inRelease) that are specific to the dashboard.
  */
 
-import type {TranslationStatus} from '@starter/l10n'
+import type {StatusDisplay, TranslationStatus} from '@starter/l10n'
 
 import {getStatusDisplay} from '@starter/l10n'
+import {CheckmarkCircleIcon, CircleIcon, ClockIcon, EditIcon} from '@sanity/icons'
 import {Badge, Flex, Text} from '@sanity/ui'
 import {useRef} from 'react'
 
@@ -18,6 +17,51 @@ import {type LanguageData, useApp} from '../../contexts/AppContext'
 import {useTranslationStatus} from '../../contexts/TranslationStatusContext'
 import Loading from '../Loading'
 import {StatusBadge} from '../StatusBadge'
+
+/** Document-lifecycle statuses produced by the dashboard's TranslationStatusContext. */
+type LifecycleStatus = 'draft' | 'inRelease' | 'missing' | 'missingWithFallback' | 'published'
+
+const LIFECYCLE_DISPLAY_MAP: Record<LifecycleStatus, StatusDisplay> = {
+  published: {
+    icon: CheckmarkCircleIcon,
+    tone: 'positive',
+    label: 'Published',
+    tooltip: 'Translation is published and live',
+  },
+  draft: {
+    icon: EditIcon,
+    tone: 'caution',
+    label: 'Draft',
+    tooltip: 'Translation exists as draft only',
+  },
+  inRelease: {
+    icon: ClockIcon,
+    tone: 'suggest',
+    label: 'In Release',
+    tooltip: 'Translation exists in a scheduled Sanity release',
+  },
+  missing: {
+    icon: CircleIcon,
+    tone: 'critical',
+    label: 'Missing',
+    tooltip: 'No translation exists for this locale',
+  },
+  missingWithFallback: {
+    icon: CircleIcon,
+    tone: 'caution',
+    label: 'Missing',
+    tooltip: 'No direct translation, but a fallback locale has one',
+  },
+}
+
+function isLifecycleStatus(status: string): status is LifecycleStatus {
+  return status in LIFECYCLE_DISPLAY_MAP
+}
+
+function getDisplay(status: string): StatusDisplay {
+  if (isLifecycleStatus(status)) return LIFECYCLE_DISPLAY_MAP[status]
+  return getStatusDisplay(status as TranslationStatus)
+}
 
 interface TranslationStatusBadgeProps {
   locale: LanguageData
@@ -39,7 +83,7 @@ export default function TranslationStatusBadge({locale, metadataId}: Translation
 
   const {fallbackStatus, status} = statusData
   const resolvedStatus = resolveStatus(status, fallbackStatus, !!fallbackLocale)
-  const display = getStatusDisplay(resolvedStatus)
+  const display = getDisplay(resolvedStatus)
   const tooltip = buildTooltip(resolvedStatus, locale, fallbackLocale)
 
   return (
@@ -51,10 +95,9 @@ export default function TranslationStatusBadge({locale, metadataId}: Translation
 
 /**
  * Build a contextual tooltip that includes the locale name.
- * Enriches the generic tooltip from getStatusDisplay() with locale context.
  */
 function buildTooltip(
-  status: TranslationStatus,
+  status: string,
   locale: LanguageData,
   fallbackLocale?: LanguageData,
 ): string {
@@ -70,28 +113,26 @@ function buildTooltip(
     case 'published':
       return `This document has been translated to ${locale.title} (published)`
     default:
-      return getStatusDisplay(status).tooltip
+      return getDisplay(status).tooltip
   }
 }
 
 /**
- * Resolve the effective TranslationStatus from the context status data.
+ * Resolve the effective status from the context status data.
  *
  * The TranslationStatusContext returns `status` ('published' | 'draft' |
- * 'inRelease' | 'missing') and `fallbackStatus`. We need to distinguish
- * 'missing' from 'missingWithFallback' for the shared getStatusDisplay().
+ * 'inRelease' | 'missing') and `fallbackStatus`. We distinguish
+ * 'missing' from 'missingWithFallback' here.
  */
 function resolveStatus(
   status: string,
   fallbackStatus: string | undefined,
   hasFallbackLocale: boolean,
-): TranslationStatus {
+): string {
   if (status === 'missing' && fallbackStatus && fallbackStatus !== 'missing' && hasFallbackLocale) {
     return 'missingWithFallback'
   }
-  // The context status values ('published', 'draft', 'inRelease', 'missing')
-  // are all valid TranslationStatus keys
-  return status as TranslationStatus
+  return status
 }
 
 export const TranslationStatusBadgeSkeleton = ({

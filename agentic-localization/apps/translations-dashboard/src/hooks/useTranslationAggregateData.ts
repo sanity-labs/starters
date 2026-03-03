@@ -20,6 +20,7 @@
  *   - isPending for transition states during param changes
  */
 
+import type {KeyedObject} from 'sanity'
 import type {TranslationWorkflowStatus, WorkflowStateEntry} from '@starter/l10n'
 
 import {getFlagFromCode} from '@starter/l10n'
@@ -57,8 +58,7 @@ export type AggregateMetadata = {
   workflowStates: null | WorkflowStateEntry[]
 }
 
-export type TranslationMetadataEntry = {
-  _key: string
+export type TranslationMetadataEntry = KeyedObject & {
   ref: string
 }
 

@@ -59,8 +59,6 @@ export const staleAnalysisField = defineField({
           options: {list: ['cosmetic', 'minor', 'material']},
         }),
         defineField({name: 'explanation', type: 'string'}),
-        defineField({name: 'summary', type: 'string'}),
-        defineField({name: 'materialityExplanation', type: 'string'}),
         defineField({name: 'droppedSuggestionCount', type: 'number'}),
         defineField({
           name: 'suggestions',
