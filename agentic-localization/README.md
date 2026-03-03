@@ -35,7 +35,38 @@ cd your-project
 pnpm bootstrap
 ```
 
-`pnpm bootstrap` resolves the organization ID, deploys the blueprint (CORS, dataset, robot token, serverless functions), deploys the schema, generates types, seeds locale documents, and imports sample content.
+`pnpm bootstrap` consolidates env files, resolves the organization ID, deploys the blueprint (CORS, dataset, robot token, serverless functions), deploys the schema, generates types, seeds locale documents, and imports sample content.
+
+<details>
+<summary>Running bootstrap steps manually</summary>
+
+```sh
+# 1. Consolidate env — copy .env.example to .env if it doesn't exist, fill in project ID and dataset
+cp .env.example .env
+
+# 2. Resolve organization ID — find it at sanity.io/manage → project settings
+# Uncomment SANITY_STUDIO_ORGANIZATION_ID in .env and set it to your org ID
+
+# 3. Deploy blueprint (CORS, dataset, robot token, serverless functions)
+pnpm --filter @starter/functions build
+pnpm exec sanity blueprints init --stack-name production --project-id <your-project-id>
+pnpm exec sanity blueprints deploy
+
+# 4. Deploy schema
+pnpm --filter studio exec sanity schema deploy
+
+# 5. Generate types
+pnpm --filter studio exec sanity schema extract
+pnpm --filter studio exec sanity typegen generate
+
+# 6. Seed locale documents
+pnpm --filter studio exec sanity migration run seed-locales --no-dry-run --no-confirm
+
+# 7. Import sample content
+pnpm --filter studio exec sanity dataset import sample-data.ndjson <your-dataset> --replace
+```
+
+</details>
 
 ### 3. Start developing
 
