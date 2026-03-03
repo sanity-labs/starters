@@ -18,6 +18,7 @@
     "bootstrap": "sanity exec scripts/bootstrap.ts --with-user-token"
   },
   "dependencies": {
+    "@sanity/assist": "catalog:",
     "@sanity/icons": "catalog:",
     "@sanity/vision": "catalog:",
     "@starter/l10n": "workspace:*",
