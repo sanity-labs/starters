@@ -1,8 +1,7 @@
-@import 'tailwindcss';
-@plugin "@tailwindcss/typography";
-
-/* — Google Fonts — */
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+@import 'tailwindcss';
+
+@plugin "@tailwindcss/typography";
 
 @theme {
   --color-bg-base: #f8fafc;
