@@ -369,15 +369,10 @@ try {
 heading("Restore dependencies");
 
 try {
-  run("pnpm", ["install", "--frozen-lockfile"], { cwd: root });
+  run("pnpm", ["install", "--force"], { cwd: root });
   success("Restore dependencies");
-} catch {
-  try {
-    run("pnpm", ["install"], { cwd: root });
-    success("Restore dependencies");
-  } catch (err) {
-    failed("Restore dependencies", err, "pnpm install");
-  }
+} catch (err) {
+  failed("Restore dependencies", err, "pnpm install --force");
 }
 
 // ── Summary ──────────────────────────────────────────────────────────────────
