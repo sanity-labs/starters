@@ -19,10 +19,9 @@
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { createInterface } from "node:readline";
 import { getCliClient } from "sanity/cli";
 
-const dir = import.meta.dirname!;
+const dir = __dirname;
 const root = resolve(dir, "../..");
 const studioEnv = resolve(dir, "../.env");
 const appEnvLocal = resolve(root, "app/.env.local");
@@ -89,14 +88,17 @@ function patchEnvVar(filePath: string, key: string, value: string) {
   writeFileSync(filePath, content);
 }
 
-function prompt(question: string): Promise<string> {
-  const rl = createInterface({ input: process.stdin, output: process.stderr });
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
+function prompt(question: string): string {
+  process.stderr.write(question);
+  try {
+    return execFileSync("bash", ["-c", 'read -r val && echo "$val"'], {
+      stdio: ["inherit", "pipe", "inherit"],
+    })
+      .toString()
+      .trim();
+  } catch {
+    return "";
+  }
 }
 
 /** True if the value looks like a real key (not empty or a placeholder). */
@@ -187,7 +189,7 @@ try {
   if (anthropicKey) {
     console.log("Anthropic API key already configured");
   } else {
-    anthropicKey = await prompt("Enter your Anthropic API key (https://console.anthropic.com): ");
+    anthropicKey = prompt("Enter your Anthropic API key (https://console.anthropic.com): ");
 
     if (anthropicKey) {
       patchEnvVar(appEnvLocal, "ANTHROPIC_API_KEY", anthropicKey);
@@ -303,7 +305,7 @@ try {
 heading("Import sample data");
 
 try {
-  sanity("dataset", "import", "studio/seed/data.tar.gz", dataset!);
+  sanity("dataset", "import", "seed/data.tar.gz", dataset!);
   success("Import sample data");
 } catch (err) {
   failed("Import sample data", err, "pnpm import-sample-data");
