@@ -242,7 +242,7 @@ try {
 heading("Add CORS origin");
 
 try {
-  sanity("cors", "add", "http://localhost:3000");
+  sanity("cors", "add", "http://localhost:3000", "--credentials");
   success("Add CORS origin");
 } catch (err) {
   failed("Add CORS origin", err, "cd studio && npx sanity cors add http://localhost:3000");
