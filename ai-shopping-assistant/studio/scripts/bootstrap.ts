@@ -11,6 +11,7 @@
  *  7. Import sample data (tar.gz)
  *  8. Deploy Studio (required for Agent Context MCP endpoint)
  *  9. Set Anthropic API key on the deployed function
+ * 10. Restore dependencies (blueprint deploy can disrupt node_modules)
  *
  * Usage:
  *   pnpm bootstrap          (from studio/)
@@ -359,6 +360,24 @@ try {
     err,
     "npx sanity functions env add agent-conversation ANTHROPIC_API_KEY your-key",
   );
+}
+
+// ── 10. Restore dependencies ─────────────────────────────────────────────────
+// Blueprint deploy's internal dependency resolution can disrupt workspace
+// node_modules. Re-run pnpm install to restore them.
+
+heading("Restore dependencies");
+
+try {
+  run("pnpm", ["install", "--frozen-lockfile"], { cwd: root });
+  success("Restore dependencies");
+} catch {
+  try {
+    run("pnpm", ["install"], { cwd: root });
+    success("Restore dependencies");
+  } catch (err) {
+    failed("Restore dependencies", err, "pnpm install");
+  }
 }
 
 // ── Summary ──────────────────────────────────────────────────────────────────
