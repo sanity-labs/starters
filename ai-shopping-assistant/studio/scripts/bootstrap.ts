@@ -5,11 +5,12 @@
  *  1. Consolidate env files — ensure app/.env.local has all values
  *  2. Prompt for Anthropic API key (if not already set)
  *  3. Compute MCP URL from project ID + dataset
- *  4. Deploy blueprint (CORS, dataset, robot token, functions)
- *  5. Deploy schema to the Content Lake
- *  6. Import sample data (tar.gz)
- *  7. Deploy Studio (required for Agent Context MCP endpoint)
- *  8. Set Anthropic API key on the deployed function
+ *  4. Add CORS origin for localhost:3000
+ *  5. Deploy blueprint (CORS, dataset, robot token, functions)
+ *  6. Deploy schema to the Content Lake
+ *  7. Import sample data (tar.gz)
+ *  8. Deploy Studio (required for Agent Context MCP endpoint)
+ *  9. Set Anthropic API key on the deployed function
  *
  * Usage:
  *   pnpm bootstrap          (from studio/)
@@ -236,7 +237,18 @@ try {
   );
 }
 
-// ── 4. Deploy blueprint ─────────────────────────────────────────────────────
+// ── 4. Add CORS origin ──────────────────────────────────────────────────────
+
+heading("Add CORS origin");
+
+try {
+  sanity("cors", "add", "http://localhost:3000");
+  success("Add CORS origin");
+} catch (err) {
+  failed("Add CORS origin", err, "cd studio && npx sanity cors add http://localhost:3000");
+}
+
+// ── 5. Deploy blueprint ──────────────────────────────────────────────────────
 // Init the stack (first run only), then deploy the blueprint
 // (CORS origins, dataset config, robot token, serverless functions).
 // Must run from the monorepo root where sanity.blueprint.ts lives.
@@ -280,7 +292,7 @@ try {
   failed("Deploy blueprint", err, "pnpm init:blueprints && pnpm deploy:blueprints");
 }
 
-// ── 5. Deploy schema ─────────────────────────────────────────────────────────
+// ── 6. Deploy schema ─────────────────────────────────────────────────────────
 
 heading("Deploy schema");
 
@@ -291,7 +303,7 @@ try {
   failed("Deploy schema", err, "cd studio && npx sanity schema deploy");
 }
 
-// ── 6. Import sample data ────────────────────────────────────────────────────
+// ── 7. Import sample data ────────────────────────────────────────────────────
 
 heading("Import sample data");
 
@@ -302,7 +314,7 @@ try {
   failed("Import sample data", err, "pnpm import-sample-data");
 }
 
-// ── 7. Deploy Studio ────────────────────────────────────────────────────────
+// ── 8. Deploy Studio ────────────────────────────────────────────────────────
 // Required for the Agent Context MCP endpoint to work.
 
 heading("Deploy Studio");
@@ -314,7 +326,7 @@ try {
   failed("Deploy Studio", err, "pnpm deploy:studio");
 }
 
-// ── 8. Set function env var ──────────────────────────────────────────────────
+// ── 9. Set function env var ──────────────────────────────────────────────────
 
 heading("Set function env var");
 
