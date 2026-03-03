@@ -28,6 +28,10 @@
       "source": "./src/core/index.ts",
       "default": "./src/core/index.ts"
     },
+    "./core/ids": {
+      "source": "./src/core/ids.ts",
+      "default": "./src/core/ids.ts"
+    },
     "./core/types": {
       "source": "./src/core/types.ts",
       "default": "./src/core/types.ts"
@@ -67,6 +71,7 @@
     "@portabletext/toolkit": "^5.0.1",
     "@radix-ui/react-accordion": "^1.2.12",
     "@sanity/document-internationalization": "catalog:",
+    "@sanity/id-utils": "^1.0.0",
     "diff": "^8.0.3",
     "groq": "catalog:",
     "lucide-react": "catalog:",

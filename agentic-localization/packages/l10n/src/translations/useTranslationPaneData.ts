@@ -33,6 +33,7 @@ import type {
   WorkflowStateEntry,
 } from '../core/types'
 import {workflowStatesToMap} from '../core/types'
+import {getTranslationMetadataId} from '../core/ids'
 
 const ALL_LOCALES_QUERY = defineQuery(`*[_type == "l10n.locale"] | order(code asc) {
   _id,
@@ -52,8 +53,10 @@ const ALL_LOCALES_QUERY = defineQuery(`*[_type == "l10n.locale"] | order(code as
 }`)
 
 const TRANSLATION_METADATA_QUERY = defineQuery(`*[
-  _type == "translation.metadata"
-  && (references($documentId) || references($publishedId))
+  _id == $metadataId || (
+    _type == "translation.metadata"
+    && references($publishedId)
+  )
 ][0]{
   _id,
   workflowStates,
@@ -322,16 +325,17 @@ export function useTranslationPaneData(
 
   // 3. Metadata from listenQuery (replaces manual listen+debounce)
   const publishedId = documentId ? getPublishedId(documentId) : undefined
+  const metadataId = publishedId ? getTranslationMetadataId(publishedId) : undefined
   const metadata$ = useMemo(
     () =>
-      documentId && publishedId
+      publishedId && metadataId
         ? documentStore.listenQuery(
             TRANSLATION_METADATA_QUERY,
-            {documentId, publishedId},
+            {metadataId, publishedId},
             DEFAULT_STUDIO_CLIENT_OPTIONS,
           )
         : of(null),
-    [documentStore, documentId, publishedId],
+    [documentStore, publishedId, metadataId],
   )
   const metadata = useObservable(metadata$) as TRANSLATION_METADATA_QUERY_RESULT | null | undefined
 

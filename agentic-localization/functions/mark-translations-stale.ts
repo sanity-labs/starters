@@ -13,10 +13,11 @@
 
 import type {TranslationWorkflowStatus, WorkflowStateEntry} from '@starter/l10n/core/types'
 
+import {getTranslationMetadataId} from '@starter/l10n/core/ids'
 import {createClient} from '@sanity/client'
 import {documentEventHandler} from '@sanity/functions'
 import {defineQuery} from 'groq'
-import {getPublishedId} from 'sanity'
+import {type DocumentId, getPublishedId} from '@sanity/id-utils'
 
 /** The base language — only publish events for this language trigger stale marking. */
 const BASE_LANGUAGE = 'en-US'
@@ -43,8 +44,10 @@ interface StaleEventData {
  * We look for any metadata doc whose translations array contains a reference to our doc.
  */
 const METADATA_FOR_DOCUMENT_QUERY = defineQuery(`*[
-  _type == "translation.metadata" &&
-  $publishedId in translations[].value._ref
+  _id == $metadataId || (
+    _type == "translation.metadata" &&
+    $publishedId in translations[].value._ref
+  )
 ][0]{
   _id,
   workflowStates
@@ -70,10 +73,12 @@ export const handler = documentEventHandler<StaleEventData>(async ({context, eve
   })
 
   // Strip drafts./versions. prefix to get the published ID for reference matching.
-  const publishedId = getPublishedId(_id)
+  const publishedId = getPublishedId(_id as DocumentId)
+  const metadataId = getTranslationMetadataId(publishedId)
 
   // Find the translation.metadata document that references this base-language doc.
   const metadata = await client.fetch<MetadataDoc | null>(METADATA_FOR_DOCUMENT_QUERY, {
+    metadataId,
     publishedId,
   })
 

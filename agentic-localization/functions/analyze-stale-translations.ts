@@ -36,7 +36,7 @@ import {createClient} from '@sanity/client'
 import {documentEventHandler} from '@sanity/functions'
 import {diffWords} from 'diff'
 import {defineQuery} from 'groq'
-import {getPublishedId} from 'sanity'
+import {type DocumentId, getPublishedId} from '@sanity/id-utils'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -233,7 +233,7 @@ export const handler = documentEventHandler<AnalyzeStaleEventData>(async ({conte
     console.log(`[AnalyzeStale] No base-language (${BASE_LANGUAGE}) translation ref found`)
     return
   }
-  const publishedSourceId = getPublishedId(sourceDocRef)
+  const publishedSourceId = getPublishedId(sourceDocRef as DocumentId)
 
   // Get sourceRevision from a stale entry (the rev at translation time — our "before" snapshot)
   const sourceRevision = staleEntries.find((e) => e.sourceRevision)?.sourceRevision

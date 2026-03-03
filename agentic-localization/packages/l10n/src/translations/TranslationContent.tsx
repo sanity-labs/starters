@@ -826,6 +826,7 @@ function TranslationContentInner({
     applyAllPreTranslations,
     inFlightStates,
     isTranslating,
+    metadataPermission,
   } = useTranslateActions(
     effectiveDocumentId,
     documentType,
@@ -921,12 +922,12 @@ function TranslationContentInner({
       for (const localeId of selectedForTranslation) {
         translateLocale(localeId)
       }
-      setSelectedLocales(new Set())
+      // Don't clear selection — in-flight locales change status after refresh,
+      // which auto-deselects them from the derived selectedForTranslation set.
     } else if (hasReviewableSelected) {
       for (const localeId of selectedForReview) {
         approveLocale(localeId)
       }
-      setSelectedLocales(new Set())
     }
   }, [
     hasTranslatableSelected,
@@ -1233,7 +1234,7 @@ function TranslationContentInner({
           onClick={handlePrimaryAction}
           text={primaryActionText}
           tone={primaryActionTone}
-          disabled={primaryActionCount === 0 || isTranslating}
+          disabled={primaryActionCount === 0 || isTranslating || metadataPermission === false}
           icon={primaryActionIcon}
           style={{width: '100%'}}
         />
