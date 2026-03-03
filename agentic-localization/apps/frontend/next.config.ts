@@ -1,19 +1,24 @@
-import type {NextConfig} from 'next'
+import type { NextConfig } from "next";
 
-// Load root .env — Next.js only reads env files from its own directory,
-// but the monorepo keeps all Sanity env vars at the repo root.
-try {
-  process.loadEnvFile(`${__dirname}/../../.env`)
-} catch {}
+// Next.js loads workspace .env/.env.local before this file runs.
+// Load root env as fallback (loadEnvFile won't overwrite).
+for (const suffix of [".env.local", ".env"]) {
+  try {
+    process.loadEnvFile(`${__dirname}/../../${suffix}`);
+  } catch {}
+}
 
 const nextConfig: NextConfig = {
   env: {
-    NEXT_PUBLIC_SANITY_PROJECT_ID: process.env.SANITY_STUDIO_PROJECT_ID,
-    NEXT_PUBLIC_SANITY_DATASET: process.env.SANITY_STUDIO_DATASET,
+    // Workspace .env.local wins if set (sanity init path), root SANITY_STUDIO_* as fallback
+    NEXT_PUBLIC_SANITY_PROJECT_ID:
+      process.env.NEXT_PUBLIC_SANITY_PROJECT_ID ?? process.env.SANITY_STUDIO_PROJECT_ID,
+    NEXT_PUBLIC_SANITY_DATASET:
+      process.env.NEXT_PUBLIC_SANITY_DATASET ?? process.env.SANITY_STUDIO_DATASET,
   },
   images: {
-    remotePatterns: [{hostname: 'cdn.sanity.io'}],
+    remotePatterns: [{ hostname: "cdn.sanity.io" }],
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;

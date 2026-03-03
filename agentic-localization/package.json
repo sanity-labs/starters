@@ -1,5 +1,5 @@
 {
-  "name": "starter-agentic-l10n",
+  "name": "agentic-localization",
   "version": "1.0.0",
   "private": true,
   "description": "Store translation glossaries, style guides, and locale rules as structured content in Sanity. Assemble them into prompts that guide AI translation agents on terminology, tone, and brand voice.",
