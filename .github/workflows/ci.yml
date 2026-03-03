@@ -61,4 +61,4 @@ jobs:
       - name: Typecheck studio
         run: cd studio && pnpm exec tsc --noEmit
       - name: Validate template
-        run: pnpm dlx sanity-template-validate
+        run: pnpm dlx @sanity/template-validator
