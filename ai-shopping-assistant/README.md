@@ -45,65 +45,23 @@ pnpm create sanity@latest --template sanity-labs/starters/ai-shopping-assistant 
 
 This scaffolds the project and walks you through Sanity project setup.
 
-### 2. Import sample data (recommended)
+### 2. Run bootstrap
 
 ```bash
 cd your-project
-pnpm import-sample-data
+pnpm bootstrap
 ```
 
-This populates your Content Lake with products, categories, brands, an agent config, and an Agent Context document with slug `default`. If you skip this step, you'll need to create content and configure Agent Context manually (see Step 4).
+This single command handles all post-scaffold setup: consolidating env files, adding CORS origins, deploying the blueprint and schema, importing sample data, deploying the Studio, configuring the serverless function, and restoring dependencies.
 
-### 3. Set up environment variables
+During bootstrap you will be prompted for:
 
-The install script already created `app/.env.local` and `studio/.env` with your project ID, dataset, and API tokens. You just need to add two more values:
+- **Anthropic API key** — get one at [console.anthropic.com](https://console.anthropic.com)
+- **Studio hostname** — choose a name for your deployed Studio (e.g., `your-project-name`)
 
-1. **`ANTHROPIC_API_KEY`** — Add your key from [console.anthropic.com](https://console.anthropic.com) to both `app/.env.local` and `studio/.env`
+> Prefer to set things up step by step? See [MANUAL_SETUP.md](./MANUAL_SETUP.md) for the full manual guide.
 
-2. **`SANITY_CONTEXT_MCP_URL`** — If you imported the sample data, the Agent Context slug is `default` and your MCP URL is:
-
-   ```
-   https://api.sanity.io/vX/agent-context/<your-project-id>/production/default
-   ```
-
-   Add this to `app/.env.local`. You can find your project ID in `studio/sanity.config.ts` or at [sanity.io/manage](https://sanity.io/manage).
-
-3. **CORS origin** — If `http://localhost:3000` isn't listed in your project's CORS origins, add it so the frontend can talk to the Sanity API:
-
-   ```bash
-   cd studio && npx sanity cors add http://localhost:3000
-   ```
-
-   When prompted "Allow credentials to be sent from this origin?", answer **yes** — this is required for authenticated API requests from the frontend.
-
-   You can check your existing origins at [sanity.io/manage](https://sanity.io/manage) → API → CORS Origins.
-
-### 4. Configure Agent Context (if you skipped importing sample data)
-
-If you didn't import sample data in Step 2, you need to create an Agent Context document manually:
-
-```bash
-cd ../ #
-pnpm dev:studio
-```
-
-Open the Studio (usually http://localhost:3333) and:
-
-1. Go to **Agents > Agent Contexts** and create a new Agent Context document
-2. Give it a name and generate a slug (the slug becomes part of the MCP URL)
-3. Configure which content the agent can access via the **Content Filter** field
-4. Copy the **MCP URL** shown at the top of the document and add it to your `app/.env.local` as `SANITY_CONTEXT_MCP_URL`
-5. **Publish the document.** The MCP endpoint only serves published documents
-
-### 5. Deploy the Studio
-
-```bash
-cd studio && npx sanity deploy
-```
-
-> **Important:** The Agent Context MCP endpoint requires a deployed Studio. Deploying just the schema (`sanity schema deploy`) is not sufficient. Choose a hostname when prompted (e.g., `your-project-name`).
-
-### 6. Start development
+### 3. Start development
 
 ```bash
 pnpm dev
@@ -111,7 +69,7 @@ pnpm dev
 
 This starts both the Next.js app (http://localhost:3000) and the Studio (http://localhost:3333) in parallel. You can also run them individually with `pnpm dev:app` and `pnpm dev:studio`.
 
-### 7. Try the chatbot
+### 4. Try the chatbot
 
 Open [http://localhost:3000](http://localhost:3000) and click the chat bubble in the bottom-right corner. Try asking:
 
@@ -207,14 +165,7 @@ Controls **what content the chatbot can access** in the Content Lake. This type 
 
 **How it works:** The MCP URL you set in `SANITY_CONTEXT_MCP_URL` points to a specific Agent Context document. When the chatbot connects via MCP, it can only query documents matching that content filter. This gives you fine-grained control over what the agent sees.
 
-**Setup:**
-
-1. Open **Agents > Agent Contexts** in the Studio
-2. Create a document with slug `default`
-3. Configure the content filter to include the document types you want the agent to access (e.g., `product`, `category`, `brand`)
-4. Copy the **MCP URL** shown at the top of the document into your `.env.local`
-5. **Publish the document.** The MCP endpoint only works with published documents
-6. **Deploy the Studio** (`npx sanity deploy`). The MCP endpoint requires a deployed Studio
+**Setup:** The bootstrap command imports sample data that includes a default Agent Context document, computes the MCP URL, and deploys the Studio. To customize the content filter, open **Agents > Agent Contexts** in the Studio. The MCP endpoint only works with published documents and a deployed Studio.
 
 ### Agent Conversations (`agent.conversation`)
 
@@ -229,23 +180,7 @@ Stores **chat transcripts** and their **AI-generated classifications**. Every ch
 
 **How it works:** When a chat ends, `app/src/lib/save-conversation.ts` writes the messages to the Content Lake using `SANITY_API_WRITE_TOKEN`. A Sanity Function defined in `functions/agent-conversation/index.ts` triggers on new or updated conversations (via the blueprint in `sanity.blueprint.ts`), classifies them with Claude Haiku, and patches the classification fields back onto the document. The delta filter in the blueprint ensures only message changes trigger classification, preventing infinite loops.
 
-**Setup:**
-
-1. `SANITY_API_WRITE_TOKEN` is set in `app/.env.local` (with Editor permissions)
-2. Initialize the blueprint config (one-time setup):
-   ```bash
-   pnpm init:blueprints
-   ```
-   This creates a config file that links to your Sanity project. When prompted, select your Project ID and create or select a Stack.
-3. Deploy the blueprint:
-   ```bash
-   pnpm deploy:blueprints
-   ```
-4. Add the `ANTHROPIC_API_KEY` to the deployed function via the CLI:
-   ```bash
-   npx sanity functions env add agent-conversation ANTHROPIC_API_KEY your-key
-   ```
-   See the [Sanity Functions env vars docs](https://www.sanity.io/docs/functions/function-env-vars) for details.
+**Setup:** The bootstrap command deploys the blueprint and sets the Anthropic API key on the function. No additional configuration is needed.
 
 You can browse conversations and their scores in **Agents > Agent Conversations**, or use the **Agent Insights** tool in the Studio sidebar for an analytics dashboard.
 
