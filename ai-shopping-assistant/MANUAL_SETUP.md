@@ -33,10 +33,8 @@ Also add `ANTHROPIC_API_KEY` to `studio/.env`.
 ## 3. Add CORS origin
 
 ```bash
-cd studio && npx sanity cors add http://localhost:3000
+cd studio && npx sanity cors add http://localhost:3000 --credentials
 ```
-
-Answer **yes** when asked about credentials.
 
 ## 4. Deploy the Studio
 
