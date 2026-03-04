@@ -17,7 +17,7 @@ The scaffold already created `app/.env.local` and `studio/.env` with your projec
 pnpm import-sample-data
 ```
 
-This populates your Content Lake with products, categories, brands, an agent config, and an Agent Context document with slug `default`. If you skip this step, you'll need to create content and configure Agent Context manually (see step 5).
+This populates your Content Lake with products, categories, brands, an agent config, and an Agent Context document with slug `default`. If you skip this step, you'll need to create content and configure Agent Context manually (see step 4).
 
 ## 2. Set up environment variables
 
@@ -28,7 +28,7 @@ You need to add two values that the scaffold doesn't set:
 2. **`SANITY_CONTEXT_MCP_URL`** — If you imported the sample data, the Agent Context slug is `default` and your MCP URL is:
 
    ```
-   https://api.sanity.io/vX/agent-context/<your-project-id>/production/default
+   https://api.sanity.io/v2026-03-04/agent-context/<your-project-id>/production/default
    ```
 
    Add this to `app/.env.local`. You can find your project ID in `studio/sanity.config.ts` or at [sanity.io/manage](https://sanity.io/manage).
@@ -43,22 +43,7 @@ cd studio && npx sanity cors add http://localhost:3000
 
 When prompted "Allow credentials to be sent from this origin?", answer **yes**.
 
-## 4. Deploy the blueprint
-
-The blueprint configures serverless functions used for auto-classifying chat conversations:
-
-```bash
-pnpm init:blueprints    # Select your project and create a stack
-pnpm deploy:blueprints
-```
-
-Then set the Anthropic API key on the deployed function:
-
-```bash
-npx sanity functions env add agent-conversation ANTHROPIC_API_KEY your-key
-```
-
-## 5. Deploy the Studio
+## 4. Deploy the Studio
 
 The Agent Context MCP endpoint requires a deployed Studio. Deploying just the schema is not sufficient.
 
@@ -70,10 +55,25 @@ Choose a hostname when prompted (e.g., `your-project-name`).
 
 > **If you skipped sample data:** Open the Studio, go to **Agents > Agent Contexts**, create a document with a slug, configure the content filter, copy the MCP URL into `app/.env.local`, and publish the document.
 
-## 6. Start development
+## 5. Start development
 
 ```bash
 pnpm dev
 ```
 
 This starts both the Next.js app (http://localhost:3000) and the Studio (http://localhost:3333).
+
+## 6. Deploy the blueprint (optional)
+
+The blueprint deploys a serverless function that auto-classifies chat conversations for the [Agent Insights](./README.md#agent-insights-studio-tool) dashboard in the Studio. This is not required for the chatbot to work.
+
+```bash
+pnpm init:blueprints    # Select your project and create a stack
+pnpm deploy:blueprints
+```
+
+Then set the Anthropic API key on the deployed function:
+
+```bash
+npx sanity functions env add agent-conversation ANTHROPIC_API_KEY your-key
+```
