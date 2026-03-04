@@ -1,59 +1,52 @@
 # Manual Setup
 
-If you prefer to set things up step by step instead of running `pnpm bootstrap`, follow this guide.
-
-All steps assume you have already scaffolded the project:
+Step-by-step alternative to `pnpm bootstrap`. Run these after scaffolding:
 
 ```bash
 pnpm create sanity@latest --template sanity-labs/starters/ai-shopping-assistant --package-manager pnpm
 cd your-project
 ```
 
-The scaffold already created `app/.env.local` and `studio/.env` with your project ID, dataset, and API tokens.
-
-## 1. Import sample data (recommended)
+## 1. Import sample data
 
 ```bash
 pnpm import-sample-data
 ```
 
-This populates your Content Lake with products, categories, brands, an agent config, and an Agent Context document with slug `default`. If you skip this step, you'll need to create content and configure Agent Context manually (see step 4).
+Populates your Content Lake with products, categories, brands, and an Agent Context document (slug: `default`).
 
-## 2. Set up environment variables
+> Skip this step only if you plan to create content manually — you will need to configure Agent Context yourself in step 4.
 
-You need to add two values that the scaffold doesn't set:
+## 2. Add environment variables
 
-1. **`ANTHROPIC_API_KEY`** — Add your key from [console.anthropic.com](https://console.anthropic.com) to both `app/.env.local` and `studio/.env`
+The scaffold sets your project ID, dataset, and API tokens. Add these two to `app/.env.local`:
 
-2. **`SANITY_CONTEXT_MCP_URL`** — If you imported the sample data, the Agent Context slug is `default` and your MCP URL is:
+```bash
+ANTHROPIC_API_KEY=sk-ant-...
+SANITY_CONTEXT_MCP_URL=https://api.sanity.io/vX/agent-context/<your-project-id>/production/default
+```
 
-   ```
-   https://api.sanity.io/v2026-03-04/agent-context/<your-project-id>/production/default
-   ```
+Replace `<your-project-id>` with the value from `studio/.env` or [sanity.io/manage](https://sanity.io/manage).
 
-   Add this to `app/.env.local`. You can find your project ID in `studio/sanity.config.ts` or at [sanity.io/manage](https://sanity.io/manage).
+Also add `ANTHROPIC_API_KEY` to `studio/.env`.
 
 ## 3. Add CORS origin
-
-Add `http://localhost:3000` so the frontend can talk to the Sanity API:
 
 ```bash
 cd studio && npx sanity cors add http://localhost:3000
 ```
 
-When prompted "Allow credentials to be sent from this origin?", answer **yes**.
+Answer **yes** when asked about credentials.
 
 ## 4. Deploy the Studio
-
-The Agent Context MCP endpoint requires a deployed Studio. Deploying just the schema is not sufficient.
 
 ```bash
 cd studio && npx sanity deploy
 ```
 
-Choose a hostname when prompted (e.g., `your-project-name`).
+Pick a hostname when prompted. The Agent Context MCP endpoint requires a deployed Studio — schema-only deploy is not enough.
 
-> **If you skipped sample data:** Open the Studio, go to **Agents > Agent Contexts**, create a document with a slug, configure the content filter, copy the MCP URL into `app/.env.local`, and publish the document.
+> **Skipped sample data?** Open the Studio at your hostname, go to **Agents > Agent Contexts**, create and publish a document, then copy its MCP URL into `app/.env.local`.
 
 ## 5. Start development
 
@@ -61,19 +54,16 @@ Choose a hostname when prompted (e.g., `your-project-name`).
 pnpm dev
 ```
 
-This starts both the Next.js app (http://localhost:3000) and the Studio (http://localhost:3333).
+Opens the Next.js app at http://localhost:3000 and the Studio at http://localhost:3333.
 
-## 6. Deploy the blueprint (optional)
+---
 
-The blueprint deploys a serverless function that auto-classifies chat conversations for the [Agent Insights](./README.md#agent-insights-studio-tool) dashboard in the Studio. This is not required for the chatbot to work.
+## Optional: Deploy the blueprint
+
+Enables the [Agent Insights](./README.md#agent-insights-studio-tool) dashboard — a Studio tool that auto-classifies chat conversations. Not required for the chatbot itself.
 
 ```bash
-pnpm init:blueprints    # Select your project and create a stack
+pnpm init:blueprints
 pnpm deploy:blueprints
-```
-
-Then set the Anthropic API key on the deployed function:
-
-```bash
-npx sanity functions env add agent-conversation ANTHROPIC_API_KEY your-key
+npx sanity functions env add agent-conversation ANTHROPIC_API_KEY <your-key>
 ```
