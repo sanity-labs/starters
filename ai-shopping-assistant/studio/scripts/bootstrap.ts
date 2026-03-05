@@ -139,30 +139,26 @@ try {
     console.log("Created studio/.env from studio/.env.example");
   }
 
-  if (!existsSync(studioEnv) && !existsSync(appEnvLocal)) {
-    throw new Error("No studio/.env or app/.env.local found. Run `sanity init --template` first.");
+  if (!existsSync(studioEnv)) {
+    throw new Error("No studio/.env found. Run `sanity init --template` first.");
   }
 
-  if (existsSync(studioEnv)) {
-    const studioVars = parseEnvFile(studioEnv);
+  const studioVars = parseEnvFile(studioEnv);
 
-    // Map studio env vars to app env vars (e.g. SANITY_STUDIO_PROJECT_ID → NEXT_PUBLIC_SANITY_PROJECT_ID)
-    for (const [studioKey, appKey] of Object.entries(ENV_MAP)) {
-      const value = studioVars[studioKey];
-      if (value) {
-        patchEnvVar(appEnvLocal, appKey, value);
-      }
+  // Map studio env vars to app env vars (e.g. SANITY_STUDIO_PROJECT_ID → NEXT_PUBLIC_SANITY_PROJECT_ID)
+  for (const [studioKey, appKey] of Object.entries(ENV_MAP)) {
+    const value = studioVars[studioKey];
+    if (value) {
+      patchEnvVar(appEnvLocal, appKey, value);
     }
-
-    // Copy ANTHROPIC_API_KEY from studio to app if it has a real value
-    if (isRealValue(studioVars.ANTHROPIC_API_KEY)) {
-      patchEnvVar(appEnvLocal, "ANTHROPIC_API_KEY", studioVars.ANTHROPIC_API_KEY);
-    }
-
-    console.log("Merged studio/.env values into app/.env.local");
-  } else {
-    console.log("No studio/.env found — using existing app/.env.local");
   }
+
+  // Copy ANTHROPIC_API_KEY from studio to app if it has a real value
+  if (isRealValue(studioVars.ANTHROPIC_API_KEY)) {
+    patchEnvVar(appEnvLocal, "ANTHROPIC_API_KEY", studioVars.ANTHROPIC_API_KEY);
+  }
+
+  console.log("Merged studio/.env values into app/.env.local");
 
   success("Consolidate env");
 } catch (err) {
@@ -246,7 +242,7 @@ try {
   sanity("cors", "add", "http://localhost:3000", "--credentials");
   success("Add CORS origin");
 } catch (err) {
-  failed("Add CORS origin", err, "cd studio && npx sanity cors add http://localhost:3000");
+  failed("Add CORS origin", err, "cd studio && npx sanity cors add http://localhost:3000 --credentials");
 }
 
 // ── 5. Deploy blueprint ──────────────────────────────────────────────────────
@@ -265,7 +261,15 @@ try {
         ["exec", "sanity", "blueprints", "init", "--stack-name", "production", "--project-id", projectId!],
         { cwd: root, stdio: "pipe" },
       );
-    } catch {
+    } catch (initErr: unknown) {
+      const stderr = initErr && typeof initErr === "object" && "stderr" in initErr ? String(initErr.stderr) : "";
+      const message = initErr instanceof Error ? initErr.message : String(initErr);
+      const output = (stderr + " " + message).toLowerCase();
+
+      if (!output.includes("already exists")) {
+        throw initErr;
+      }
+
       // Stack already exists — link local config to it
       console.log("Stack already exists — linking local config");
       run(
