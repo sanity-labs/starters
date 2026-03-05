@@ -211,8 +211,25 @@ try {
 
 heading("Compute MCP URL");
 
-const client = getCliClient({ apiVersion: "2025-01-01" });
-const { projectId, dataset } = client.config();
+let projectId: string | undefined;
+let dataset: string | undefined;
+
+try {
+  const client = getCliClient({ apiVersion: "2025-01-01" });
+  ({ projectId, dataset } = client.config());
+} catch {
+  // getCliClient throws if sanity.cli.ts is missing or unreadable
+}
+
+if (!projectId || !dataset || !isRealValue(projectId) || !isRealValue(dataset)) {
+  console.error(
+    "\n✗ Could not resolve a valid project ID and dataset.",
+  );
+  console.error(
+    "  Make sure SANITY_STUDIO_PROJECT_ID and SANITY_STUDIO_DATASET are set in studio/.env\n",
+  );
+  process.exit(1);
+}
 
 try {
   const appVars = parseEnvFile(appEnvLocal);
