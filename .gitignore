@@ -8,9 +8,6 @@ node_modules/
 .vscode/
 .idea/
 
-# Claude Code
-.claude/settings.json
-
 # Starter lock files — users generate their own on install
 */pnpm-lock.yaml
 
