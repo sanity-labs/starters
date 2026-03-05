@@ -163,9 +163,9 @@ Controls **what content the chatbot can access** in the Content Lake. This type 
 | **Slug**           | Used to build the MCP URL that scopes the agent's access                                                                       |
 | **Content Filter** | A GROQ filter that determines which documents the agent can query. Can be configured via a simple type-selector UI or raw GROQ |
 
-**How it works:** The MCP URL you set in `SANITY_CONTEXT_MCP_URL` points to a specific Agent Context document. When the chatbot connects via MCP, it can only query documents matching that content filter. This gives you fine-grained control over what the agent sees.
+**How it works:** The app constructs the MCP URL automatically from your project ID, dataset, and the `SANITY_CONTEXT_SLUG` env var (defaults to `default`). When the chatbot connects via MCP, it can only query documents matching that content filter. This gives you fine-grained control over what the agent sees.
 
-**Setup:** The bootstrap command imports sample data that includes a default Agent Context document, computes the MCP URL, and deploys the Studio. To customize the content filter, open **Agents > Agent Contexts** in the Studio. The MCP endpoint only works with published documents and a deployed Studio.
+**Setup:** The bootstrap command imports sample data that includes a default Agent Context document and deploys the Studio. To customize the content filter, open **Agents > Agent Contexts** in the Studio. The MCP endpoint only works with published documents and a deployed Studio.
 
 ### Agent Conversations (`agent.conversation`)
 
@@ -212,7 +212,8 @@ A custom Studio tool that provides an analytics dashboard for monitoring chatbot
 | `NEXT_PUBLIC_SANITY_DATASET`    | Yes      | Sanity dataset name. Usually `production`                                                                       |
 | `SANITY_API_READ_TOKEN`         | Yes      | Sanity API token with **Viewer** permissions. Create at sanity.io/manage -> API -> Tokens                       |
 | `SANITY_API_WRITE_TOKEN`        | No       | Sanity API token with **Editor** permissions. Needed for saving conversations                                   |
-| `SANITY_CONTEXT_MCP_URL`        | Yes      | The MCP URL from your Agent Context document in Studio                                                          |
+| `SANITY_CONTEXT_SLUG`           | No       | Slug of the Agent Context document in Studio. Defaults to `default`                                             |
+| `SANITY_AGENT_CONFIG_SLUG`      | No       | Slug of the Agent Config document in Studio. Defaults to `default`                                              |
 | `ANTHROPIC_API_KEY`             | Yes      | Your Anthropic API key from [console.anthropic.com](https://console.anthropic.com)                              |
 
 ## Adding a Chatbot to Your Own Project

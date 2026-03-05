@@ -24,11 +24,11 @@ Before starting, confirm:
 
 Gather these credentials:
 
-| Credential                | Where to get it                                                                |
-| ------------------------- | ------------------------------------------------------------------------------ |
-| **Sanity Project ID**     | Your `sanity.config.ts` or [sanity.io/manage](https://sanity.io/manage)       |
-| **Dataset name**          | Usually `production`. Check your `sanity.config.ts`                            |
-| **Sanity API read token** | [sanity.io/manage](https://sanity.io/manage) -> Project -> API -> Tokens      |
+| Credential                | Where to get it                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| **Sanity Project ID**     | Your `sanity.config.ts` or [sanity.io/manage](https://sanity.io/manage)         |
+| **Dataset name**          | Usually `production`. Check your `sanity.config.ts`                             |
+| **Sanity API read token** | [sanity.io/manage](https://sanity.io/manage) -> Project -> API -> Tokens        |
 | **Anthropic API key**     | From [console.anthropic.com](https://console.anthropic.com) (or other provider) |
 
 ## Workflow
@@ -56,16 +56,16 @@ npm install -D @types/turndown
 
 **Version reference** (from the working ecommerce example):
 
-| Package            | Version   | Notes                                    |
-| ------------------ | --------- | ---------------------------------------- |
-| `@ai-sdk/anthropic`| ^3.0.23  | Anthropic provider for Vercel AI SDK     |
-| `@ai-sdk/mcp`     | ^1.0.13   | MCP client for tool discovery            |
-| `@ai-sdk/react`   | ^3.0.52   | React hooks (`useChat`)                  |
-| `ai`               | ^6.0.50  | Core Vercel AI SDK                       |
-| `zod`              | ^4.3.6   | Schema validation for tool inputs        |
-| `turndown`         | ^7.2.2   | HTML-to-markdown for page context        |
-| `html2canvas-pro`  | ^1.6.6   | Screenshot capture                       |
-| `lucide-react`     | ^0.563.0 | Icons for chat UI                        |
+| Package             | Version  | Notes                                |
+| ------------------- | -------- | ------------------------------------ |
+| `@ai-sdk/anthropic` | ^3.0.23  | Anthropic provider for Vercel AI SDK |
+| `@ai-sdk/mcp`       | ^1.0.13  | MCP client for tool discovery        |
+| `@ai-sdk/react`     | ^3.0.52  | React hooks (`useChat`)              |
+| `ai`                | ^6.0.50  | Core Vercel AI SDK                   |
+| `zod`               | ^4.3.6   | Schema validation for tool inputs    |
+| `turndown`          | ^7.2.2   | HTML-to-markdown for page context    |
+| `html2canvas-pro`   | ^1.6.6   | Screenshot capture                   |
+| `lucide-react`      | ^0.563.0 | Icons for chat UI                    |
 
 ### Step 3: Set Up Environment Variables
 
@@ -79,14 +79,14 @@ NEXT_PUBLIC_SANITY_DATASET=production
 # Sanity API token with read access
 SANITY_API_READ_TOKEN=your-read-token
 
-# Context MCP URL (from your Agent Context document in Studio)
-SANITY_CONTEXT_MCP_URL=https://api.sanity.io/vX/agent-context/your-project-id/production/your-slug
+# Agent Context slug (optional, defaults to "default")
+# SANITY_CONTEXT_SLUG=default
 
 # LLM API key
 ANTHROPIC_API_KEY=your-anthropic-key
 ```
 
-Replace `vX` with your API version (e.g., `v2025-01-01`) and `your-slug` with the slug from your Agent Context document.
+The MCP URL is constructed automatically from your project ID, dataset, and the optional `SANITY_CONTEXT_SLUG` (defaults to `default`).
 
 ### Step 4: Create the Chat Implementation
 
@@ -133,7 +133,7 @@ You are a helpful assistant for this website.
 - Use initial_context first to understand available content types
 - Use groq_query to find specific content
 - Use schema_explorer when you need field details
-`
+`;
 ```
 
 For more prompt examples (e-commerce, docs, support), see the system prompts guide in the reference skill.
@@ -188,12 +188,11 @@ Use the scoped URL for production. It limits what content the agent can access b
 
 ## Troubleshooting
 
-### "SANITY_CONTEXT_MCP_URL is not set"
+### MCP connection fails
 
-1. Create an Agent Context document in Studio
-2. Give it a slug
-3. Copy the MCP URL shown at the top of the document
-4. Add it to `.env.local`
+1. Create an Agent Context document in Studio and give it a slug
+2. If the slug is not `default`, set `SANITY_CONTEXT_SLUG` in `.env.local`
+3. Ensure the Studio is deployed (`npx sanity deploy`)
 
 ### "401 Unauthorized" from MCP
 
