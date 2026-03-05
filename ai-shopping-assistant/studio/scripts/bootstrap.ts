@@ -83,7 +83,7 @@ function patchEnvVar(filePath: string, key: string, value: string) {
   let content = existsSync(filePath) ? readFileSync(filePath, "utf8") : "";
   const pattern = new RegExp(`^#?\\s*(${key})=.*$`, "m");
   if (pattern.test(content)) {
-    content = content.replace(pattern, `${key}=${value}`);
+    content = content.replace(pattern, () => `${key}=${value}`);
   } else {
     content = content.trimEnd() + `\n${key}=${value}\n`;
   }

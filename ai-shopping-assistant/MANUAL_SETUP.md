@@ -19,7 +19,9 @@ Populates your Content Lake with products, categories, brands, and an Agent Cont
 
 ## 2. Add environment variables
 
-The scaffold sets your project ID, dataset, and API tokens. Add these two to `app/.env.local`:
+The template install script you ran to init this project set your Sanity related tokens in `studio/.env` and `app/.env.local`. You still need to add two variables yourself.
+
+Add to `app/.env.local`:
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-...
