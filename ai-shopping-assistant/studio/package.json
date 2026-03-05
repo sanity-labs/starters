@@ -1,19 +1,20 @@
 {
   "name": "studio",
-  "private": true,
   "version": "1.0.0",
-  "main": "package.json",
+  "private": true,
+  "keywords": [
+    "sanity"
+  ],
   "license": "MIT",
+  "main": "package.json",
   "scripts": {
     "dev": "sanity dev",
     "start": "sanity start",
     "build": "sanity build",
     "deploy": "sanity deploy",
+    "bootstrap": "sanity exec scripts/bootstrap.ts --with-user-token",
     "deploy-graphql": "sanity graphql deploy"
   },
-  "keywords": [
-    "sanity"
-  ],
   "dependencies": {
     "@sanity/agent-context": "^0.2.0",
     "@sanity/icons": "^3.7.4",
@@ -33,9 +34,9 @@
     "typescript": "^5.8"
   },
   "prettier": {
-    "semi": false,
-    "printWidth": 100,
     "bracketSpacing": false,
+    "printWidth": 100,
+    "semi": false,
     "singleQuote": true
   }
 }

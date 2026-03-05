@@ -2,21 +2,21 @@
   "name": "ai-shopping-assistant",
   "description": "An e-commerce starter kit that turns your Content Lake into an AI-powered shopping assistant. Built with Next.js 16, the Studio, and Claude — the bot queries real-time structured content via Context MCP, so product answers are always accurate, up-to-date, and grounded in your actual data.",
   "keywords": [
-    "Sanity",
-    "Next.js",
-    "Content Agent",
-    "Sanity Context",
     "AI",
-    "MCP",
-    "E-commerce",
+    "Content Agent",
+    "Content Lake",
     "Context MCP",
-    "Content Lake"
+    "E-commerce",
+    "MCP",
+    "Next.js",
+    "Sanity",
+    "Sanity Context"
   ],
-  "license": "MIT",
   "homepage": "https://github.com/sanity-labs/starters/tree/main/ai-shopping-assistant#readme",
   "bugs": {
     "url": "https://github.com/sanity-labs/starters/issues"
   },
+  "license": "MIT",
   "scripts": {
     "dev": "pnpm --parallel --recursive run dev",
     "dev:app": "pnpm --filter app run dev",
@@ -24,12 +24,13 @@
     "build": "pnpm --filter app run build",
     "lint": "pnpm --filter app run lint",
     "type-check": "pnpm --recursive run type-check",
-    "import-sample-data": "source studio/.env 2>/dev/null; cd studio/seed && npx sanity dataset import data.tar.gz ${SANITY_STUDIO_DATASET:-} && cd ../../",
-    "deploy:blueprints": "npx sanity blueprints deploy",
-    "init:blueprints": "npx sanity blueprints init",
-    "dev:functions": "npx sanity functions dev",
-    "dev:functions:logs": "npx sanity functions logs agent-conversation",
-    "deploy:studio": "pnpm --filter studio exec npx sanity deploy"
+    "import-sample-data": "source studio/.env 2>/dev/null; cd studio/seed && pnpm exec sanity dataset import data.tar.gz ${SANITY_STUDIO_DATASET:-} && cd ../../",
+    "deploy:blueprints": "pnpm exec sanity blueprints deploy",
+    "init:blueprints": "pnpm exec sanity blueprints init",
+    "dev:functions": "pnpm exec sanity functions dev",
+    "dev:functions:logs": "pnpm exec sanity functions logs agent-conversation",
+    "bootstrap": "pnpm --filter studio exec sanity exec scripts/bootstrap.ts --with-user-token",
+    "deploy:studio": "pnpm --filter studio exec sanity deploy"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.45",
@@ -40,7 +41,8 @@
   },
   "devDependencies": {
     "@sanity/blueprints": "^0.12.2",
-    "@sanity/functions": "^1.2.0"
+    "@sanity/functions": "^1.2.0",
+    "sanity": "^5.12.0"
   },
   "engines": {
     "node": ">=20.9.0"
