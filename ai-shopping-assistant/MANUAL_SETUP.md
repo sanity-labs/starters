@@ -19,16 +19,13 @@ Populates your Content Lake with products, categories, brands, and an Agent Cont
 
 ## 2. Add environment variables
 
-The template install script you ran to init this project set your Sanity related tokens in `studio/.env` and `app/.env.local`. You still need to add two variables yourself.
+The template install script you ran to init this project set your Sanity related tokens in `studio/.env` and `app/.env.local`. You still need to add your Anthropic API key.
 
 Add to `app/.env.local`:
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-...
-SANITY_CONTEXT_MCP_URL=https://api.sanity.io/vX/agent-context/<your-project-id>/production/default
 ```
-
-Replace `<your-project-id>` with the value from `studio/.env` or [sanity.io/manage](https://sanity.io/manage).
 
 Also add `ANTHROPIC_API_KEY` to `studio/.env`.
 
@@ -44,9 +41,9 @@ cd studio && npx sanity cors add http://localhost:3000 --credentials
 cd studio && npx sanity deploy
 ```
 
-Pick a hostname when prompted. The Agent Context MCP endpoint requires a deployed Studio — schema-only deploy is not enough.
+Pick a hostname when prompted. The Agent Context MCP endpoint requires a deployed Studio.
 
-> **Skipped sample data?** Open the Studio at your hostname, go to **Agents > Agent Contexts**, create and publish a document, then copy its MCP URL into `app/.env.local`.
+> **Skipped sample data?** Open the Studio at your hostname, go to **Agents > Agent Contexts**, create and publish a document. If its slug is not `default`, set `SANITY_CONTEXT_SLUG` in `app/.env.local`.
 
 ## 5. Start development
 

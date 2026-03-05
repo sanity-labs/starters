@@ -2,16 +2,15 @@
  * Bootstrap the project after `sanity init --template`.
  *
  * Steps:
- *  1. Consolidate env files — ensure app/.env.local has all values
+ *  1. Consolidate env files — resolve project ID + dataset, ensure app/.env.local has all values
  *  2. Prompt for Anthropic API key (if not already set)
- *  3. Compute MCP URL from project ID + dataset
- *  4. Add CORS origin for localhost:3000
- *  5. Deploy blueprint (CORS, dataset, robot token, functions)
- *  6. Deploy schema to the Content Lake
- *  7. Import sample data (tar.gz)
- *  8. Deploy Studio (required for Agent Context MCP endpoint)
- *  9. Set Anthropic API key on the deployed function
- * 10. Restore dependencies (blueprint deploy can disrupt node_modules)
+ *  3. Add CORS origin for localhost:3000
+ *  4. Deploy blueprint (CORS, dataset, robot token, functions)
+ *  5. Deploy schema to the Content Lake
+ *  6. Import sample data (tar.gz)
+ *  7. Deploy Studio (required for Agent Context MCP endpoint)
+ *  8. Set Anthropic API key on the deployed function
+ *  9. Restore dependencies (blueprint deploy can disrupt node_modules)
  *
  * Usage:
  *   pnpm bootstrap          (from studio/)
@@ -21,7 +20,6 @@
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { getCliClient } from "sanity/cli";
 
 const dir = __dirname;
 const root = resolve(dir, "../..");
@@ -121,30 +119,41 @@ const ENV_MAP: Record<string, string> = {
   SANITY_STUDIO_DATASET: "NEXT_PUBLIC_SANITY_DATASET",
 };
 
+// Seed app/.env.local from app/.env.example if it doesn't exist
+if (!existsSync(appEnvLocal)) {
+  if (existsSync(appEnvExample)) {
+    copyFileSync(appEnvExample, appEnvLocal);
+    console.log("Created app/.env.local from app/.env.example");
+  } else {
+    writeFileSync(appEnvLocal, "");
+    console.log("Created empty app/.env.local");
+  }
+}
+
+// Seed studio/.env from studio/.env.example if it doesn't exist
+if (!existsSync(studioEnv) && existsSync(studioEnvExample)) {
+  copyFileSync(studioEnvExample, studioEnv);
+  console.log("Created studio/.env from studio/.env.example");
+}
+
+if (!existsSync(studioEnv)) {
+  console.error("\n✗ No studio/.env found. Run `sanity init --template` first.");
+  process.exit(1);
+}
+
+const studioVars = parseEnvFile(studioEnv);
+const projectId = studioVars.SANITY_STUDIO_PROJECT_ID;
+const dataset = studioVars.SANITY_STUDIO_DATASET;
+
+if (!projectId || !dataset || !isRealValue(projectId) || !isRealValue(dataset)) {
+  console.error("\n✗ Could not resolve a valid project ID and dataset.");
+  console.error(
+    "  Make sure SANITY_STUDIO_PROJECT_ID and SANITY_STUDIO_DATASET are set in studio/.env\n",
+  );
+  process.exit(1);
+}
+
 try {
-  // Seed app/.env.local from app/.env.example if it doesn't exist
-  if (!existsSync(appEnvLocal)) {
-    if (existsSync(appEnvExample)) {
-      copyFileSync(appEnvExample, appEnvLocal);
-      console.log("Created app/.env.local from app/.env.example");
-    } else {
-      writeFileSync(appEnvLocal, "");
-      console.log("Created empty app/.env.local");
-    }
-  }
-
-  // Seed studio/.env from studio/.env.example if it doesn't exist
-  if (!existsSync(studioEnv) && existsSync(studioEnvExample)) {
-    copyFileSync(studioEnvExample, studioEnv);
-    console.log("Created studio/.env from studio/.env.example");
-  }
-
-  if (!existsSync(studioEnv)) {
-    throw new Error("No studio/.env found. Run `sanity init --template` first.");
-  }
-
-  const studioVars = parseEnvFile(studioEnv);
-
   // Map studio env vars to app env vars (e.g. SANITY_STUDIO_PROJECT_ID → NEXT_PUBLIC_SANITY_PROJECT_ID)
   for (const [studioKey, appKey] of Object.entries(ENV_MAP)) {
     const value = studioVars[studioKey];
@@ -207,51 +216,7 @@ try {
   );
 }
 
-// ── 3. Compute MCP URL ──────────────────────────────────────────────────────
-
-heading("Compute MCP URL");
-
-let projectId: string | undefined;
-let dataset: string | undefined;
-
-try {
-  const client = getCliClient({ apiVersion: "2025-01-01" });
-  ({ projectId, dataset } = client.config());
-} catch {
-  // getCliClient throws if sanity.cli.ts is missing or unreadable
-}
-
-if (!projectId || !dataset || !isRealValue(projectId) || !isRealValue(dataset)) {
-  console.error(
-    "\n✗ Could not resolve a valid project ID and dataset.",
-  );
-  console.error(
-    "  Make sure SANITY_STUDIO_PROJECT_ID and SANITY_STUDIO_DATASET are set in studio/.env\n",
-  );
-  process.exit(1);
-}
-
-try {
-  const appVars = parseEnvFile(appEnvLocal);
-
-  if (isRealValue(appVars.SANITY_CONTEXT_MCP_URL)) {
-    console.log("MCP URL already configured");
-  } else {
-    const mcpUrl = `https://api.sanity.io/vX/agent-context/${projectId}/${dataset}/default`;
-    patchEnvVar(appEnvLocal, "SANITY_CONTEXT_MCP_URL", mcpUrl);
-    console.log(`Set SANITY_CONTEXT_MCP_URL=${mcpUrl}`);
-  }
-
-  success("Compute MCP URL");
-} catch (err) {
-  failed(
-    "Compute MCP URL",
-    err,
-    `Add SANITY_CONTEXT_MCP_URL=https://api.sanity.io/vX/agent-context/${projectId}/${dataset}/default to app/.env.local`,
-  );
-}
-
-// ── 4. Add CORS origin ──────────────────────────────────────────────────────
+// ── 3. Add CORS origin ──────────────────────────────────────────────────────
 
 heading("Add CORS origin");
 
@@ -259,10 +224,14 @@ try {
   sanity("cors", "add", "http://localhost:3000", "--credentials");
   success("Add CORS origin");
 } catch (err) {
-  failed("Add CORS origin", err, "cd studio && npx sanity cors add http://localhost:3000 --credentials");
+  failed(
+    "Add CORS origin",
+    err,
+    "cd studio && npx sanity cors add http://localhost:3000 --credentials",
+  );
 }
 
-// ── 5. Deploy blueprint ──────────────────────────────────────────────────────
+// ── 4. Deploy blueprint ──────────────────────────────────────────────────────
 // Init the stack (first run only), then deploy the blueprint
 // (CORS origins, dataset config, robot token, serverless functions).
 // Must run from the monorepo root where sanity.blueprint.ts lives.
@@ -275,11 +244,21 @@ try {
     try {
       execFileSync(
         "pnpm",
-        ["exec", "sanity", "blueprints", "init", "--stack-name", "production", "--project-id", projectId!],
+        [
+          "exec",
+          "sanity",
+          "blueprints",
+          "init",
+          "--stack-name",
+          "production",
+          "--project-id",
+          projectId!,
+        ],
         { cwd: root, stdio: "pipe" },
       );
     } catch (initErr: unknown) {
-      const stderr = initErr && typeof initErr === "object" && "stderr" in initErr ? String(initErr.stderr) : "";
+      const stderr =
+        initErr && typeof initErr === "object" && "stderr" in initErr ? String(initErr.stderr) : "";
       const message = initErr instanceof Error ? initErr.message : String(initErr);
       const output = (stderr + " " + message).toLowerCase();
 
@@ -314,7 +293,7 @@ try {
   failed("Deploy blueprint", err, "pnpm init:blueprints && pnpm deploy:blueprints");
 }
 
-// ── 6. Deploy schema ─────────────────────────────────────────────────────────
+// ── 5. Deploy schema ─────────────────────────────────────────────────────────
 
 heading("Deploy schema");
 
@@ -325,7 +304,7 @@ try {
   failed("Deploy schema", err, "cd studio && npx sanity schema deploy");
 }
 
-// ── 7. Import sample data ────────────────────────────────────────────────────
+// ── 6. Import sample data ────────────────────────────────────────────────────
 
 heading("Import sample data");
 
@@ -336,7 +315,7 @@ try {
   failed("Import sample data", err, "pnpm import-sample-data");
 }
 
-// ── 8. Deploy Studio ────────────────────────────────────────────────────────
+// ── 7. Deploy Studio ────────────────────────────────────────────────────────
 // Required for the Agent Context MCP endpoint to work.
 
 heading("Deploy Studio");
@@ -348,7 +327,7 @@ try {
   failed("Deploy Studio", err, "pnpm deploy:studio");
 }
 
-// ── 9. Set function env var ──────────────────────────────────────────────────
+// ── 8. Set function env var ──────────────────────────────────────────────────
 
 heading("Set function env var");
 
@@ -383,7 +362,7 @@ try {
   );
 }
 
-// ── 10. Restore dependencies ─────────────────────────────────────────────────
+// ── 9. Restore dependencies ─────────────────────────────────────────────────
 // Blueprint deploy's internal dependency resolution can disrupt workspace
 // node_modules. Re-run pnpm install to restore them.
 

@@ -12,17 +12,17 @@ npm install @sanity/agent-context
 
 **Version requirements:**
 
-| Package                 | Version | Notes                     |
-| ----------------------- | ------- | ------------------------- |
-| `@sanity/agent-context` | latest  | Check npm for current     |
-| `sanity`                | ^5.8.0  | Studio v5.1.0+            |
+| Package                 | Version | Notes                 |
+| ----------------------- | ------- | --------------------- |
+| `@sanity/agent-context` | latest  | Check npm for current |
+| `sanity`                | ^5.8.0  | Studio v5.1.0+        |
 
 ## 2. Add the Plugin to Your Config
 
 Open your `sanity.config.ts` and add the plugin:
 
 ```ts
-import {agentContextPlugin} from '@sanity/agent-context/studio'
+import { agentContextPlugin } from "@sanity/agent-context/studio";
 
 export default defineConfig({
   // ... your existing config (name, projectId, dataset, etc.)
@@ -30,7 +30,7 @@ export default defineConfig({
     // ... your existing plugins
     agentContextPlugin(),
   ],
-})
+});
 ```
 
 This registers the `sanity.agentContext` document type in your Studio.
@@ -40,13 +40,13 @@ This registers the `sanity.agentContext` document type in your Studio.
 If you want to organize agent-related documents under a dedicated section in the Studio:
 
 ```ts
-import {defineConfig} from 'sanity'
-import {structureTool, type StructureBuilder, type ListItemBuilder} from 'sanity/structure'
-import {agentContextPlugin} from '@sanity/agent-context/studio'
+import { defineConfig } from "sanity";
+import { structureTool, type StructureBuilder, type ListItemBuilder } from "sanity/structure";
+import { agentContextPlugin } from "@sanity/agent-context/studio";
 // ... your other imports
 
 // Types to group under the "Agents" section in the desk
-const AGENT_TYPES = ['sanity.agentContext']
+const AGENT_TYPES = ["sanity.agentContext"];
 
 export default defineConfig({
   // ... your existing config
@@ -55,25 +55,25 @@ export default defineConfig({
       structure: (S: StructureBuilder) => {
         // Filter agent types out of the default list
         const defaultItems = S.documentTypeListItems().filter(
-          (item: ListItemBuilder) => !AGENT_TYPES.includes(item.getId() ?? ''),
-        )
+          (item: ListItemBuilder) => !AGENT_TYPES.includes(item.getId() ?? ""),
+        );
 
         // Build agent section items
-        const agentItems = AGENT_TYPES.map((type) => S.documentTypeListItem(type))
+        const agentItems = AGENT_TYPES.map((type) => S.documentTypeListItem(type));
 
         return S.list()
-          .title('Content')
+          .title("Content")
           .items([
             ...defaultItems,
             S.divider(),
-            S.listItem().title('Agents').child(S.list().title('Agents').items(agentItems)),
-          ])
+            S.listItem().title("Agents").child(S.list().title("Agents").items(agentItems)),
+          ]);
       },
     }),
     agentContextPlugin(),
     // ... your other plugins
   ],
-})
+});
 ```
 
 ## 3. Create an Agent Context Document
@@ -121,7 +121,7 @@ Once the Agent Context document has a slug, the MCP URL appears at the top of th
 https://api.sanity.io/:apiVersion/agent-context/:projectId/:dataset/:slug
 ```
 
-Copy this URL. You will use it as `SANITY_CONTEXT_MCP_URL` in your Next.js app's environment variables.
+If your slug is not `default`, set `SANITY_CONTEXT_SLUG` in your Next.js app's environment variables. The MCP URL is constructed automatically from your project ID, dataset, and this slug.
 
 ## 5. Publish the Document
 
