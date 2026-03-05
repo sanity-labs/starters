@@ -7,7 +7,11 @@ format_files=$(echo "$staged" | grep -E '\.(js|mjs|ts|tsx|json|css|md|html|yaml|
 # Lint fix per starter
 lint_files=$(echo "$staged" | grep -E '\.(js|mjs|ts|tsx)$')
 
-for starter in agentic-localization ai-shopping-assistant; do
+for starter in $(find . -maxdepth 2 -name 'eslint.config.*' -not -path '*/node_modules/*' -exec dirname {} \; | sed 's|^\./||' | sort -u); do
   starter_files=$(echo "$lint_files" | grep "^$starter/" | tr '\n' ' ')
-  [ -n "$starter_files" ] && npx eslint --fix --cache --cache-location "$starter/node_modules/.cache/eslint/" $starter_files && echo "$starter_files" | xargs git add
+  if [ -n "$starter_files" ]; then
+    relative_files=$(echo "$starter_files" | sed "s|$starter/||g")
+    (cd "$starter" && npx eslint --fix --cache --cache-location "node_modules/.cache/eslint/" $relative_files)
+    echo "$starter_files" | xargs git add
+  fi
 done
