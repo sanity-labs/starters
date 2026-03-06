@@ -8,9 +8,12 @@ on:
 
 jobs:
   agentic-localization:
-    name: agentic-localization
+    name: agentic-localization (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     environment: agentic-localization
+    strategy:
+      matrix:
+        node-version: [20, 22]
     defaults:
       run:
         working-directory: agentic-localization
@@ -19,7 +22,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: ${{ matrix.node-version }}
       - run: pnpm install
       - name: Format check
         run: pnpm run format:check
