@@ -72,6 +72,7 @@
     "@radix-ui/react-accordion": "^1.2.12",
     "@sanity/document-internationalization": "catalog:",
     "@sanity/id-utils": "^1.0.0",
+    "@sanity/types": "^5.13.0",
     "diff": "^8.0.3",
     "groq": "catalog:",
     "lucide-react": "catalog:",

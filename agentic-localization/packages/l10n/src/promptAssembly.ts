@@ -6,20 +6,10 @@ import type {PortableTextBlock} from '@portabletext/types'
 import type {TransformTargetDocument, TranslateDocument} from '@sanity/client'
 import type {Language} from '@sanity/document-internationalization'
 import type {Get} from '@sanity/codegen'
-// Inline type guards — avoids importing the full `sanity` Studio package,
-// which would pull in React, jsdom, hls.js, etc. into serverless function bundles.
+// Import from @sanity/types (9 KB) instead of `sanity` (the full Studio — 9+ MB).
+import {isImage, isPortableTextTextBlock, isReference, isSlug} from '@sanity/types'
+
 const isString = (v: unknown): v is string => typeof v === 'string'
-const isReference = (v: unknown): v is {_ref: string; _type: 'reference'} =>
-  typeof v === 'object' && v !== null && '_ref' in v
-const isImage = (v: unknown): v is {_type: 'image'; asset?: {_ref: string}} =>
-  typeof v === 'object' && v !== null && (v as {_type?: string})._type === 'image'
-const isSlug = (v: unknown): v is {_type: 'slug'; current: string} =>
-  typeof v === 'object' && v !== null && (v as {_type?: string})._type === 'slug'
-const isPortableTextTextBlock = (v: unknown): boolean =>
-  typeof v === 'object' &&
-  v !== null &&
-  (v as {_type?: string})._type === 'block' &&
-  Array.isArray((v as {children?: unknown}).children)
 
 /**
  * Recursively extract all human-readable text from an arbitrary Sanity document.
