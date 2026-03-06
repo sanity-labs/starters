@@ -20,28 +20,21 @@ import {copyFileSync, existsSync, readFileSync, writeFileSync} from 'node:fs'
 import {resolve} from 'node:path'
 import {getCliClient} from 'sanity/cli'
 
-const dir = import.meta.dirname
+const dir = import.meta.dirname!
 const studioEnv = resolve(dir, '../.env')
 const rootEnv = resolve(dir, '../../.env')
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * @param {string} cmd
- * @param {string[]} args
- * @param {{cwd?: string}} [options]
- */
-function run(cmd, args, options) {
+function run(cmd: string, args: string[], options?: {cwd?: string}) {
   execFileSync(cmd, args, {stdio: 'inherit', ...options})
 }
 
-/** @param {string[]} args */
-function sanity(...args) {
+function sanity(...args: string[]) {
   run('pnpm', ['exec', 'sanity', ...args])
 }
 
-/** @param {string} label */
-function heading(label) {
+function heading(label: string) {
   console.log(`\n── ${label} ${'─'.repeat(60 - label.length)}`)
 }
 
@@ -60,13 +53,8 @@ heading('Consolidate env')
 
 const rootExample = resolve(dir, '../../.env.example')
 
-/**
- * @param {string} path
- * @returns {Record<string, string>}
- */
-function parseEnvFile(path) {
-  /** @type {Record<string, string>} */
-  const vars = {}
+function parseEnvFile(path: string): Record<string, string> {
+  const vars: Record<string, string> = {}
   for (const line of readFileSync(path, 'utf8').split('\n')) {
     const match = line.match(/^([^#=]+)=(.*)$/)
     if (match) vars[match[1].trim()] = match[2].trim().replace(/^(['"])(.*)\1$/, '$2')
@@ -111,8 +99,9 @@ heading('Resolve organization ID')
 const client = getCliClient({apiVersion: '2025-01-01'})
 const {projectId, dataset} = client.config()
 
-/** @type {{organizationId?: string}} */
-const project = await client.request({uri: `/projects/${projectId}`})
+const project = await client.request<{organizationId?: string}>({
+  uri: `/projects/${projectId}`,
+})
 
 if (project.organizationId) {
   let patched = 0
@@ -164,7 +153,7 @@ if (!existsSync(blueprintConfig)) {
         '--stack-name',
         'production',
         '--project-id',
-        projectId,
+        projectId!,
       ],
       {cwd: root, stdio: 'pipe'},
     )
@@ -180,7 +169,7 @@ if (!existsSync(blueprintConfig)) {
         'config',
         '--edit',
         '--project-id',
-        projectId,
+        projectId!,
         '--stack',
         'production',
       ],
@@ -210,6 +199,6 @@ sanity('migration', 'run', 'seed-locales', '--no-dry-run', '--no-confirm')
 // ── 7. Import sample data ────────────────────────────────────────────────────
 
 heading('Import sample data')
-sanity('dataset', 'import', 'sample-data.ndjson', dataset, '--replace')
+sanity('dataset', 'import', 'sample-data.ndjson', dataset!, '--replace')
 
 console.log('\n✓ Bootstrap complete\n')
