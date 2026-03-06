@@ -11,12 +11,13 @@ const shared = {
 
 export default defineConfig([
   {
-    input: {'analyze-stale-translations': 'analyze-stale-translations.ts'},
+    input: {index: 'analyze-stale-translations/index.ts'},
     ...shared,
-    output: {...shared.output, cleanDir: true},
+    output: {...shared.output, dir: 'dist/analyze-stale-translations', cleanDir: true},
   },
   {
-    input: {'mark-translations-stale': 'mark-translations-stale.ts'},
+    input: {index: 'mark-translations-stale/index.ts'},
     ...shared,
+    output: {...shared.output, dir: 'dist/mark-translations-stale', cleanDir: true},
   },
 ])
