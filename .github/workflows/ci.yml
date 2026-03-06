@@ -39,6 +39,23 @@ jobs:
         env:
           SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
           SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET }}
+      - name: Check function bundle sizes
+        run: |
+          max_kb=512
+          failed=0
+          for dir in functions/dist/*/; do
+            bundle="$dir/index.js"
+            [ -f "$bundle" ] || continue
+            size_kb=$(( $(wc -c < "$bundle") / 1024 ))
+            name=$(basename "$dir")
+            if [ "$size_kb" -gt "$max_kb" ]; then
+              echo "::error::$name bundle is ${size_kb} KB (max ${max_kb} KB)"
+              failed=1
+            else
+              echo "$name: ${size_kb} KB ✓"
+            fi
+          done
+          exit $failed
 
   ai-shopping-assistant:
     name: ai-shopping-assistant
