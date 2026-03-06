@@ -1,0 +1,116 @@
+{
+  "name": "@starter/l10n",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./types": {
+      "source": "./src/types.ts",
+      "default": "./src/types.ts"
+    },
+    "./utils": {
+      "source": "./src/utils.ts",
+      "default": "./src/utils.ts"
+    },
+    "./promptAssembly": {
+      "source": "./src/promptAssembly.ts",
+      "default": "./src/promptAssembly.ts"
+    },
+    "./queries": {
+      "source": "./src/queries.ts",
+      "default": "./src/queries.ts"
+    },
+    "./core": {
+      "source": "./src/core/index.ts",
+      "default": "./src/core/index.ts"
+    },
+    "./core/ids": {
+      "source": "./src/core/ids.ts",
+      "default": "./src/core/ids.ts"
+    },
+    "./core/types": {
+      "source": "./src/core/types.ts",
+      "default": "./src/core/types.ts"
+    },
+    "./core/computeFieldChanges": {
+      "source": "./src/core/computeFieldChanges.ts",
+      "default": "./src/core/computeFieldChanges.ts"
+    },
+    "./core/extractBlockText": {
+      "source": "./src/core/extractBlockText.ts",
+      "default": "./src/core/extractBlockText.ts"
+    },
+    "./core/buildFieldSummary": {
+      "source": "./src/core/buildFieldSummary.ts",
+      "default": "./src/core/buildFieldSummary.ts"
+    },
+    "./core/staleAnalysisPrompt": {
+      "source": "./src/core/staleAnalysisPrompt.ts",
+      "default": "./src/core/staleAnalysisPrompt.ts"
+    },
+    "./core/staleAnalysisCache": {
+      "source": "./src/core/staleAnalysisCache.ts",
+      "default": "./src/core/staleAnalysisCache.ts"
+    },
+    "./core/sanitizeTranslationValue": {
+      "source": "./src/core/sanitizeTranslationValue.ts",
+      "default": "./src/core/sanitizeTranslationValue.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "eval": "vitest run --config vitest.eval.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@portabletext/markdown": "^1.1.3",
+    "@radix-ui/react-accordion": "^1.2.12",
+    "@sanity/document-internationalization": "catalog:",
+    "diff": "^8.0.3",
+    "lucide-react": "catalog:",
+    "react-error-boundary": "^6.1.1",
+    "sanity-plugin-internationalized-array": "catalog:"
+  },
+  "devDependencies": {
+    "@portabletext/toolkit": "^5.0.1",
+    "@portabletext/types": "^4.0.1",
+    "@sanity/client": "catalog:",
+    "@sanity/codegen": "^5.10.1",
+    "@sanity/icons": "catalog:",
+    "@sanity/id-utils": "^1.0.0",
+    "@sanity/types": "^5.13.0",
+    "@sanity/ui": "catalog:",
+    "@starter/sanity-types": "workspace:*",
+    "@starter/tsconfig": "workspace:*",
+    "@types/diff": "^7.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "catalog:",
+    "configstore": "^8.0.0",
+    "groq": "catalog:",
+    "react": "catalog:",
+    "react-rx": "^4.2.2",
+    "rxjs": "^7.8.2",
+    "sanity": "catalog:",
+    "styled-components": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@portabletext/toolkit": "^5.0.0",
+    "@sanity/client": "^7.0.0",
+    "@sanity/icons": "^3.0.0",
+    "@sanity/id-utils": "^1.0.0",
+    "@sanity/types": "^5.0.0",
+    "@sanity/ui": "^3.0.0",
+    "groq": "^5.0.0",
+    "react": "^19.0.0",
+    "react-rx": "^4.0.0",
+    "rxjs": "^7.0.0",
+    "sanity": "^5.0.0",
+    "styled-components": "^6.0.0"
+  }
+}

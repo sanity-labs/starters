@@ -1,0 +1,12 @@
+{
+  "name": "@starter/sanity-types",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./sanity.types.ts",
+      "default": "./sanity.types.ts"
+    }
+  }
+}

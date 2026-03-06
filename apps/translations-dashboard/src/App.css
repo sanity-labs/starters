@@ -1,0 +1,45 @@
+@import 'tailwindcss';
+
+/* Container styling for the app */
+.app-container {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
+    'Helvetica Neue', sans-serif;
+}
+
+/* Constrained content width matching Sanity dashboard layout.
+ * Content is centered with generous padding at large viewports,
+ * full-width on smaller screens. */
+.dashboard-content {
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+/* Fade-in for chart sections when data arrives */
+@keyframes chart-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chart-section-loaded {
+  animation: chart-fade-in 0.3s ease-out;
+}
+
+/* Basic reset */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f9f9f9;
+}

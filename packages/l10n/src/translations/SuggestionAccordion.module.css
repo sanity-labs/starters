@@ -1,0 +1,55 @@
+.trigger {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.chevron {
+  flex-shrink: 0;
+  transition: transform 200ms ease;
+}
+
+.trigger[data-state='open'] .chevron {
+  transform: rotate(90deg);
+  transform-origin: center;
+}
+
+.panel {
+  overflow: hidden;
+}
+
+.panel[data-state='open'] {
+  animation: slideDown 200ms ease;
+}
+
+.panel[data-state='closed'] {
+  animation: slideUp 200ms ease;
+}
+
+@keyframes slideDown {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+.panelContent {
+  padding: 0 12px 12px;
+}

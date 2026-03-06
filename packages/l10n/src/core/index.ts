@@ -1,0 +1,62 @@
+/**
+ * @starter/l10n/core
+ *
+ * Pure translation logic — zero runtime browser dependencies.
+ * Safe to import in Sanity Functions, Node.js scripts, and browser contexts.
+ *
+ * The rule: no `react`, no `sanity`, no `@sanity/ui`, no plugins.
+ * Lightweight `@sanity/*` leaf packages (e.g. `@sanity/id-utils`) are fine.
+ * Type-only imports from `@sanity/client` are fine (erased at compile time).
+ */
+
+// Types
+export {
+  resolveConfig,
+  workflowStatesToMap,
+  type DocumentState,
+  type LocaleTranslation,
+  type PreTranslatedSuggestion,
+  type ResolvedTranslationsConfig,
+  type ReviewProgress,
+  type StaleAnalysisCache,
+  type StaleAnalysisResult,
+  type StaleAnalysisSuggestion,
+  type SuggestionReasonCode,
+  type TranslationInFlightStatus,
+  type TranslationsConfig,
+  type TranslationStatus,
+  type TranslationWorkflowStatus,
+  type WorkflowStateEntry,
+} from './types'
+
+// Field change computation
+export {
+  computeFieldChanges,
+  computeMagnitude,
+  detectFieldType,
+  type FieldChange,
+  type FieldChangeMagnitude,
+  type FieldType,
+} from './computeFieldChanges'
+
+// Portable Text extraction
+export {extractBlockText} from './extractBlockText'
+
+// AI analysis prompt + field summary
+export {buildFieldSummary, type TextExtracts} from './buildFieldSummary'
+export {ANALYSIS_PROMPT_INSTRUCTION} from './staleAnalysisPrompt'
+
+// Deterministic metadata IDs
+export {getTranslationMetadataId} from './ids'
+
+// Translation value sanitization
+export {sanitizeTranslationValue} from './sanitizeTranslationValue'
+
+// Analysis cache helpers
+export {
+  getReviewProgress,
+  getValidAnalysis,
+  isAnalysisFresh,
+  writeAnalysisCache,
+  writeReviewProgress,
+} from './staleAnalysisCache'
