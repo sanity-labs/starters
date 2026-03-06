@@ -15,7 +15,7 @@
     "seed": "sanity migration run seed-locales --no-dry-run --no-confirm",
     "generate-sample-data": "sanity exec scripts/generate-sample-data.ts --with-user-token -- --out sample-data.ndjson",
     "import-sample-data": "sanity exec scripts/import-sample-data.ts --with-user-token",
-    "bootstrap": "sanity exec scripts/bootstrap.ts --with-user-token"
+    "bootstrap": "sanity exec scripts/bootstrap.mjs --with-user-token"
   },
   "dependencies": {
     "@sanity/assist": "catalog:",
