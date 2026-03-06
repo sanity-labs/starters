@@ -62,7 +62,7 @@ export default defineBlueprint({
     // ── Document Functions ───────────────────────────────────────────
     defineDocumentFunction({
       name: 'mark-translations-stale',
-      src: 'functions/dist/mark-translations-stale.js',
+      src: 'functions/dist/mark-translations-stale',
       robotToken: '$.resources.fn-robot',
       event: {
         on: ['publish'],
@@ -74,7 +74,7 @@ export default defineBlueprint({
     }),
     defineDocumentFunction({
       name: 'analyze-stale-translations',
-      src: 'functions/dist/analyze-stale-translations.js',
+      src: 'functions/dist/analyze-stale-translations',
       robotToken: '$.resources.fn-robot',
       event: {
         on: ['update'],

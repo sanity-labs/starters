@@ -8,9 +8,12 @@ on:
 
 jobs:
   agentic-localization:
-    name: agentic-localization
+    name: agentic-localization (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     environment: agentic-localization
+    strategy:
+      matrix:
+        node-version: [20, 22]
     defaults:
       run:
         working-directory: agentic-localization
@@ -19,7 +22,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: ${{ matrix.node-version }}
       - run: pnpm install
       - name: Format check
         run: pnpm run format:check
@@ -39,6 +42,23 @@ jobs:
         env:
           SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
           SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET }}
+      - name: Check function bundle sizes
+        run: |
+          max_kb=512
+          failed=0
+          for dir in functions/dist/*/; do
+            bundle="$dir/index.js"
+            [ -f "$bundle" ] || continue
+            size_kb=$(( $(wc -c < "$bundle") / 1024 ))
+            name=$(basename "$dir")
+            if [ "$size_kb" -gt "$max_kb" ]; then
+              echo "::error::$name bundle is ${size_kb} KB (max ${max_kb} KB)"
+              failed=1
+            else
+              echo "$name: ${size_kb} KB ✓"
+            fi
+          done
+          exit $failed
 
   ai-shopping-assistant:
     name: ai-shopping-assistant
