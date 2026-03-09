@@ -650,7 +650,7 @@ export default async function ArchitecturePage({params}: {params: Promise<{lang:
           step.
         </p>
         <a
-          href="https://github.com/sanity-labs/starter-agentic-l10n"
+          href="https://github.com/sanity-labs/starters/tree/main/agentic-localization"
           className="inline-flex items-center gap-2 rounded-full bg-[var(--color-accent)] text-white px-4 py-2 text-sm font-medium hover:bg-[var(--color-accent-hover)] transition-[background-color] duration-[var(--transition-fast)]"
           target="_blank"
           rel="noopener noreferrer"
