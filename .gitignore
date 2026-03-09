@@ -11,3 +11,6 @@ node_modules/
 # Starter lock files — users generate their own on install
 */pnpm-lock.yaml
 
+# Notes (For internal use)
+notes/
+
