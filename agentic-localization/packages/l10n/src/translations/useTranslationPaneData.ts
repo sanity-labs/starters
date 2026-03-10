@@ -23,7 +23,6 @@ import type {SanityClient} from 'sanity'
 import {useObservable} from 'react-rx'
 import {of} from 'rxjs'
 import {defineQuery} from 'groq'
-import type {TRANSLATION_METADATA_QUERY_RESULT} from '../queryResultTypes'
 import type {
   DocumentState,
   LocaleTranslation,
@@ -73,6 +72,17 @@ const BASE_DOC_REF_QUERY = defineQuery(`*[
   _type == "translation.metadata"
   && (references($documentId) || references($publishedId))
 ][0].translations[_key == $defaultLanguage][0].value._ref`)
+
+/** Result shape of TRANSLATION_METADATA_QUERY (used for listenQuery / fetch). */
+interface TranslationMetadataQueryResult {
+  _id: string
+  workflowStates?:
+    | Array<Partial<WorkflowStateEntry> & {_key: string}>
+    | Record<string, Omit<WorkflowStateEntry, '_key'>>
+    | null
+  staleAnalysis?: StaleAnalysisCache | null
+  translations?: Array<{_key: string; ref?: string | null}>
+}
 
 // ---------------------------------------------------------------------------
 // Locale type
@@ -193,7 +203,7 @@ async function computeTranslationSnapshot(
   client: SanityClient,
   documentId: string,
   allLocales: Locale[],
-  metadata: TRANSLATION_METADATA_QUERY_RESULT | null,
+  metadata: TranslationMetadataQueryResult | null,
   config: ResolvedTranslationsConfig,
 ): Promise<TranslationPaneSnapshot> {
   let publishedIds = new Set<string>()
@@ -201,14 +211,16 @@ async function computeTranslationSnapshot(
   let versionRefs = new Set<string>()
 
   if (metadata?.translations?.length) {
-    const refs = metadata.translations.flatMap((t) => (t.ref ? [t.ref] : []))
-    const candidateIds = [...refs, ...refs.map((r) => getDraftId(r))]
+    const refs = metadata.translations.flatMap((t: {_key: string; ref?: string | null}) =>
+      t.ref ? [t.ref] : [],
+    )
+    const candidateIds = [...refs, ...refs.map((r: string) => getDraftId(r))]
 
     const versionQuery =
       refs.length > 0
-        ? `*[${refs.map((_, i) => `_id match ("versions.*." + $r${i})`).join(' || ')}]._id`
+        ? `*[${refs.map((_: string, i: number) => `_id match ("versions.*." + $r${i})`).join(' || ')}]._id`
         : `[]`
-    const versionParams = Object.fromEntries(refs.map((r, i) => [`r${i}`, r]))
+    const versionParams = Object.fromEntries(refs.map((r: string, i: number) => [`r${i}`, r]))
 
     const [existingIds, existingVersionIds] = await Promise.all([
       client.fetch<string[]>(CANDIDATE_IDS_QUERY, {candidateIds}, {perspective: 'raw'}),
@@ -336,7 +348,7 @@ export function useTranslationPaneData(
         : of(null),
     [documentStore, publishedId, metadataId],
   )
-  const metadata = useObservable(metadata$) as TRANSLATION_METADATA_QUERY_RESULT | null | undefined
+  const metadata = useObservable(metadata$) as TranslationMetadataQueryResult | null | undefined
 
   // 4. Data promise for complex status queries (candidate IDs, version refs)
   const [dataPromise, setDataPromise] = useState<Promise<TranslationPaneSnapshot> | null>(null)
@@ -368,7 +380,7 @@ export function useTranslationPaneData(
     // Refetch metadata so status updates immediately after translate/approve/dismiss
     // (listenQuery may not have emitted yet, so recomputing from current metadata can be stale)
     const promise = client
-      .fetch<TRANSLATION_METADATA_QUERY_RESULT>(TRANSLATION_METADATA_QUERY, {
+      .fetch<TranslationMetadataQueryResult>(TRANSLATION_METADATA_QUERY, {
         metadataId: metaId,
         publishedId,
       })
