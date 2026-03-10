@@ -1,9 +1,9 @@
-import { defineCliConfig } from "sanity/cli";
+import {defineCliConfig} from 'sanity/cli'
 
 // Load studio .env so CLI commands (schema extract, typegen, etc.) have access
 // to SANITY_STUDIO_* variables. Vite handles this automatically during `sanity dev`.
 try {
-  process.loadEnvFile(`${import.meta.dirname}/.env`);
+  process.loadEnvFile(`${import.meta.dirname}/.env`)
 } catch {}
 
 export default defineCliConfig({
@@ -12,7 +12,7 @@ export default defineCliConfig({
     dataset: process.env.SANITY_STUDIO_DATASET!,
   },
   reactCompiler: {
-    target: "19",
+    target: '19',
   },
   reactStrictMode: true,
   deployment: {
@@ -20,7 +20,7 @@ export default defineCliConfig({
   },
   typegen: {
     enabled: true,
-    path: ["./schemaTypes/**/*.{ts,tsx}"],
-    generates: "../packages/@starter/sanity-types/sanity.types.ts",
+    path: ['./schemaTypes/**/*.{ts,tsx}'],
+    generates: '../packages/@starter/sanity-types/sanity.types.ts',
   },
-});
+})

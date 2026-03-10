@@ -1,9 +1,9 @@
-import type { NextConfig } from "next";
+import type {NextConfig} from 'next'
 
 const config: NextConfig = {
   images: {
-    remotePatterns: [{ hostname: "cdn.sanity.io" }],
+    remotePatterns: [{hostname: 'cdn.sanity.io'}],
   },
-};
+}
 
-export default config;
+export default config

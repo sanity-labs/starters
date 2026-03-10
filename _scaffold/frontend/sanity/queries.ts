@@ -1,4 +1,4 @@
-import { defineQuery } from "next-sanity";
+import {defineQuery} from 'next-sanity'
 
 export const allPostsQuery = defineQuery(`
   *[_type == "post" && defined(slug.current)] | order(_createdAt desc) {
@@ -6,7 +6,7 @@ export const allPostsQuery = defineQuery(`
     title,
     "slug": slug.current,
   }
-`);
+`)
 
 export const postQuery = defineQuery(`
   *[_type == "post" && slug.current == $slug] [0] {
@@ -15,9 +15,9 @@ export const postQuery = defineQuery(`
     "slug": slug.current,
     body,
   }
-`);
+`)
 
 export const postSlugsQuery = defineQuery(`
   *[_type == "post" && defined(slug.current)]
   {"slug": slug.current}
-`);
+`)

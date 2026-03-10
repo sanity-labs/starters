@@ -1,6 +1,6 @@
 ---
 name: example
-description: "Example skill placeholder. Replace this with a real skill for your starter."
+description: 'Example skill placeholder. Replace this with a real skill for your starter.'
 ---
 
 # Example Skill

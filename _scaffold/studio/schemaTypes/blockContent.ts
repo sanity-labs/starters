@@ -1,38 +1,38 @@
-import { defineType } from "sanity";
+import {defineType} from 'sanity'
 
 export const blockContent = defineType({
-  title: "Block Content",
-  name: "blockContent",
-  type: "array",
+  title: 'Block Content',
+  name: 'blockContent',
+  type: 'array',
   of: [
     {
-      type: "block",
+      type: 'block',
       styles: [
-        { title: "Normal", value: "normal" },
-        { title: "H2", value: "h2" },
-        { title: "H3", value: "h3" },
-        { title: "Quote", value: "blockquote" },
+        {title: 'Normal', value: 'normal'},
+        {title: 'H2', value: 'h2'},
+        {title: 'H3', value: 'h3'},
+        {title: 'Quote', value: 'blockquote'},
       ],
       lists: [
-        { title: "Bullet", value: "bullet" },
-        { title: "Number", value: "number" },
+        {title: 'Bullet', value: 'bullet'},
+        {title: 'Number', value: 'number'},
       ],
       marks: {
         decorators: [
-          { title: "Strong", value: "strong" },
-          { title: "Emphasis", value: "em" },
-          { title: "Code", value: "code" },
+          {title: 'Strong', value: 'strong'},
+          {title: 'Emphasis', value: 'em'},
+          {title: 'Code', value: 'code'},
         ],
         annotations: [
           {
-            title: "URL",
-            name: "link",
-            type: "object",
+            title: 'URL',
+            name: 'link',
+            type: 'object',
             fields: [
               {
-                title: "URL",
-                name: "href",
-                type: "url",
+                title: 'URL',
+                name: 'href',
+                type: 'url',
               },
             ],
           },
@@ -40,4 +40,4 @@ export const blockContent = defineType({
       },
     },
   ],
-});
+})
