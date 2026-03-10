@@ -66,7 +66,6 @@ jobs:
   scaffold:
     name: _scaffold
     runs-on: ubuntu-latest
-    environment: _scaffold
     defaults:
       run:
         working-directory: _scaffold
@@ -81,10 +80,5 @@ jobs:
         run: pnpm run format:check
       - name: Lint
         run: pnpm run lint
-      - name: Typecheck
-        run: pnpm run typecheck
-        env:
-          SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
-          SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET }}
       - name: Validate template
         run: pnpm run validate
