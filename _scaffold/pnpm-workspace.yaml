@@ -5,13 +5,13 @@ packages:
   - packages/@starter/*
 
 catalog:
-  sanity: "^5.13.0"
-  "@sanity/client": "^7.16.0"
-  "@sanity/vision": "^5.13.0"
-  groq: "^5.13.0"
-  react: "^19.2.4"
-  react-dom: "^19.2.4"
-  "@types/react": "^19.2"
-  "@types/react-dom": "^19.2.3"
-  styled-components: "^6.3.11"
-  typescript: "^5.9.3"
+  sanity: '^5.13.0'
+  '@sanity/client': '^7.16.0'
+  '@sanity/vision': '^5.13.0'
+  groq: '^5.13.0'
+  react: '^19.2.4'
+  react-dom: '^19.2.4'
+  '@types/react': '^19.2'
+  '@types/react-dom': '^19.2.3'
+  styled-components: '^6.3.11'
+  typescript: '^5.9.3'
