@@ -23,7 +23,7 @@ import type {SanityClient} from 'sanity'
 import {useObservable} from 'react-rx'
 import {of} from 'rxjs'
 import {defineQuery} from 'groq'
-import type {TRANSLATION_METADATA_QUERY_RESULT} from '@starter/sanity-types'
+import type {TRANSLATION_METADATA_QUERY_RESULT} from '../queryResultTypes'
 import type {
   DocumentState,
   LocaleTranslation,
@@ -193,7 +193,7 @@ async function computeTranslationSnapshot(
   client: SanityClient,
   documentId: string,
   allLocales: Locale[],
-  metadata: TRANSLATION_METADATA_QUERY_RESULT,
+  metadata: TRANSLATION_METADATA_QUERY_RESULT | null,
   config: ResolvedTranslationsConfig,
 ): Promise<TranslationPaneSnapshot> {
   let publishedIds = new Set<string>()
@@ -362,10 +362,26 @@ export function useTranslationPaneData(
   }, [client, documentId, allLocales, metadata, config])
 
   const refresh = useCallback(() => {
-    if (!documentId || !allLocales || metadata === undefined) return
-    startTransition(() => {
-      setDataPromise(computeTranslationSnapshot(client, documentId, allLocales, metadata, config))
-    })
+    if (!documentId || !allLocales) return
+    const publishedId = getPublishedId(documentId)
+    const metaId = getTranslationMetadataId(publishedId)
+    // Refetch metadata so status updates immediately after translate/approve/dismiss
+    // (listenQuery may not have emitted yet, so recomputing from current metadata can be stale)
+    const promise = client
+      .fetch<TRANSLATION_METADATA_QUERY_RESULT>(TRANSLATION_METADATA_QUERY, {
+        metadataId: metaId,
+        publishedId,
+      })
+      .then((freshMetadata) =>
+        computeTranslationSnapshot(
+          client,
+          documentId,
+          allLocales,
+          freshMetadata ?? metadata ?? null,
+          config,
+        ),
+      )
+    startTransition(() => setDataPromise(promise))
   }, [client, documentId, allLocales, metadata, config])
 
   return {dataPromise, refresh}
