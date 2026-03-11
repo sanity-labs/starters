@@ -6,10 +6,7 @@ import type {SlugValidationContext} from 'sanity'
  *
  * @see https://github.com/sanity-io/document-internationalization/blob/main/docs/05-allowing-the-same-slug-for-translations.md
  */
-export async function isUniqueOtherThanLanguage(
-  slug: string,
-  context: SlugValidationContext,
-) {
+export async function isUniqueOtherThanLanguage(slug: string, context: SlugValidationContext) {
   const {document, getClient} = context
   if (!document?.language) {
     return true
