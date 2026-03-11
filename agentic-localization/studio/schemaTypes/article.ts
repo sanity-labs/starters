@@ -1,5 +1,6 @@
 import {defineType, defineField, defineArrayMember} from 'sanity'
 import {DocumentTextIcon} from '@sanity/icons'
+import {isUniqueOtherThanLanguage} from '../lib/isUniqueOtherThanLanguage'
 
 export const article = defineType({
   name: 'article',
@@ -17,7 +18,7 @@ export const article = defineType({
       name: 'slug',
       title: 'Slug',
       type: 'slug',
-      options: {source: 'title'},
+      options: {source: 'title', isUnique: isUniqueOtherThanLanguage},
       validation: (rule) => rule.required(),
     }),
     defineField({
