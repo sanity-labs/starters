@@ -4,6 +4,7 @@ export default defineBlueprint({
   resources: [
     defineDocumentFunction({
       name: 'hello-world',
+      src: 'functions/dist/hello-world',
       event: {
         on: ['create', 'update'],
         filter: '_type == "post"',
