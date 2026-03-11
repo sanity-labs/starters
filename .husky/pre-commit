@@ -6,7 +6,7 @@ if [ -n "$format_files" ]; then
   for starter in $(echo "$format_files" | sed 's|/.*||' | sort -u); do
     starter_format_files=$(echo "$format_files" | grep "^$starter/" | tr '\n' ' ' || true)
     if [ -n "$starter_format_files" ]; then
-      (cd "$starter" && echo "$starter_format_files" | sed "s|$starter/||g" | xargs npx oxfmt)
+      (cd "$starter" && echo "$starter_format_files" | sed "s|$starter/||g" | xargs pnpm exec oxfmt)
       echo "$starter_format_files" | xargs git add
     fi
   done
@@ -19,7 +19,7 @@ for starter in $(find . -maxdepth 2 -name 'eslint.config.*' -not -path '*/node_m
   starter_files=$(echo "$lint_files" | grep "^$starter/" | tr '\n' ' ' || true)
   if [ -n "$starter_files" ]; then
     relative_files=$(echo "$starter_files" | sed "s|$starter/||g")
-    (cd "$starter" && npx eslint --fix --cache --cache-location "node_modules/.cache/eslint/" $relative_files)
+    (cd "$starter" && pnpm exec eslint --fix --cache --cache-location "node_modules/.cache/eslint/" $relative_files)
     echo "$starter_files" | xargs git add
   fi
 done
