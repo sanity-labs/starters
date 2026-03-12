@@ -1,5 +1,6 @@
 import {definePlugin, type SchemaTypeDefinition} from 'sanity'
 import {documentInternationalization, type Language} from '@sanity/document-internationalization'
+import {internationalizedArray} from 'sanity-plugin-internationalized-array'
 
 import {localeTranslation} from './schemas/localeTranslation'
 import {glossaryEntry} from './schemas/glossaryEntry'
@@ -76,6 +77,11 @@ export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L1
           hideLanguageFilter: (ctx) => localizedSchemaTypes.includes(ctx.schemaType),
           supportedLanguages: (client) => client.fetch<Language[]>(SUPPORTED_LANGUAGES_QUERY),
           schemaTypes: [...localizedSchemaTypes],
+        }),
+        internationalizedArray({
+          languages: (client) => client.fetch<Language[]>(SUPPORTED_LANGUAGES_QUERY),
+          defaultLanguages: [defaultLanguage],
+          fieldTypes: ['string', 'text'],
         }),
       ],
     })(),
