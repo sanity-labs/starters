@@ -9,13 +9,12 @@ import {getPublishedId} from 'sanity'
 
 import {getTranslationMetadataId} from '@starter/l10n/core/ids'
 
-import type {TranslationReference} from '../types'
 import {METADATA_WITH_TRANSLATIONS_QUERY} from '../queries/metadataQueries'
 import {createReference} from './createReference'
 
 export type MetadataDoc = {
   _id: string
-  translations: TranslationReference[] | null
+  translations: Array<{_key: string; language: string; value?: {_ref: string}}> | null
 }
 
 /**
@@ -35,7 +34,7 @@ export async function fetchOrCreateMetadata(
 
   if (fetched) return fetched
 
-  const sourceRef = createReference(baseLanguage, baseDocumentId, documentType)
+  const sourceRef = createReference(baseLanguage, getPublishedId(baseDocumentId), documentType)
   const metadataId = getTranslationMetadataId(publishedId)
   await client.createIfNotExists({
     _id: metadataId,
@@ -43,7 +42,10 @@ export async function fetchOrCreateMetadata(
     schemaTypes: [documentType],
     translations: [sourceRef],
   })
-  return {_id: metadataId, translations: [sourceRef]}
+  // Re-fetch to get backend-generated _key values on array items
+  return (await client.fetch<MetadataDoc>(METADATA_WITH_TRANSLATIONS_QUERY, {
+    documentId: publishedId,
+  }))!
 }
 
 /**
@@ -59,15 +61,15 @@ export async function patchMetadataTranslation(
   publishedId: string,
   documentType: string,
 ): Promise<void> {
-  const sourceReference = createReference(baseLanguage, baseDocumentId, documentType)
+  const sourceReference = createReference(
+    baseLanguage,
+    getPublishedId(baseDocumentId),
+    documentType,
+  )
   const translationReference = createReference(targetLocaleId, publishedId, documentType)
 
-  const sourceExists = metadataDoc.translations?.some(
-    (t: {_key: string}) => t._key === baseLanguage,
-  )
-  const translationExists = metadataDoc.translations?.some(
-    (t: {_key: string}) => t._key === targetLocaleId,
-  )
+  const sourceExists = metadataDoc.translations?.some((t) => t.language === baseLanguage)
+  const translationExists = metadataDoc.translations?.some((t) => t.language === targetLocaleId)
 
   let patch = client.patch(metadataDoc._id).setIfMissing({translations: []})
 
@@ -75,7 +77,7 @@ export async function patchMetadataTranslation(
     patch = patch.insert('before', 'translations[0]', [sourceReference])
   }
   if (translationExists) {
-    patch = patch.unset([`translations[_key=="${targetLocaleId}"]`])
+    patch = patch.unset([`translations[language=="${targetLocaleId}"]`])
   }
   patch = patch.append('translations', [translationReference])
 
@@ -94,10 +96,10 @@ export async function writeWorkflowState(
   await client
     .patch(metadataId)
     .setIfMissing({workflowStates: []})
-    .unset([`workflowStates[_key=="${localeId}"]`])
+    .unset([`workflowStates[language=="${localeId}"]`])
     .append('workflowStates', [
       {
-        _key: localeId,
+        language: localeId,
         source,
         status: 'needsReview',
         updatedAt: new Date().toISOString(),

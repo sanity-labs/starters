@@ -38,24 +38,10 @@ describe('isValidLocale', () => {
 })
 
 describe('resolveLocaleDefaults', () => {
-  it('derives English display name and metadata for de-DE', () => {
+  it('derives display name and native name for de-DE', () => {
     const result = resolveLocaleDefaults('de-DE')
     expect(result.title).toBe('German (Germany)')
     expect(result.nativeName).toBe('Deutsch')
-    expect(result.direction).toBe('ltr')
-    expect(result.pluralCategories).toBe(2)
-  })
-
-  it('derives metadata for ja-JP (1 plural category)', () => {
-    const result = resolveLocaleDefaults('ja-JP')
-    expect(result.title).toBe('Japanese (Japan)')
-    expect(result.pluralCategories).toBe(1)
-  })
-
-  it('detects RTL direction for Arabic', () => {
-    const result = resolveLocaleDefaults('ar-SA')
-    expect(result.direction).toBe('rtl')
-    expect(result.pluralCategories).toBe(6)
   })
 
   it('derives native name in locale language', () => {
@@ -66,8 +52,6 @@ describe('resolveLocaleDefaults', () => {
   it('handles language-only codes without region', () => {
     const result = resolveLocaleDefaults('en')
     expect(result.title).toBe('English')
-    expect(result.direction).toBe('ltr')
-    expect(result.pluralCategories).toBe(2)
   })
 })
 

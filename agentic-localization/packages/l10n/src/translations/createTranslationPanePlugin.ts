@@ -21,7 +21,7 @@ const STALE_STATUS_QUERY = defineQuery(`*[
   _type == "translation.metadata"
   && references($publishedId)
 ][0]{
-  "isSourceDoc": translations[_key == $defaultLanguage][0].value._ref == $publishedId,
+  "isSourceDoc": translations[language == $defaultLanguage][0].value._ref == $publishedId,
   "hasStaleEntries": count(workflowStates[status == "stale"]) > 0
 }`)
 

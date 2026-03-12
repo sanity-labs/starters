@@ -16,8 +16,8 @@
       'react-dom': '^19.2',
       'styled-components': '^6.3.11',
       'typescript': '^5.9',
-      '@sanity/document-internationalization': '^5.1.0',
-      'sanity-plugin-internationalized-array': '^4.0.3',
+      '@sanity/document-internationalization': '^6.0.0',
+      'sanity-plugin-internationalized-array': '^5.0.0',
       'vitest': '^4.0.18',
     },
 }

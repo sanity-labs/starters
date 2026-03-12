@@ -69,10 +69,15 @@ export const useCreateMissingTranslations = () => {
             schemaTypes: [documentType],
             translations: [sourceRef],
           })
-          metadataDoc = {_id: created._id, translations: [sourceRef]} as TranslationMetadata
+          metadataDoc = {
+            _id: created._id,
+            translations: [sourceRef],
+          } as unknown as TranslationMetadata
         }
 
-        const existingLanguageKeys = metadataDoc.translations.map((translation) => translation._key)
+        const existingLanguageKeys = metadataDoc.translations.map(
+          (translation) => translation.language,
+        )
         const missingLocales = availableLanguages.filter(
           (locale) => !existingLanguageKeys.includes(locale.id),
         )
@@ -147,10 +152,10 @@ export const useCreateMissingTranslations = () => {
               await client
                 .patch(metadataDoc._id)
                 .setIfMissing({workflowStates: []})
-                .unset([`workflowStates[_key=="${locale.id}"]`])
+                .unset([`workflowStates[language=="${locale.id}"]`])
                 .append('workflowStates', [
                   {
-                    _key: locale.id,
+                    language: locale.id,
                     source: 'ai',
                     status: 'needsReview',
                     updatedAt: new Date().toISOString(),

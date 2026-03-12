@@ -101,6 +101,7 @@ export function TranslationStatusProvider({
             _id: string
             translations: Array<{
               _key: string
+              language: string
               draftExists: boolean
               publishedExists: boolean
               ref: string
@@ -108,6 +109,7 @@ export function TranslationStatusProvider({
             }>
             workflowStates: Array<{
               _key: string
+              language: string
               reviewedBy?: string
               source?: string
               status?: string
@@ -127,7 +129,7 @@ export function TranslationStatusProvider({
             {reviewedBy?: string; source?: string; status?: string; updatedAt?: string}
           > = {}
           for (const entry of wfArray) {
-            wfStates[entry._key] = entry
+            wfStates[entry.language] = entry
           }
 
           // Create a lookup map for this metadata's translations
@@ -136,7 +138,7 @@ export function TranslationStatusProvider({
             {draftExists: boolean; publishedExists: boolean; ref: string; versionIds: string[]}
           >()
           for (const t of metadata.translations || []) {
-            translationMap.set(t._key, t)
+            translationMap.set(t.language, t)
           }
 
           // Compute status for each locale

@@ -54,11 +54,12 @@ export type AggregateLocale = {
 export type AggregateMetadata = {
   _id: string
   translations: TranslationMetadataEntry[]
-  /** Per-locale workflow states. Null for pre-migration metadata documents. */
+  /** Per-locale workflow states. Null if not yet populated. */
   workflowStates: null | WorkflowStateEntry[]
 }
 
 export type TranslationMetadataEntry = KeyedObject & {
+  language: string
   ref: string
 }
 
@@ -73,6 +74,7 @@ const AGGREGATE_QUERY = defineQuery(`{
     _id,
     translations[]{
       _key,
+      language,
       "ref": value._ref
     },
     workflowStates
@@ -126,7 +128,7 @@ export function buildWorkflowStateMap(
   const map = new Map<string, WorkflowStateEntry>()
   if (!workflowStates) return map
   for (const entry of workflowStates) {
-    map.set(entry._key, entry)
+    map.set(entry.language, entry)
   }
   return map
 }

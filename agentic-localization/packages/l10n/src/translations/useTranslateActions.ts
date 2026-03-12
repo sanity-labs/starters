@@ -26,8 +26,6 @@ import {
   useDocumentPairPermissions,
   useDocumentStore,
   usePerspective,
-  type KeyedObject,
-  type Reference,
 } from 'sanity'
 import {filter, firstValueFrom} from 'rxjs'
 import {defineQuery} from 'groq'
@@ -50,11 +48,11 @@ const TRANSLATE_API_VERSION = 'vX'
 const SOURCE_DOC_QUERY = defineQuery(`*[_id == $id][0]`)
 
 const APPROVE_METADATA_QUERY = defineQuery(
-  `*[_id == $metadataId][0]{ workflowStates[]{ _key, sourceRevision, source } }`,
+  `*[_id == $metadataId][0]{ workflowStates[]{ _key, language, sourceRevision, source } }`,
 )
 
 const DISMISS_WORKFLOW_QUERY = defineQuery(
-  `*[_id == $metadataId][0]{ workflowStates[]{ _key, source } }`,
+  `*[_id == $metadataId][0]{ workflowStates[]{ _key, language, source } }`,
 )
 
 const DISMISS_SOURCE_REV_QUERY = defineQuery(`*[_id == $publishedId][0]{ _rev }`)
@@ -82,19 +80,15 @@ function sanitySlugify(input: string): string {
     .replace(/^-|-$/g, '')
 }
 
-/** Create a translation.metadata reference entry. */
-function createMetadataReference(
-  localeId: string,
-  documentId: string,
-  _documentType: string,
-): {_type: 'internationalizedArrayReferenceValue'; value: Reference} & KeyedObject {
+/** Create a translation.metadata reference entry (v6 shape: language field, _key auto-generated). */
+function createReference(localeId: string, documentId: string, _documentType: string) {
   const publishedId = getPublishedId(documentId)
   return {
-    _key: localeId,
-    _type: 'internationalizedArrayReferenceValue',
+    _type: 'internationalizedArrayReferenceValue' as const,
+    language: localeId,
     value: {
       _ref: publishedId,
-      _type: 'reference',
+      _type: 'reference' as const,
       _weak: true,
     },
   }
@@ -399,8 +393,8 @@ export function useTranslateActions(
       // Atomic metadata create-or-update + workflow state in a single transaction.
       // Uses deterministic ID and createIfNotExists to prevent race-condition duplicates.
       const metaId = getTranslationMetadataId(publishedId)
-      const sourceRef = createMetadataReference(baseLanguage, publishedId, documentType)
-      const translationRef = createMetadataReference(localeId, resultPublishedId, documentType)
+      const sourceRef = createReference(baseLanguage, publishedId, documentType)
+      const translationRef = createReference(localeId, resultPublishedId, documentType)
 
       const tx = client.transaction()
       tx.createIfNotExists({
@@ -414,13 +408,13 @@ export function useTranslateActions(
       tx.patch(metaId, (p) =>
         p
           .setIfMissing({translations: [], workflowStates: []})
-          .unset([`translations[_key=="${localeId}"]`])
+          .unset([`translations[language=="${localeId}"]`])
           .append('translations', [translationRef]),
       )
       tx.patch(metaId, (p) =>
-        p.unset([`workflowStates[_key=="${localeId}"]`]).append('workflowStates', [
+        p.unset([`workflowStates[language=="${localeId}"]`]).append('workflowStates', [
           {
-            _key: localeId,
+            language: localeId,
             status: 'needsReview',
             source: 'ai',
             updatedAt: new Date().toISOString(),
@@ -507,22 +501,27 @@ export function useTranslateActions(
 
       startApproveTransition(async () => {
         const existingMeta = await client.fetch<{
-          workflowStates: Array<{_key: string; sourceRevision?: string; source?: string}> | null
+          workflowStates: Array<{
+            _key: string
+            language: string
+            sourceRevision?: string
+            source?: string
+          }> | null
         } | null>(APPROVE_METADATA_QUERY, {metadataId: effectiveMetadataId})
-        const existing = existingMeta?.workflowStates?.find((s) => s._key === localeId)
+        const existing = existingMeta?.workflowStates?.find((s) => s.language === localeId)
 
         // Use Studio operations for permission-aware metadata patch.
         // translation.metadata has liveEdit: true, so patch writes directly to published.
         const patch = await getPatchOperation(effectiveMetadataId, METADATA_TYPE)
         patch.execute([
           {setIfMissing: {workflowStates: []}},
-          {unset: [`workflowStates[_key=="${localeId}"]`]},
+          {unset: [`workflowStates[language=="${localeId}"]`]},
           {
             insert: {
               after: 'workflowStates[-1]',
               items: [
                 {
-                  _key: localeId,
+                  language: localeId,
                   status: 'approved',
                   source: existing?.source ?? 'ai',
                   updatedAt: new Date().toISOString(),
@@ -559,14 +558,15 @@ export function useTranslateActions(
 
         const [sourceDoc, existingMeta] = await Promise.all([
           client.fetch(DISMISS_SOURCE_REV_QUERY, {publishedId}, {perspective: perspectiveStack}),
-          client.fetch<{workflowStates: Array<{_key: string; source?: string}> | null} | null>(
-            DISMISS_WORKFLOW_QUERY,
-            {metadataId: effectiveMetadataId},
-          ),
+          client.fetch<{
+            workflowStates: Array<{_key: string; language: string; source?: string}> | null
+          } | null>(DISMISS_WORKFLOW_QUERY, {metadataId: effectiveMetadataId}),
         ])
 
         const currentSourceRev = sourceDoc?._rev
-        const existingStates = new Map((existingMeta?.workflowStates ?? []).map((s) => [s._key, s]))
+        const existingStates = new Map(
+          (existingMeta?.workflowStates ?? []).map((s) => [s.language, s]),
+        )
 
         // Use Studio operations for permission-aware metadata patch
         const patch = await getPatchOperation(effectiveMetadataId, METADATA_TYPE)
@@ -575,13 +575,13 @@ export function useTranslateActions(
           const existing = existingStates.get(localeKey)
           patch.execute([
             {setIfMissing: {workflowStates: []}},
-            {unset: [`workflowStates[_key=="${localeKey}"]`]},
+            {unset: [`workflowStates[language=="${localeKey}"]`]},
             {
               insert: {
                 after: 'workflowStates[-1]',
                 items: [
                   {
-                    _key: localeKey,
+                    language: localeKey,
                     status: 'approved',
                     updatedAt: new Date().toISOString(),
                     reviewedBy: currentUser?.id,
