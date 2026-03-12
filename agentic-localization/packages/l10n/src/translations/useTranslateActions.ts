@@ -27,11 +27,13 @@ import {
   useDocumentStore,
   usePerspective,
 } from 'sanity'
+import type {TranslationReference} from '@sanity/document-internationalization'
 import {randomKey} from '@sanity/util/content'
 import {filter, firstValueFrom} from 'rxjs'
 import {defineQuery} from 'groq'
 import type {
   LocaleTranslation,
+  LocalizedObject,
   ResolvedTranslationsConfig,
   TranslationInFlightStatus,
 } from '../core/types'
@@ -81,15 +83,18 @@ function sanitySlugify(input: string): string {
     .replace(/^-|-$/g, '')
 }
 
-/** Create a translation.metadata reference entry (v6 shape: language field, _key auto-generated). */
-function createReference(localeId: string, documentId: string, documentType: string) {
-  const publishedId = getPublishedId(documentId)
+/** Create a translation.metadata reference entry (_key auto-generated via `autoGenerateArrayKeys`). */
+function createReference(
+  localeId: string,
+  documentId: string,
+  documentType: string,
+): Omit<TranslationReference, '_key'> {
   return {
-    _type: 'internationalizedArrayReferenceValue' as const,
+    _type: 'internationalizedArrayReferenceValue',
     language: localeId,
     value: {
-      _ref: publishedId,
-      _type: 'reference' as const,
+      _ref: getPublishedId(documentId),
+      _type: 'reference',
       _weak: true,
       _strengthenOnPublish: {type: documentType},
     },
@@ -503,12 +508,12 @@ export function useTranslateActions(
 
       startApproveTransition(async () => {
         const existingMeta = await client.fetch<{
-          workflowStates: Array<{
-            _key: string
-            language: string
-            sourceRevision?: string
-            source?: string
-          }> | null
+          workflowStates: Array<
+            LocalizedObject & {
+              sourceRevision?: string
+              source?: string
+            }
+          > | null
         } | null>(APPROVE_METADATA_QUERY, {metadataId: effectiveMetadataId})
         const existing = existingMeta?.workflowStates?.find((s) => s.language === localeId)
 
@@ -562,7 +567,7 @@ export function useTranslateActions(
         const [sourceDoc, existingMeta] = await Promise.all([
           client.fetch(DISMISS_SOURCE_REV_QUERY, {publishedId}, {perspective: perspectiveStack}),
           client.fetch<{
-            workflowStates: Array<{_key: string; language: string; source?: string}> | null
+            workflowStates: Array<LocalizedObject & {source?: string}> | null
           } | null>(DISMISS_WORKFLOW_QUERY, {metadataId: effectiveMetadataId}),
         ])
 

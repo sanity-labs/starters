@@ -6,6 +6,7 @@
  */
 
 import type {KeyedObject} from 'sanity'
+import type {LANGUAGE_FIELD_NAME} from 'sanity-plugin-internationalized-array'
 
 /**
  * Configuration for the translations system.
@@ -77,12 +78,17 @@ export type TranslationInFlightStatus = 'translating' | 'failed'
 export type TranslationStatus = TranslationWorkflowStatus | TranslationInFlightStatus
 
 /**
+ * A keyed array item indexed by locale.
+ * Extends `KeyedObject` (`_key`) with the plugin's language field name (`language`).
+ */
+export type LocalizedObject = KeyedObject & {[K in typeof LANGUAGE_FIELD_NAME]: string}
+
+/**
  * Shape of a single entry in the `workflowStates` array on `translation.metadata`.
  * The locale is identified by the `language` field (e.g., `language: 'es-MX'`).
  * `_key` is a random unique ID (not the locale code).
  */
-export interface WorkflowStateEntry extends KeyedObject {
-  language: string
+export interface WorkflowStateEntry extends LocalizedObject {
   status: TranslationWorkflowStatus
   source?: 'ai' | 'manual'
   updatedAt?: string

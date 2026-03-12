@@ -3,6 +3,7 @@
  * fetch-or-create, add translation reference, write workflow state.
  */
 
+import type {LocalizedObject} from '@starter/l10n'
 import type {SanityClient} from 'sanity'
 
 import {getPublishedId} from 'sanity'
@@ -14,7 +15,7 @@ import {createReference} from './createReference'
 
 export type MetadataDoc = {
   _id: string
-  translations: Array<{_key: string; language: string; value?: {_ref: string}}> | null
+  translations: Array<LocalizedObject & {value?: {_ref: string}}> | null
 }
 
 /**

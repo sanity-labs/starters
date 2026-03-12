@@ -1,3 +1,5 @@
+import type {LocalizedObject} from '@starter/l10n'
+
 import {useClient} from '@sanity/sdk-react'
 import {
   createContext,
@@ -99,22 +101,22 @@ export function TranslationStatusProvider({
         const result = await client.fetch<
           Array<{
             _id: string
-            translations: Array<{
-              _key: string
-              language: string
-              draftExists: boolean
-              publishedExists: boolean
-              ref: string
-              versionIds: string[]
-            }>
-            workflowStates: Array<{
-              _key: string
-              language: string
-              reviewedBy?: string
-              source?: string
-              status?: string
-              updatedAt?: string
-            }> | null
+            translations: Array<
+              LocalizedObject & {
+                draftExists: boolean
+                publishedExists: boolean
+                ref: string
+                versionIds: string[]
+              }
+            >
+            workflowStates: Array<
+              LocalizedObject & {
+                reviewedBy?: string
+                source?: string
+                status?: string
+                updatedAt?: string
+              }
+            > | null
           }>
         >(BATCH_METADATA_STATUS_QUERY, {metadataIds}, {perspective: 'raw'})
 
