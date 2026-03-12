@@ -27,7 +27,6 @@ import {
   useDocumentStore,
   usePerspective,
 } from 'sanity'
-import type {TranslationReference} from '@sanity/document-internationalization'
 import {randomKey} from '@sanity/util/content'
 import {filter, firstValueFrom} from 'rxjs'
 import {defineQuery} from 'groq'
@@ -83,12 +82,8 @@ function sanitySlugify(input: string): string {
     .replace(/^-|-$/g, '')
 }
 
-/** Create a translation.metadata reference entry (_key auto-generated via `autoGenerateArrayKeys`). */
-function createReference(
-  localeId: string,
-  documentId: string,
-  documentType: string,
-): Omit<TranslationReference, '_key'> {
+/** Create a translation.metadata reference entry (v6 shape: language field, _key auto-generated). */
+function createReference(localeId: string, documentId: string, documentType: string) {
   return {
     _type: 'internationalizedArrayReferenceValue',
     language: localeId,
