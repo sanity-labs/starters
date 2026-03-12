@@ -146,7 +146,7 @@ export const useCreateMissingTranslations = () => {
                 .insert(`after`, `translations[-1]`, [newTranslationReference])
               transaction.patch(metadataPatch)
 
-              await transaction.commit()
+              await transaction.commit({autoGenerateArrayKeys: true})
 
               // Write workflow state after transaction
               await client
@@ -161,7 +161,7 @@ export const useCreateMissingTranslations = () => {
                     updatedAt: new Date().toISOString(),
                   },
                 ])
-                .commit()
+                .commit({autoGenerateArrayKeys: true})
 
               const publishedId = getPublishedId(result._id as DocumentId)
 

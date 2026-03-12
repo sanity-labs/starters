@@ -134,7 +134,7 @@ export function useRetranslateStale(aggregateData: AggregateData) {
                       updatedAt: new Date().toISOString(),
                     },
                   ])
-                  .commit()
+                  .commit({autoGenerateArrayKeys: true})
               }
 
               completed++

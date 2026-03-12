@@ -116,7 +116,7 @@ export async function processDocumentTranslationsWithProgress(
         .patch(metadataDoc._id)
         .setIfMissing({translations: []})
         .insert('before', 'translations[0]', [sourceReference])
-        .commit()
+        .commit({autoGenerateArrayKeys: true})
     }
 
     await processWithConcurrencyLimit(
@@ -209,7 +209,7 @@ export async function processDocumentTranslationsWithProgress(
               patch = patch.unset([`translations[language=="${locale.id}"]`])
             }
             patch = patch.append('translations', [translationReference])
-            await patch.commit()
+            await patch.commit({autoGenerateArrayKeys: true})
 
             await writeWorkflowState(client, metadataDoc._id, locale.id)
 

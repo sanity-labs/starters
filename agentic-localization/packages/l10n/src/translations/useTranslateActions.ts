@@ -27,6 +27,7 @@ import {
   useDocumentStore,
   usePerspective,
 } from 'sanity'
+import {randomKey} from '@sanity/util/content'
 import {filter, firstValueFrom} from 'rxjs'
 import {defineQuery} from 'groq'
 import type {
@@ -81,7 +82,7 @@ function sanitySlugify(input: string): string {
 }
 
 /** Create a translation.metadata reference entry (v6 shape: language field, _key auto-generated). */
-function createReference(localeId: string, documentId: string, _documentType: string) {
+function createReference(localeId: string, documentId: string, documentType: string) {
   const publishedId = getPublishedId(documentId)
   return {
     _type: 'internationalizedArrayReferenceValue' as const,
@@ -90,6 +91,7 @@ function createReference(localeId: string, documentId: string, _documentType: st
       _ref: publishedId,
       _type: 'reference' as const,
       _weak: true,
+      _strengthenOnPublish: {type: documentType},
     },
   }
 }
@@ -422,7 +424,7 @@ export function useTranslateActions(
           },
         ]),
       )
-      await tx.commit()
+      await tx.commit({autoGenerateArrayKeys: true})
     },
     [
       documentId,
@@ -521,6 +523,7 @@ export function useTranslateActions(
               after: 'workflowStates[-1]',
               items: [
                 {
+                  _key: randomKey(12),
                   language: localeId,
                   status: 'approved',
                   source: existing?.source ?? 'ai',
@@ -581,6 +584,7 @@ export function useTranslateActions(
                 after: 'workflowStates[-1]',
                 items: [
                   {
+                    _key: randomKey(12),
                     language: localeKey,
                     status: 'approved',
                     updatedAt: new Date().toISOString(),

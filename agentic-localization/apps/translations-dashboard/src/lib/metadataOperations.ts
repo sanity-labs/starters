@@ -81,7 +81,7 @@ export async function patchMetadataTranslation(
   }
   patch = patch.append('translations', [translationReference])
 
-  await patch.commit()
+  await patch.commit({autoGenerateArrayKeys: true})
 }
 
 /**
@@ -105,5 +105,5 @@ export async function writeWorkflowState(
         updatedAt: new Date().toISOString(),
       },
     ])
-    .commit()
+    .commit({autoGenerateArrayKeys: true})
 }
