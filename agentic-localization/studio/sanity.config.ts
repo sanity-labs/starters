@@ -3,7 +3,7 @@ import {structureTool, type StructureResolver} from 'sanity/structure'
 import {assist} from '@sanity/assist'
 import {visionTool} from '@sanity/vision'
 import {EarthGlobeIcon} from '@sanity/icons'
-import {createL10n, withLocaleFilter} from '@starter/l10n'
+import {createL10n, useTranslateFieldAction, withLocaleFilter} from '@starter/l10n'
 import {schemaTypes} from './schemaTypes'
 
 const l10nTypes = ['l10n.locale', 'l10n.glossary', 'l10n.styleGuide', 'translation.metadata']
@@ -73,7 +73,12 @@ export default defineConfig({
     }),
     visionTool(),
     l10n.plugin,
-    assist(),
+    assist({
+      fieldActions: {
+        title: 'Translate',
+        useFieldActions: useTranslateFieldAction,
+      },
+    }),
   ],
 
   schema: {

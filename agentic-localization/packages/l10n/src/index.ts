@@ -82,3 +82,4 @@ export {
   type StaleAIAnalysisProps,
   type StaleAIAnalysisStickyBarProps,
 } from './translations/StaleAIAnalysis'
+export {useTranslateFieldAction} from './fieldActions/useTranslateFieldAction'
