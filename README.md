@@ -12,10 +12,10 @@ pnpm create sanity@latest --template sanity-labs/starters/<starter-name>
 
 ## Starters
 
-| Starter | Description |
-| --- | --- |
-| [agentic-localization](./agentic-localization) | AI translation with glossaries, style guides, quality evals, and a translations dashboard |
-| [ai-shopping-assistant](./ai-shopping-assistant) | Ecommerce storefront with a Claude chatbot powered by Context MCP |
+| Starter                                          | Description                                                                               |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| [agentic-localization](./agentic-localization)   | AI translation with glossaries, style guides, quality evals, and a translations dashboard |
+| [ai-shopping-assistant](./ai-shopping-assistant) | Ecommerce storefront with a Claude chatbot powered by Context MCP                         |
 
 ## Repo structure
 
@@ -36,6 +36,6 @@ pnpm install        # install the starter's dependencies
 pnpm dev            # run the starter locally
 ```
 
-## Contributing
+## Creating a new starter
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for how to add a new starter.
+Copy the [`_scaffold/`](./_scaffold/) template and customize it. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide.

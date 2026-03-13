@@ -1,0 +1,22 @@
+{
+  "name": "@starter/functions",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rolldown -c rolldown.config.ts",
+    "typecheck": "tsc --noEmit",
+    "predev": "pnpm run build",
+    "dev": "sanity functions dev",
+    "predeploy": "pnpm run build",
+    "deploy": "sanity blueprints deploy"
+  },
+  "devDependencies": {
+    "@sanity/client": "catalog:",
+    "@sanity/functions": "^1.2.1",
+    "@starter/tsconfig": "workspace:*",
+    "groq": "catalog:",
+    "rolldown": "^1.0.0-rc.8",
+    "sanity": "catalog:"
+  }
+}
