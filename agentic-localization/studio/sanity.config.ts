@@ -39,7 +39,9 @@ const structure = ((S) =>
             .items(
               l10nTypes.map((type) =>
                 S.documentTypeListItem(type).child(
-                  S.documentTypeList(type).defaultOrdering(titleAsc),
+                  type === 'translation.metadata'
+                    ? S.documentTypeList(type)
+                    : S.documentTypeList(type).defaultOrdering(titleAsc),
                 ),
               ),
             ),
