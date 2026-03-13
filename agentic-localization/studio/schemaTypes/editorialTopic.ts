@@ -1,5 +1,6 @@
 import {defineType, defineField} from 'sanity'
 import {BookIcon} from '@sanity/icons'
+import {isUniqueOtherThanLanguage} from '../lib/isUniqueOtherThanLanguage'
 
 export const editorialTopic = defineType({
   name: 'editorialTopic',
@@ -17,7 +18,7 @@ export const editorialTopic = defineType({
       name: 'slug',
       title: 'Slug',
       type: 'slug',
-      options: {source: 'title'},
+      options: {source: 'title', isUnique: isUniqueOtherThanLanguage},
       validation: (rule) => rule.required(),
     }),
     defineField({

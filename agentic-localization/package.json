@@ -47,7 +47,8 @@
     "eslint": "^9.39.3",
     "groq": "catalog:",
     "oxfmt": "^0.36.0",
-    "sanity": "catalog:"
+    "sanity": "catalog:",
+    "tsx": "^4.21.0"
   },
   "engines": {
     "node": ">=20.19 <22 || >=22.12"
