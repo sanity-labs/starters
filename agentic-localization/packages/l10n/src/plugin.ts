@@ -75,9 +75,7 @@ export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L1
           // system types to be safe.
           if (localizedSchemaTypes.includes(context.schemaType)) return prev
           return prev.map((action) =>
-            action.action === 'publish' || action.action === 'schedule'
-              ? createFieldTranslationPublishGate(action)
-              : action,
+            action.action === 'publish' ? createFieldTranslationPublishGate(action) : action,
           )
         },
         // Replace the plain locale badge from @sanity/document-internationalization

@@ -30,7 +30,9 @@ import {useFieldWorkflowMetadata} from './useFieldWorkflowMetadata'
 export function createFieldTranslationPublishGate(
   WrappedAction: DocumentActionComponent,
 ): DocumentActionComponent {
-  function FieldTranslationPublishGate(props: DocumentActionProps): DocumentActionDescription | null {
+  function FieldTranslationPublishGate(
+    props: DocumentActionProps,
+  ): DocumentActionDescription | null {
     const originalResult = WrappedAction(props)
     const publishedId = getPublishedId(props.id)
     const metadata = useFieldWorkflowMetadata(publishedId)
@@ -69,6 +71,7 @@ export function createFieldTranslationPublishGate(
     }
   }
 
+  FieldTranslationPublishGate.action = WrappedAction.action
   FieldTranslationPublishGate.displayName = 'FieldTranslationPublishGate'
   return FieldTranslationPublishGate
 }
