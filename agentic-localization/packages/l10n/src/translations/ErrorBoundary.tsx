@@ -31,9 +31,7 @@ function ErrorFallback({
     <Card padding={4} tone="critical">
       <Stack space={3}>
         <Text size={1} weight="semibold">
-          {featureName
-            ? t('error.with-feature', {featureName})
-            : t('error.generic')}
+          {featureName ? t('error.with-feature', {featureName}) : t('error.generic')}
         </Text>
         <Text size={1} muted>
           {error instanceof Error ? error.message : String(error)}

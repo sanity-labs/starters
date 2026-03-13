@@ -43,10 +43,7 @@ export function useStaleSyncEffect(
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
     debounceRef.current = setTimeout(async () => {
-      const newlyStale = findNewlyStaleEntries(
-        cellStatesRef.current,
-        stateMapRef.current,
-      )
+      const newlyStale = findNewlyStaleEntries(cellStatesRef.current, stateMapRef.current)
 
       if (newlyStale.length === 0) return
 
@@ -56,19 +53,17 @@ export function useStaleSyncEffect(
         for (const {field, language} of newlyStale) {
           const key = `${field.replace(/\./g, '-')}--${language}`
           tx.patch(metadataId, (p) =>
-            p
-              .unset([`workflowStates[_key=="${key}"]`])
-              .append('workflowStates', [
-                {
-                  _key: key,
-                  field,
-                  language,
-                  status: 'stale',
-                  source: stateMapRef.current[`${field}::${language}`]?.source ?? 'ai',
-                  updatedAt: new Date().toISOString(),
-                  sourceSnapshot: stateMapRef.current[`${field}::${language}`]?.sourceSnapshot,
-                },
-              ]),
+            p.unset([`workflowStates[_key=="${key}"]`]).append('workflowStates', [
+              {
+                _key: key,
+                field,
+                language,
+                status: 'stale',
+                source: stateMapRef.current[`${field}::${language}`]?.source ?? 'ai',
+                updatedAt: new Date().toISOString(),
+                sourceSnapshot: stateMapRef.current[`${field}::${language}`]?.sourceSnapshot,
+              },
+            ]),
           )
         }
 

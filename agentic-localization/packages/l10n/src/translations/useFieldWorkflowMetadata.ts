@@ -14,15 +14,10 @@ import {useObservable} from 'react-rx'
 import {of} from 'rxjs'
 import {defineQuery} from 'groq'
 
-import {
-  fieldWorkflowStatesToMap,
-  type FieldWorkflowStateEntry,
-} from '../core/types'
+import {fieldWorkflowStatesToMap, type FieldWorkflowStateEntry} from '../core/types'
 import {getFieldTranslationMetadataId} from '../core/fieldMetadataIds'
 
-const FIELD_METADATA_QUERY = defineQuery(
-  `*[_id == $metadataId][0]{ workflowStates }`,
-)
+const FIELD_METADATA_QUERY = defineQuery(`*[_id == $metadataId][0]{ workflowStates }`)
 
 export interface FieldWorkflowMetadata {
   /** Raw workflow states array from the metadata document */
@@ -45,11 +40,7 @@ export function useFieldWorkflowMetadata(documentId: string): FieldWorkflowMetad
 
   const metadata$ = useMemo(
     () =>
-      documentStore.listenQuery(
-        FIELD_METADATA_QUERY,
-        {metadataId},
-        DEFAULT_STUDIO_CLIENT_OPTIONS,
-      ),
+      documentStore.listenQuery(FIELD_METADATA_QUERY, {metadataId}, DEFAULT_STUDIO_CLIENT_OPTIONS),
     [documentStore, metadataId],
   )
 

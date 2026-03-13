@@ -21,7 +21,13 @@ import {
 import * as Accordion from '@radix-ui/react-accordion'
 import {Badge, Button, Card, Flex, Heading, Label, Spinner, Stack, Text} from '@sanity/ui'
 import {useCallback, useMemo, useState} from 'react'
-import {DEFAULT_STUDIO_CLIENT_OPTIONS, getPublishedId, useClient, useDocumentValues, useTranslation} from 'sanity'
+import {
+  DEFAULT_STUDIO_CLIENT_OPTIONS,
+  getPublishedId,
+  useClient,
+  useDocumentValues,
+  useTranslation,
+} from 'sanity'
 import {toPlainText} from '@portabletext/toolkit'
 import {InlineDiff} from './InlineDiff'
 import {PortableTextDiff} from './PortableTextDiff'
@@ -276,7 +282,9 @@ function SuggestionAccordionHeader({
     if (status === 'applied') {
       return (
         <Badge fontSize={1} padding={2} tone={isRetranslate ? 'positive' : 'default'}>
-          {isRetranslate ? t('stale-analysis.translation-updated') : t('stale-analysis.kept-current')}
+          {isRetranslate
+            ? t('stale-analysis.translation-updated')
+            : t('stale-analysis.kept-current')}
         </Badge>
       )
     }
@@ -343,7 +351,11 @@ function SuggestionAccordionPanel({
           <Stack space={3}>
             <Card padding={3} radius={2} tone="suggest" border>
               <Text size={2} weight="semibold">
-                {t('stale-analysis.recommendation', {recommendation: isRetranslate ? t('stale-analysis.recommend-update') : t('stale-analysis.recommend-keep')})}
+                {t('stale-analysis.recommendation', {
+                  recommendation: isRetranslate
+                    ? t('stale-analysis.recommend-update')
+                    : t('stale-analysis.recommend-keep'),
+                })}
               </Text>
             </Card>
             {isRetranslate && hasPreTranslation && (

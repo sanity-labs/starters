@@ -358,7 +358,10 @@ export function buildTranslationBriefs(locales: {code: string; title: string}[])
  * Matches the field translation workflow: needsReview (AI just translated),
  * approved (human reviewed), stale (source changed).
  */
-const personFieldTranslations: Record<string, Record<string, {status: 'needsReview' | 'approved' | 'stale'}>> = {
+const personFieldTranslations: Record<
+  string,
+  Record<string, {status: 'needsReview' | 'approved' | 'stale'}>
+> = {
   'person-elena-vasquez': {
     'de-DE': {status: 'approved'},
     'fr-FR': {status: 'needsReview'},
@@ -417,11 +420,12 @@ export function buildFieldTranslationBriefs(locales: {code: string; title: strin
         language: localeCode,
         status: opts.status,
         source: 'ai',
-        updatedAt: opts.status === 'stale'
-          ? daysAgo(seedDate, 8)
-          : opts.status === 'approved'
-            ? daysAgo(seedDate, 3 + Math.random() * 4)
-            : daysAgo(seedDate, 1 + Math.random()),
+        updatedAt:
+          opts.status === 'stale'
+            ? daysAgo(seedDate, 8)
+            : opts.status === 'approved'
+              ? daysAgo(seedDate, 3 + Math.random() * 4)
+              : daysAgo(seedDate, 1 + Math.random()),
         ...(opts.status === 'approved' && {reviewedBy: 'person-mei-tanaka'}),
         // sourceSnapshot will be set during generation when we know the actual en-US bio value
       })

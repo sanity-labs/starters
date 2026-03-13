@@ -176,8 +176,18 @@ function StackedProgressBar({
     label: string
     style?: React.CSSProperties
   }> = [
-    {status: 'approved', count: counts.approved, tone: 'positive', label: t('status.approved.label')},
-    {status: 'needsReview', count: counts.needsReview, tone: 'caution', label: t('status.needs-review.label')},
+    {
+      status: 'approved',
+      count: counts.approved,
+      tone: 'positive',
+      label: t('status.approved.label'),
+    },
+    {
+      status: 'needsReview',
+      count: counts.needsReview,
+      tone: 'caution',
+      label: t('status.needs-review.label'),
+    },
     {
       status: 'stale',
       count: counts.stale,
@@ -318,7 +328,8 @@ function resolveDocStateLabel(
   t: (key: string) => string,
 ): string {
   if (published) return t('translations.doc-state.published')
-  if (versions && Array.isArray(versions) && versions.length > 0) return t('translations.doc-state.in-release')
+  if (versions && Array.isArray(versions) && versions.length > 0)
+    return t('translations.doc-state.in-release')
   if (draft) return t('translations.doc-state.draft')
   return t('translations.doc-state.missing')
 }
@@ -741,9 +752,7 @@ export function TranslationContent({
   }
 
   if (!documentLanguage) {
-    return (
-      <EmptyState message={t('translations.no-language')} />
-    )
+    return <EmptyState message={t('translations.no-language')} />
   }
 
   if (!isBaseLanguage && baseDocumentId === undefined) {
@@ -1140,7 +1149,12 @@ function TranslationContentInner({
             placement="bottom"
             portal
           >
-            <Button aria-label={t('close-inspector')} icon={CloseIcon} mode="bleed" onClick={onClose} />
+            <Button
+              aria-label={t('close-inspector')}
+              icon={CloseIcon}
+              mode="bleed"
+              onClick={onClose}
+            />
           </Tooltip>
         )}
       </Flex>

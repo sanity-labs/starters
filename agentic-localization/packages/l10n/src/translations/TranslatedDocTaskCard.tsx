@@ -132,9 +132,7 @@ function TimeBadge({time, prefix}: {time: string; prefix: string}) {
         <Text size={1}>
           <ClockIcon />
         </Text>
-        <span>
-          {t('task-card.time-ago', {prefix, relative})}
-        </span>
+        <span>{t('task-card.time-ago', {prefix, relative})}</span>
       </Flex>
     </Badge>
   )
@@ -164,7 +162,8 @@ function NeedsReviewContent({
   releaseName?: string
 }) {
   const {t} = useTranslation(l10nLocaleNamespace)
-  const sourceLabel = workflowEntry.source === 'ai' ? t('task-card.source-ai') : t('task-card.source-manual')
+  const sourceLabel =
+    workflowEntry.source === 'ai' ? t('task-card.source-ai') : t('task-card.source-manual')
 
   return (
     <>
@@ -180,9 +179,7 @@ function NeedsReviewContent({
           </Badge>
           {workflowEntry.updatedAt && <TranslatedTimeBadge time={workflowEntry.updatedAt} />}
         </Flex>
-        <Text size={1}>
-          {t('task-card.review-description')}
-        </Text>
+        <Text size={1}>{t('task-card.review-description')}</Text>
       </Stack>
 
       <Box style={{borderTop: '1px solid var(--card-border-color)', paddingTop: 12}}>
@@ -198,9 +195,7 @@ function NeedsReviewContent({
           <Tooltip
             content={
               <Box padding={2}>
-                <Text size={1}>
-                  {t('task-card.approve-description')}
-                </Text>
+                <Text size={1}>{t('task-card.approve-description')}</Text>
               </Box>
             }
             animate
@@ -247,7 +242,8 @@ function useUser(userId: string | undefined) {
 
 function ApprovedContent({workflowEntry}: {workflowEntry: WorkflowStateEntry}) {
   const {t} = useTranslation(l10nLocaleNamespace)
-  const sourceLabel = workflowEntry.source === 'ai' ? t('task-card.source-ai') : t('task-card.source-manual')
+  const sourceLabel =
+    workflowEntry.source === 'ai' ? t('task-card.source-ai') : t('task-card.source-manual')
   const reviewer = useUser(workflowEntry.reviewedBy)
 
   return (
@@ -267,7 +263,9 @@ function ApprovedContent({workflowEntry}: {workflowEntry: WorkflowStateEntry}) {
               }}
             />
           )}
-          <Text size={2}>{t('task-card.approved-by', {name: reviewer?.displayName || workflowEntry.reviewedBy})}</Text>
+          <Text size={2}>
+            {t('task-card.approved-by', {name: reviewer?.displayName || workflowEntry.reviewedBy})}
+          </Text>
         </Flex>
       )}
       <Flex gap={2} wrap="wrap">
@@ -371,7 +369,11 @@ function MissingContent({
 
       <Box style={{borderTop: '1px solid var(--card-border-color)', paddingTop: 12}}>
         <Button
-          text={releaseName ? t('task-card.generate-to-release', {releaseName}) : t('task-card.generate')}
+          text={
+            releaseName
+              ? t('task-card.generate-to-release', {releaseName})
+              : t('task-card.generate')
+          }
           icon={SparklesIcon}
           tone="suggest"
           onClick={onTranslate}

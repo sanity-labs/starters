@@ -107,13 +107,7 @@ export function StaleDiffPopover({
   )
 
   return (
-    <Popover
-      content={content}
-      open={open}
-      placement="bottom"
-      portal
-      tone="default"
-    >
+    <Popover content={content} open={open} placement="bottom" portal tone="default">
       <span onClick={() => setOpen(!open)} style={{cursor: 'pointer'}}>
         {children}
       </span>
@@ -131,8 +125,9 @@ function parseSnapshot(snapshot: string | undefined): string | undefined {
     if (Array.isArray(parsed)) {
       return parsed
         .filter((block: Record<string, unknown>) => block._type === 'block')
-        .flatMap((block: Record<string, unknown>) =>
-          (block.children as Array<{text?: string}> | undefined)?.map((c) => c.text ?? '') ?? [],
+        .flatMap(
+          (block: Record<string, unknown>) =>
+            (block.children as Array<{text?: string}> | undefined)?.map((c) => c.text ?? '') ?? [],
         )
         .join(' ')
     }

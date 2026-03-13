@@ -58,7 +58,12 @@ export function FieldTranslationContent({
   )
 
   // Lazy-persist newly-stale entries
-  useStaleSyncEffect(cellStates, metadata.stateMap, metadata.metadataId, snapshot.currentSourceValues)
+  useStaleSyncEffect(
+    cellStates,
+    metadata.stateMap,
+    metadata.metadataId,
+    snapshot.currentSourceValues,
+  )
 
   const {
     translateCell,
@@ -193,7 +198,12 @@ export function FieldTranslationContent({
               placement="bottom"
               portal
             >
-              <Button aria-label={t('close-inspector')} icon={CloseIcon} mode="bleed" onClick={onClose} />
+              <Button
+                aria-label={t('close-inspector')}
+                icon={CloseIcon}
+                mode="bleed"
+                onClick={onClose}
+              />
             </Tooltip>
           )}
         </Flex>
@@ -398,11 +408,7 @@ export function FieldTranslationContent({
         </Box>
 
         {/* Action bar */}
-        <Card
-          padding={3}
-          borderTop
-          style={{position: 'sticky', bottom: 0, zIndex: 1}}
-        >
+        <Card padding={3} borderTop style={{position: 'sticky', bottom: 0, zIndex: 1}}>
           <Stack space={2}>
             {missingCount > 0 && (
               <Button
@@ -595,7 +601,11 @@ function CellStatus({
             <Tooltip
               content={
                 <Box padding={2}>
-                  <Text size={1}>{t('field-translations.cell.click-review', {tooltip: t('status.stale.tooltip')})}</Text>
+                  <Text size={1}>
+                    {t('field-translations.cell.click-review', {
+                      tooltip: t('status.stale.tooltip'),
+                    })}
+                  </Text>
                 </Box>
               }
               animate
@@ -622,7 +632,11 @@ function CellStatus({
         <Tooltip
           content={
             <Box padding={2}>
-              <Text size={1}>{t('field-translations.cell.click-approve', {tooltip: t('status.needs-review.tooltip')})}</Text>
+              <Text size={1}>
+                {t('field-translations.cell.click-approve', {
+                  tooltip: t('status.needs-review.tooltip'),
+                })}
+              </Text>
             </Box>
           }
           animate

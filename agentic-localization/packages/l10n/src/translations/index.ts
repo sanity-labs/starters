@@ -39,10 +39,7 @@ export {
   type FieldTranslateActionsResult,
 } from './useFieldTranslateActions'
 export {FieldTranslationContent} from './FieldTranslationContent'
-export {
-  useFieldWorkflowMetadata,
-  type FieldWorkflowMetadata,
-} from './useFieldWorkflowMetadata'
+export {useFieldWorkflowMetadata, type FieldWorkflowMetadata} from './useFieldWorkflowMetadata'
 export {deriveFieldCellStates, findNewlyStaleEntries} from './deriveFieldCellStates'
 export {useStaleSyncEffect} from './useStaleSyncEffect'
 export {StaleDiffPopover} from './StaleDiffPopover'

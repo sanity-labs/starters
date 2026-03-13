@@ -56,9 +56,7 @@ export function useTranslateFieldAction(
     const currentEntries = (doc[fieldName] ?? []) as InternationalizedArrayItem[]
 
     const filledLocales = new Set(
-      currentEntries
-        .filter((e) => e.value != null && e.value !== '')
-        .map((e) => e.language),
+      currentEntries.filter((e) => e.value != null && e.value !== '').map((e) => e.language),
     )
 
     const translateActions = languages
@@ -102,9 +100,9 @@ export function useTranslateFieldAction(
             )
 
             // Extract translated value from the returned document.
-            const translatedEntries = (
-              (translated as Record<string, unknown> | null)?.[fieldName] ?? []
-            ) as InternationalizedArrayItem[]
+            const translatedEntries = ((translated as Record<string, unknown> | null)?.[
+              fieldName
+            ] ?? []) as InternationalizedArrayItem[]
             const translatedEntry = translatedEntries.find((e) => e._key === baseEntry._key)
             if (!translatedEntry?.value) return
 

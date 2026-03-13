@@ -7,9 +7,7 @@ import {deriveFieldCellStates, findNewlyStaleEntries} from './deriveFieldCellSta
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeSnapshot(
-  overrides: Partial<FieldTranslationSnapshot> = {},
-): FieldTranslationSnapshot {
+function makeSnapshot(overrides: Partial<FieldTranslationSnapshot> = {}): FieldTranslationSnapshot {
   return {
     documentId: 'person-1',
     fields: [],
@@ -162,7 +160,10 @@ describe('deriveFieldCellStates', () => {
       currentSourceValues: {bio: '"Bio text"', tagline: '"Tagline"'},
     })
     const stateMap = {
-      'bio::fr-FR': makeMetaEntry('bio', 'fr-FR', {status: 'approved', sourceSnapshot: '"Bio text"'}),
+      'bio::fr-FR': makeMetaEntry('bio', 'fr-FR', {
+        status: 'approved',
+        sourceSnapshot: '"Bio text"',
+      }),
     }
     const result = deriveFieldCellStates(snap, stateMap, snap.currentSourceValues)
     expect(result.bio['fr-FR'].status).toBe('approved')

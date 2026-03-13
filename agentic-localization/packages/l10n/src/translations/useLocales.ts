@@ -25,10 +25,14 @@ export function useLocales(): Language[] {
 
   const languages$ = useMemo(
     () =>
-      documentStore.listenQuery(SUPPORTED_LANGUAGES_QUERY, {}, {
-        ...DEFAULT_STUDIO_CLIENT_OPTIONS,
-        perspective: perspectiveStack,
-      }),
+      documentStore.listenQuery(
+        SUPPORTED_LANGUAGES_QUERY,
+        {},
+        {
+          ...DEFAULT_STUDIO_CLIENT_OPTIONS,
+          perspective: perspectiveStack,
+        },
+      ),
     [documentStore, perspectiveStack],
   )
 

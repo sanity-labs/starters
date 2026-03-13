@@ -16,9 +16,9 @@ export default {
   'language-input.placeholder': 'Select a locale…',
 
   // --- Common / shared ---
-  'close': 'Close',
+  close: 'Close',
   'close-inspector': 'Close inspector',
-  'retry': 'Retry',
+  retry: 'Retry',
   'error.generic': 'Something went wrong',
   'error.with-feature': '{{featureName}} encountered an error',
 
@@ -49,7 +49,8 @@ export default {
 
   // --- Stale diff popover ---
   'stale-diff.title': 'Source content changed',
-  'stale-diff.description': 'The source text for {{fieldPath}} has changed since this translation was created.',
+  'stale-diff.description':
+    'The source text for {{fieldPath}} has changed since this translation was created.',
   'stale-diff.fallback': 'Source value was modified',
   'stale-diff.dismiss': 'Dismiss',
   'stale-diff.retranslate': 'Re-translate',
@@ -102,8 +103,10 @@ export default {
   'translations.header.language': 'Language',
   'translations.header.status': 'Status',
   'translations.not-configured': '"{{documentType}}" is not configured for internationalization.',
-  'translations.no-language': 'This document does not have a language set. Set a language in the document form to manage translations.',
-  'translations.no-base-document': 'Could not find the base language document for this translation.',
+  'translations.no-language':
+    'This document does not have a language set. Set a language in the document form to manage translations.',
+  'translations.no-base-document':
+    'Could not find the base language document for this translation.',
   'translations.working-in-release': 'Working in: {{releaseName}}',
   'translations.view-metadata': 'View metadata document',
 
@@ -115,10 +118,12 @@ export default {
   'task-card.time-ago': '{{prefix}} {{relative}} ago',
   'task-card.source-ai': 'AI translation',
   'task-card.source-manual': 'Manual translation',
-  'task-card.review-description': 'This translation needs review before it can be approved. Compare with the source document to verify accuracy and tone.',
+  'task-card.review-description':
+    'This translation needs review before it can be approved. Compare with the source document to verify accuracy and tone.',
   'task-card.open-source': 'Open Source Document',
   'task-card.approve': 'Approve Translation',
-  'task-card.approve-description': 'Marks this translation as approved across all perspectives and releases.',
+  'task-card.approve-description':
+    'Marks this translation as approved across all perspectives and releases.',
   'task-card.approved-by': 'Approved by {{name}}',
   'task-card.no-translation-description': 'No translation exists for this language yet.',
   'task-card.generate': 'Generate Translation',

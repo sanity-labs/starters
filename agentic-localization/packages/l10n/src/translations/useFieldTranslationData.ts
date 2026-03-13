@@ -58,18 +58,13 @@ export function useFieldTranslationData(
   const publishedId = getPublishedId(documentId)
   const draftId = getDraftId(documentId)
 
-  const actionableFields = useMemo(
-    () => fields.filter((f) => f.depth >= 0),
-    [fields],
-  )
+  const actionableFields = useMemo(() => fields.filter((f) => f.depth >= 0), [fields])
 
   // Fetch both draft and published docs with only the i18n fields projected.
   // Client-side coalesce reduces from 2N to 2 index lookups in the query.
   const query = useMemo(() => {
     if (actionableFields.length === 0) return null
-    const fields = actionableFields
-      .map((f) => `"${f.displayPath}": ${f.path.join('.')}`)
-      .join(', ')
+    const fields = actionableFields.map((f) => `"${f.displayPath}": ${f.path.join('.')}`).join(', ')
     return `{ "draft": *[_id == $draftId][0]{ ${fields} }, "published": *[_id == $publishedId][0]{ ${fields} } }`
   }, [actionableFields])
 
@@ -85,10 +80,13 @@ export function useFieldTranslationData(
     [documentStore, query, draftId, publishedId],
   )
 
-  const rawValue = useObservable(doc$) as {
-    draft?: Record<string, unknown> | null
-    published?: Record<string, unknown> | null
-  } | null | undefined
+  const rawValue = useObservable(doc$) as
+    | {
+        draft?: Record<string, unknown> | null
+        published?: Record<string, unknown> | null
+      }
+    | null
+    | undefined
 
   return useMemo(() => {
     const matrix: Record<string, Record<string, FieldLocaleStatus>> = {}
@@ -119,6 +117,13 @@ export function useFieldTranslationData(
       matrix[field.displayPath] = localeStatuses
     }
 
-    return {fields: actionableFields, locales, matrix, sourceLanguages, currentSourceValues, documentId}
+    return {
+      fields: actionableFields,
+      locales,
+      matrix,
+      sourceLanguages,
+      currentSourceValues,
+      documentId,
+    }
   }, [actionableFields, locales, rawValue, documentId])
 }

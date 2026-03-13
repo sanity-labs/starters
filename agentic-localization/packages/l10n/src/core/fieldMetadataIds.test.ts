@@ -3,9 +3,7 @@ import {getFieldTranslationMetadataId} from './fieldMetadataIds'
 
 describe('getFieldTranslationMetadataId', () => {
   it('produces deterministic ID from a published ID', () => {
-    expect(getFieldTranslationMetadataId('person-123')).toBe(
-      'fieldTranslation.metadata.person-123',
-    )
+    expect(getFieldTranslationMetadataId('person-123')).toBe('fieldTranslation.metadata.person-123')
   })
 
   it('strips drafts prefix before computing', () => {

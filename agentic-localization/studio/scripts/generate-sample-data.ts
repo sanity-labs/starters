@@ -225,7 +225,8 @@ async function* generateDocuments() {
         // Extract the translated bio value from the generated doc
         const translatedBio = (doc as Record<string, unknown>)?.bio
         const bioArray = Array.isArray(translatedBio) ? translatedBio : []
-        const translatedValue = bioArray[0]?.value ?? (typeof translatedBio === 'string' ? translatedBio : null)
+        const translatedValue =
+          bioArray[0]?.value ?? (typeof translatedBio === 'string' ? translatedBio : null)
 
         if (translatedValue) {
           // Add the translated bio entry to the person's bio array
