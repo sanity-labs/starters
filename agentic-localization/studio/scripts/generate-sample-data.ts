@@ -194,6 +194,13 @@ async function* generateDocuments() {
         instruction: `Create a profile for ${brief.name}. ${brief.prompt.role}\n\nWrite a 2-3 sentence professional bio.`,
         target: {include: ['name', 'bio']},
       })
+      // Ensure every bio entry has a language (AI doesn't set it)
+      const bioArray = Array.isArray((doc as Record<string, unknown>).bio)
+        ? ((doc as Record<string, unknown>).bio as Array<Record<string, unknown>>)
+        : []
+      for (const entry of bioArray) {
+        if (!entry.language) entry.language = SOURCE_LOCALE
+      }
       personDocs.set(brief._id, {...doc, _id: brief._id})
       process.stderr.write(`  ✓ ${brief.name}\n`)
     } catch (err: unknown) {
