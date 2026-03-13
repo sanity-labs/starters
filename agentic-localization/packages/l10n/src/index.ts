@@ -18,7 +18,10 @@ export {getStatusDisplay, type StatusDisplay} from './translations/getStatusDisp
 export {
   resolveConfig,
   workflowStatesToMap,
+  fieldWorkflowStatesToMap,
   type DocumentState,
+  type FieldCellState,
+  type FieldWorkflowStateEntry,
   type LocaleTranslation,
   type LocalizedObject,
   type PreTranslatedSuggestion,
@@ -83,3 +86,29 @@ export {
   type StaleAIAnalysisStickyBarProps,
 } from './translations/StaleAIAnalysis'
 export {useTranslateFieldAction} from './fieldActions/useTranslateFieldAction'
+export {
+  useInternationalizedFields,
+  type InternationalizedFieldDescriptor,
+} from './fieldActions/useInternationalizedFields'
+export {useLocales, type Language} from './translations/useLocales'
+export {
+  useFieldTranslationData,
+  type FieldLocaleStatus,
+  type FieldTranslationSnapshot,
+} from './translations/useFieldTranslationData'
+export {
+  useFieldTranslateActions,
+  type CellInFlightState,
+  type FieldTranslateActionsResult,
+} from './translations/useFieldTranslateActions'
+export {FieldTranslationContent} from './translations/FieldTranslationContent'
+export {getFieldTranslationMetadataId} from './core/fieldMetadataIds'
+export {
+  useFieldWorkflowMetadata,
+  type FieldWorkflowMetadata,
+} from './translations/useFieldWorkflowMetadata'
+export {deriveFieldCellStates, findNewlyStaleEntries} from './translations/deriveFieldCellStates'
+export {useStaleSyncEffect} from './translations/useStaleSyncEffect'
+export {StaleDiffPopover} from './translations/StaleDiffPopover'
+export {createFieldTranslationPublishGate} from './translations/useFieldTranslationPublishGate'
+export {useTranslate, type TranslateFn, type TranslateParams} from './useTranslate'

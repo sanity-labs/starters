@@ -1,10 +1,13 @@
 /**
  * Translation Inspector — Document inspector wrapper.
  *
- * Renders the shared TranslationContent inside a document inspector panel.
- * Unlike the document view pane, the inspector receives only documentId,
- * documentType, and onClose — so it uses useDocumentLanguage to fetch
- * the language field value from the form state.
+ * Routes between two rendering paths:
+ * - Doc-level: documents in `internationalizedTypes` → existing TranslationContent
+ * - Field-level: documents with `internationalizedArray*` fields → FieldTranslationContent
+ * - Both: (future) tab switcher
+ *
+ * Doc-level path uses useDocumentLanguage to fetch the language field from form state.
+ * Field-level path needs no language field — translations are inline arrays.
  */
 
 import {ErrorOutlineIcon} from '@sanity/icons'
@@ -13,14 +16,53 @@ import type {DocumentInspectorProps} from 'sanity'
 
 import {ErrorBoundary} from './ErrorBoundary'
 import {TranslationContent} from './TranslationContent'
+import {FieldTranslationContent} from './FieldTranslationContent'
 import type {ResolvedTranslationsConfig} from '../core/types'
 import {useDocumentLanguage} from './useDocumentLanguage'
+import {useInternationalizedFields} from '../fieldActions/useInternationalizedFields'
 
 interface TranslationInspectorInternalProps extends DocumentInspectorProps {
   config: ResolvedTranslationsConfig
 }
 
 function TranslationInspectorInternal({
+  documentId,
+  documentType,
+  onClose,
+  config,
+}: TranslationInspectorInternalProps) {
+  const isDocLevel = config.internationalizedTypes.includes(documentType)
+  const i18nFields = useInternationalizedFields(documentType)
+  const hasFieldLevel = i18nFields.length > 0
+
+  // Field-level only — no language field needed
+  if (hasFieldLevel && !isDocLevel) {
+    return (
+      <FieldTranslationContent
+        documentId={documentId}
+        documentType={documentType}
+        onClose={onClose}
+      />
+    )
+  }
+
+  // Doc-level (with or without field-level — for now, doc-level takes priority)
+  if (isDocLevel) {
+    return (
+      <DocLevelInspector
+        documentId={documentId}
+        documentType={documentType}
+        onClose={onClose}
+        config={config}
+      />
+    )
+  }
+
+  // Neither — shouldn't happen if useMenuItem hides correctly, but handle gracefully
+  return null
+}
+
+function DocLevelInspector({
   documentId,
   documentType,
   onClose,

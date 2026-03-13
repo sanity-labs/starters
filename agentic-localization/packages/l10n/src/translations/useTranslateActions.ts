@@ -38,15 +38,12 @@ import type {
   TranslationInFlightStatus,
 } from '../core/types'
 import {getTranslationMetadataId} from '../core/ids'
-import {useTranslationContext} from './useTranslationContext'
+import {useTranslate} from '../useTranslate'
+import {createSemaphore} from './createSemaphore'
 
 // ---------------------------------------------------------------------------
 // Constants & queries
 // ---------------------------------------------------------------------------
-
-// vX API version required for client.agent.action.translate() calls.
-// Dated versions (e.g. '2026-02-01') don't support agent actions.
-const TRANSLATE_API_VERSION = 'vX'
 
 const SOURCE_DOC_QUERY = defineQuery(`*[_id == $id][0]`)
 
@@ -111,37 +108,6 @@ function classifyTranslationError(error: unknown, localeTitle: string): string {
     if (error.message.includes('timeout')) return 'Request timed out. Please retry.'
   }
   return `Failed to translate to ${localeTitle}`
-}
-
-// ---------------------------------------------------------------------------
-// Semaphore — limits concurrent translations to MAX_CONCURRENT_TRANSLATIONS
-// ---------------------------------------------------------------------------
-
-interface Semaphore {
-  acquire(): Promise<void>
-  release(): void
-}
-
-function createSemaphore(max: number): Semaphore {
-  let count = 0
-  const waiting: Array<() => void> = []
-  return {
-    acquire() {
-      if (count < max) {
-        count++
-        return Promise.resolve()
-      }
-      return new Promise<void>((resolve) => waiting.push(resolve))
-    },
-    release() {
-      count--
-      const next = waiting.shift()
-      if (next) {
-        count++
-        next()
-      }
-    },
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -231,12 +197,11 @@ export function useTranslateActions(
   config: ResolvedTranslationsConfig,
   onTranslationComplete: () => void,
 ): TranslateActionsResult {
-  const agentClient = useClient({apiVersion: TRANSLATE_API_VERSION})
   const client = useClient(DEFAULT_STUDIO_CLIENT_OPTIONS)
   const currentUser = useCurrentUser()
   const documentStore = useDocumentStore()
   const {perspectiveStack, selectedReleaseId} = usePerspective()
-  const {getContextForLocale} = useTranslationContext()
+  const {translate} = useTranslate()
 
   // Deterministic metadata ID derived from the source document
   const computedMetadataId = useMemo(
@@ -334,22 +299,19 @@ export function useTranslateActions(
         {perspective: perspectiveStack, signal},
       )
       const sourceRevision = (sourceDoc?._rev as string) ?? undefined
-      const translationContext = await getContextForLocale(locale.localeId, sourceDoc ?? undefined)
-
       if (signal.aborted) return
-      const result = await agentClient.agent.action.translate({
-        documentId,
-        fromLanguage: {id: baseLanguage, title: baseLanguage},
-        languageFieldPath: config.languageField,
-        noWrite: true,
-        schemaId: '_.schemas.default',
-        targetDocument: {operation: 'create'},
-        toLanguage: {id: locale.localeId, title: locale.localeTitle},
-        ...(translationContext.styleGuide && {styleGuide: translationContext.styleGuide}),
-        ...(translationContext.protectedPhrases.length > 0 && {
-          protectedPhrases: translationContext.protectedPhrases,
-        }),
-      })
+      const result = await translate(
+        {
+          documentId,
+          fromLanguage: {id: baseLanguage, title: baseLanguage},
+          languageFieldPath: config.languageField,
+          noWrite: true,
+          schemaId: '_.schemas.default',
+          targetDocument: {operation: 'create'},
+          toLanguage: {id: locale.localeId, title: locale.localeTitle},
+        },
+        sourceDoc ?? undefined,
+      )
 
       if (!result) {
         throw new Error('Translation returned no result')
@@ -439,9 +401,8 @@ export function useTranslateActions(
       selectedReleaseId,
       config,
       client,
-      agentClient,
+      translate,
       perspectiveStack,
-      getContextForLocale,
     ],
   )
 

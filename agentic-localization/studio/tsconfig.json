@@ -1,5 +1,5 @@
 {
   "extends": "@starter/tsconfig/base.json",
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "dist", ".sanity", "functions", "scripts"]
+  "exclude": ["node_modules", "dist", ".sanity", "functions", "scripts", "migrations"]
 }

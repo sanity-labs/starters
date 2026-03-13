@@ -6,16 +6,20 @@ import {
   type DocumentInspector,
   getPublishedId,
   useDocumentStore,
+  useTranslation,
 } from 'sanity'
 import {useObservable} from 'react-rx'
 import {of} from 'rxjs'
 import {defineQuery} from 'groq'
 import {createTranslationInspectorComponent} from './TranslationInspector'
+import {useInternationalizedFields} from '../fieldActions/useInternationalizedFields'
 import {
   resolveConfig,
   type ResolvedTranslationsConfig,
   type TranslationsConfig,
 } from '../core/types'
+import {getFieldTranslationMetadataId} from '../core/fieldMetadataIds'
+import {l10nLocaleNamespace} from '../i18n'
 
 const STALE_STATUS_QUERY = defineQuery(`*[
   _type == "translation.metadata"
@@ -23,6 +27,14 @@ const STALE_STATUS_QUERY = defineQuery(`*[
 ][0]{
   "isSourceDoc": translations[language == $defaultLanguage][0].value._ref == $publishedId,
   "hasStaleEntries": count(workflowStates[status == "stale"]) > 0
+}`)
+
+const FIELD_STALE_QUERY = defineQuery(`*[
+  _type == "fieldTranslation.metadata"
+  && _id == $fieldMetadataId
+][0]{
+  "hasStaleEntries": count(workflowStates[status == "stale"]) > 0,
+  "hasNeedsReview": count(workflowStates[status == "needsReview"]) > 0
 }`)
 
 /**
@@ -56,16 +68,26 @@ export function createTranslationInspector(config: TranslationsConfig): Document
     name: 'translations',
     component: InspectorComponent,
     useMenuItem({documentId, documentType}) {
-      const hidden = !resolved.internationalizedTypes.includes(documentType)
-      const hasStale = useHasStaleTranslations(documentId, hidden, resolved)
+      const {t} = useTranslation(l10nLocaleNamespace)
+      const isDocLevel = resolved.internationalizedTypes.includes(documentType)
+      const i18nFields = useInternationalizedFields(documentType)
+      const hasFieldLevel = i18nFields.length > 0
+      const hidden = !isDocLevel && !hasFieldLevel
+      const hasDocStale = useHasStaleTranslations(documentId, hidden || !isDocLevel, resolved)
+      const fieldStatus = useFieldTranslationBadge(documentId, hidden || !hasFieldLevel)
+
+      const hasStale = hasDocStale || fieldStatus.hasStale
+      const hasNeedsReview = fieldStatus.hasNeedsReview
 
       return {
         icon: TranslateIcon,
         showAsAction: true,
         title: hasStale
-          ? 'The source document for this translation has been updated'
-          : 'Translations',
-        tone: hasStale ? 'caution' : undefined,
+          ? t('inspector.title.stale')
+          : hasNeedsReview
+            ? t('inspector.title.needs-review')
+            : t('inspector.title'),
+        tone: hasStale ? 'caution' : hasNeedsReview ? 'caution' : undefined,
         hidden,
       }
     },
@@ -105,4 +127,39 @@ function useHasStaleTranslations(
 
   if (!result) return false
   return !result.isSourceDoc && result.hasStaleEntries
+}
+
+/**
+ * Lightweight realtime query to check if any field × locale has stale or needsReview status.
+ * Uses `documentStore.listenQuery()` for realtime updates.
+ */
+function useFieldTranslationBadge(
+  documentId: string,
+  hidden: boolean,
+): {hasStale: boolean; hasNeedsReview: boolean} {
+  const documentStore = useDocumentStore()
+  const fieldMetadataId = useMemo(
+    () => getFieldTranslationMetadataId(getPublishedId(documentId)),
+    [documentId],
+  )
+
+  const fieldStatus$ = useMemo(
+    () =>
+      hidden
+        ? of(null)
+        : documentStore.listenQuery(
+            FIELD_STALE_QUERY,
+            {fieldMetadataId},
+            DEFAULT_STUDIO_CLIENT_OPTIONS,
+          ),
+    [documentStore, fieldMetadataId, hidden],
+  )
+
+  const result = useObservable(fieldStatus$) as
+    | {hasStaleEntries: boolean; hasNeedsReview: boolean}
+    | null
+    | undefined
+
+  if (!result) return {hasStale: false, hasNeedsReview: false}
+  return {hasStale: result.hasStaleEntries, hasNeedsReview: result.hasNeedsReview}
 }

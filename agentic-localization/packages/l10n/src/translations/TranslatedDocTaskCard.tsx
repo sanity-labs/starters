@@ -26,9 +26,10 @@ import {Badge, Box, Button, Card, Flex, Heading, Stack, Text, Tooltip} from '@sa
 import {ShieldCheck} from 'lucide-react'
 import type {ComponentType} from 'react'
 import {useEffect, useState} from 'react'
-import {DEFAULT_STUDIO_CLIENT_OPTIONS, useClient, useRelativeTime} from 'sanity'
+import {DEFAULT_STUDIO_CLIENT_OPTIONS, useClient, useRelativeTime, useTranslation} from 'sanity'
 import {AIAnalysisError, AIAnalysisLoading, StaleAIAnalysis} from './StaleAIAnalysis'
 import type {StaleAnalysisCache, WorkflowStateEntry} from '../core/types'
+import {l10nLocaleNamespace} from '../i18n'
 import {useStaleAIAnalysis} from './useStaleAIAnalysis'
 
 // --- Types ---
@@ -84,44 +85,46 @@ function getTaskCardState(entry: WorkflowStateEntry | undefined): TaskCardState 
 interface StateConfig {
   tone: 'caution' | 'positive' | 'default' | 'neutral'
   icon: ComponentType
-  title: string
+  titleKey: string
 }
 
 const STATE_CONFIG: Record<TaskCardState, StateConfig> = {
   needsReview: {
     tone: 'caution',
     icon: EditIcon,
-    title: 'Review Required',
+    titleKey: 'task-card.review-required',
   },
   approved: {
     tone: 'positive',
     icon: ShieldCheck,
-    title: 'Translation Approved',
+    titleKey: 'task-card.translation-approved',
   },
   stale: {
     tone: 'neutral',
     icon: WarningOutlineIcon,
-    title: 'Translation Stale',
+    titleKey: 'task-card.translation-stale',
   },
   missing: {
     tone: 'default',
     icon: CircleIcon,
-    title: 'No Translation',
+    titleKey: 'task-card.no-translation',
   },
 }
 
 // --- Sub-components ---
 
 function RelativeTimestamp({time, prefix}: {time: string; prefix: string}) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   const relative = useRelativeTime(time)
   return (
     <Text size={1} muted>
-      {prefix} {relative} ago
+      {t('task-card.time-ago', {prefix, relative})}
     </Text>
   )
 }
 
 function TimeBadge({time, prefix}: {time: string; prefix: string}) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   const relative = useRelativeTime(time)
   return (
     <Badge tone="default" fontSize={1} padding={2}>
@@ -130,7 +133,7 @@ function TimeBadge({time, prefix}: {time: string; prefix: string}) {
           <ClockIcon />
         </Text>
         <span>
-          {prefix} {relative} ago
+          {t('task-card.time-ago', {prefix, relative})}
         </span>
       </Flex>
     </Badge>
@@ -160,7 +163,8 @@ function NeedsReviewContent({
   isTranslating: boolean
   releaseName?: string
 }) {
-  const sourceLabel = workflowEntry.source === 'ai' ? 'AI translation' : 'Manual translation'
+  const {t} = useTranslation(l10nLocaleNamespace)
+  const sourceLabel = workflowEntry.source === 'ai' ? t('task-card.source-ai') : t('task-card.source-manual')
 
   return (
     <>
@@ -177,15 +181,14 @@ function NeedsReviewContent({
           {workflowEntry.updatedAt && <TranslatedTimeBadge time={workflowEntry.updatedAt} />}
         </Flex>
         <Text size={1}>
-          This translation needs review before it can be approved. Compare with the source document
-          to verify accuracy and tone.
+          {t('task-card.review-description')}
         </Text>
       </Stack>
 
       <Box style={{borderTop: '1px solid var(--card-border-color)', paddingTop: 12}}>
         <Stack space={3}>
           <Button
-            text="Open Source Document"
+            text={t('task-card.open-source')}
             icon={LaunchIcon}
             mode="ghost"
             onClick={onNavigateToSource}
@@ -196,7 +199,7 @@ function NeedsReviewContent({
             content={
               <Box padding={2}>
                 <Text size={1}>
-                  Marks this translation as approved across all perspectives and releases.
+                  {t('task-card.approve-description')}
                 </Text>
               </Box>
             }
@@ -206,7 +209,7 @@ function NeedsReviewContent({
             delay={500}
           >
             <Button
-              text="Approve Translation"
+              text={t('task-card.approve')}
               icon={CheckmarkCircleIcon}
               tone="positive"
               onClick={onApprove}
@@ -243,7 +246,8 @@ function useUser(userId: string | undefined) {
 }
 
 function ApprovedContent({workflowEntry}: {workflowEntry: WorkflowStateEntry}) {
-  const sourceLabel = workflowEntry.source === 'ai' ? 'AI translation' : 'Manual translation'
+  const {t} = useTranslation(l10nLocaleNamespace)
+  const sourceLabel = workflowEntry.source === 'ai' ? t('task-card.source-ai') : t('task-card.source-manual')
   const reviewer = useUser(workflowEntry.reviewedBy)
 
   return (
@@ -263,7 +267,7 @@ function ApprovedContent({workflowEntry}: {workflowEntry: WorkflowStateEntry}) {
               }}
             />
           )}
-          <Text size={2}>Approved by {reviewer?.displayName || workflowEntry.reviewedBy}</Text>
+          <Text size={2}>{t('task-card.approved-by', {name: reviewer?.displayName || workflowEntry.reviewedBy})}</Text>
         </Flex>
       )}
       <Flex gap={2} wrap="wrap">
@@ -302,6 +306,7 @@ function StaleContent({
   releaseName?: string
   translatedDocumentId: string
 }) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   const aiAnalysis = useStaleAIAnalysis(
     staleAnalysis,
     workflowEntry.staleSourceRev,
@@ -321,7 +326,7 @@ function StaleContent({
             <Text size={4}>
               <WarningOutlineIcon />
             </Text>
-            <Heading size={2}>Translation Stale</Heading>
+            <Heading size={2}>{t('task-card.translation-stale')}</Heading>
           </Flex>
           {workflowEntry.updatedAt && (
             <RelativeTimestamp time={workflowEntry.updatedAt} prefix="Last translated" />
@@ -359,13 +364,14 @@ function MissingContent({
   isTranslating: boolean
   releaseName?: string
 }) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   return (
     <>
-      <Text size={1}>No translation exists for this language yet.</Text>
+      <Text size={1}>{t('task-card.no-translation-description')}</Text>
 
       <Box style={{borderTop: '1px solid var(--card-border-color)', paddingTop: 12}}>
         <Button
-          text={`Generate Translation${releaseName ? ` → ${releaseName}` : ''}`}
+          text={releaseName ? t('task-card.generate-to-release', {releaseName}) : t('task-card.generate')}
           icon={SparklesIcon}
           tone="suggest"
           onClick={onTranslate}
@@ -397,6 +403,7 @@ export function TranslatedDocTaskCard({
   releaseName,
   translatedDocumentId,
 }: TranslatedDocTaskCardProps) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   const state = getTaskCardState(workflowEntry)
   const config = STATE_CONFIG[state]
   const Icon = config.icon
@@ -427,7 +434,7 @@ export function TranslatedDocTaskCard({
           <Text size={4}>
             <Icon />
           </Text>
-          <Heading size={2}>{config.title}</Heading>
+          <Heading size={2}>{t(config.titleKey)}</Heading>
         </Flex>
 
         {state === 'needsReview' && workflowEntry && (

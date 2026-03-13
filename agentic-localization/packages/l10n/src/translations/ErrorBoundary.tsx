@@ -10,6 +10,9 @@ import {ResetIcon} from '@sanity/icons'
 import {Button, Card, Flex, Stack, Text} from '@sanity/ui'
 import {type ReactNode, useCallback} from 'react'
 import {ErrorBoundary as ReactErrorBoundary, type FallbackProps} from 'react-error-boundary'
+import {useTranslation} from 'sanity'
+
+import {l10nLocaleNamespace} from '../i18n'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -22,11 +25,15 @@ function ErrorFallback({
   resetErrorBoundary,
   featureName,
 }: FallbackProps & {featureName?: string}) {
+  const {t} = useTranslation(l10nLocaleNamespace)
+
   return (
     <Card padding={4} tone="critical">
       <Stack space={3}>
         <Text size={1} weight="semibold">
-          {featureName ? `${featureName} encountered an error` : 'Something went wrong'}
+          {featureName
+            ? t('error.with-feature', {featureName})
+            : t('error.generic')}
         </Text>
         <Text size={1} muted>
           {error instanceof Error ? error.message : String(error)}
@@ -34,7 +41,7 @@ function ErrorFallback({
         <Flex>
           <Button
             icon={ResetIcon}
-            text="Retry"
+            text={t('retry')}
             tone="critical"
             mode="ghost"
             onClick={resetErrorBoundary}

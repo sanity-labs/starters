@@ -6,7 +6,7 @@ import {EarthGlobeIcon} from '@sanity/icons'
 import {createL10n, useTranslateFieldAction, withLocaleFilter} from '@starter/l10n'
 import {schemaTypes} from './schemaTypes'
 
-const l10nTypes = ['l10n.locale', 'l10n.glossary', 'l10n.styleGuide', 'translation.metadata']
+const l10nTypes = ['l10n.locale', 'l10n.glossary', 'l10n.styleGuide', 'translation.metadata', 'fieldTranslation.metadata']
 
 const projectId = import.meta.env?.SANITY_STUDIO_PROJECT_ID ?? process.env.SANITY_STUDIO_PROJECT_ID!
 const dataset = import.meta.env?.SANITY_STUDIO_DATASET ?? process.env.SANITY_STUDIO_DATASET!
@@ -64,7 +64,7 @@ export default defineConfig({
 
   document: {
     newDocumentOptions: (prev) =>
-      prev.filter((option) => option.templateId !== 'translation.metadata'),
+      prev.filter((option) => option.templateId !== 'translation.metadata' && option.templateId !== 'fieldTranslation.metadata'),
   },
 
   plugins: [

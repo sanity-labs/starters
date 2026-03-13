@@ -25,6 +25,7 @@ import {
   tagBriefs,
   articleBriefs,
   buildTranslationBriefs,
+  buildFieldTranslationBriefs,
 } from './seed/briefs.ts'
 import {glossaryDocument, styleGuideDocuments} from './seed/metadata.ts'
 
@@ -150,6 +151,7 @@ async function* generateDocuments() {
 
   // Build translated briefs from dataset locales
   const {translatedBriefs, translationMetadata} = buildTranslationBriefs(targetLocales)
+  const {bioGenerationBriefs, fieldTranslationMetadata} = buildFieldTranslationBriefs(targetLocales)
 
   // 1. Translation metadata — static
   yield glossaryDocument
@@ -182,8 +184,9 @@ async function* generateDocuments() {
   for (const meta of translationMetadata) yield meta
   process.stderr.write(`✓ ${translationMetadata.length} translation metadata\n`)
 
-  // 4. Persons — AI generates bio
+  // 4. Persons — AI generates bio, then translated bios for target locales
   process.stderr.write(`⏳ ${personBriefs.length} persons...\n`)
+  const personDocs = new Map<string, Record<string, unknown>>()
   for (const brief of personBriefs) {
     try {
       const doc = await generate({
@@ -191,11 +194,78 @@ async function* generateDocuments() {
         instruction: `Create a profile for ${brief.name}. ${brief.prompt.role}\n\nWrite a 2-3 sentence professional bio.`,
         target: {include: ['name', 'bio']},
       })
-      yield {...doc, _id: brief._id}
+      personDocs.set(brief._id, {...doc, _id: brief._id})
       process.stderr.write(`  ✓ ${brief.name}\n`)
     } catch (err: unknown) {
       process.stderr.write(`  ✗ ${brief.name}: ${(err as Error).message}\n`)
     }
+  }
+
+  // Generate translated bios for persons that have field translations configured
+  if (bioGenerationBriefs.length > 0) {
+    process.stderr.write(`⏳ ${bioGenerationBriefs.length} translated person bios...\n`)
+    for (const brief of bioGenerationBriefs) {
+      const personDoc = personDocs.get(brief.personId)
+      if (!personDoc) continue
+
+      try {
+        const doc = await generate({
+          targetDocument: {operation: 'create', _type: 'person'},
+          instruction: `Translate this person's bio into ${brief.locale.title}. The person is: ${brief.personName}. ${brief.role}\n\nWrite naturally in ${brief.locale.title}. Do not produce a word-for-word translation. Keep proper nouns and company names in their original form.`,
+          target: {include: ['bio']},
+        })
+
+        // Extract the translated bio value from the generated doc
+        const translatedBio = (doc as Record<string, unknown>)?.bio
+        const bioArray = Array.isArray(translatedBio) ? translatedBio : []
+        const translatedValue = bioArray[0]?.value ?? (typeof translatedBio === 'string' ? translatedBio : null)
+
+        if (translatedValue) {
+          // Add the translated bio entry to the person's bio array
+          const existingBio = (personDoc.bio as Array<Record<string, unknown>>) ?? []
+          existingBio.push({
+            _type: 'internationalizedArrayTextValue',
+            language: brief.locale.code,
+            value: translatedValue,
+          })
+          personDoc.bio = existingBio
+
+          // Update sourceSnapshot in the metadata
+          const enBioEntry = existingBio.find(
+            (e: Record<string, unknown>) => e.language === 'en-US',
+          )
+          if (enBioEntry) {
+            const meta = fieldTranslationMetadata.find(
+              (m) => m._id === `fieldTranslation.metadata.${brief.personId}`,
+            )
+            if (meta) {
+              const states = meta.workflowStates as Array<Record<string, unknown>>
+              const stateEntry = states.find(
+                (s) => s.field === 'bio' && s.language === brief.locale.code,
+              )
+              if (stateEntry) {
+                stateEntry.sourceSnapshot = JSON.stringify(enBioEntry.value)
+              }
+            }
+          }
+
+          process.stderr.write(`  ✓ ${brief.personName} [${brief.locale.code}]\n`)
+        }
+      } catch (err: unknown) {
+        process.stderr.write(
+          `  ✗ ${brief.personName} [${brief.locale.code}]: ${(err as Error).message}\n`,
+        )
+      }
+    }
+  }
+
+  // Yield all person documents (with translated bios appended)
+  for (const doc of personDocs.values()) yield doc
+
+  // 4b. Field translation metadata — links person bios to workflow states
+  for (const meta of fieldTranslationMetadata) yield meta
+  if (fieldTranslationMetadata.length > 0) {
+    process.stderr.write(`✓ ${fieldTranslationMetadata.length} field translation metadata\n`)
   }
 
   // 5. en-US source articles — AI generates title, excerpt, body

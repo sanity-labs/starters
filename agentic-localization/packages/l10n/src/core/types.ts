@@ -200,6 +200,53 @@ export function workflowStatesToMap(
   return map
 }
 
+// ---------------------------------------------------------------------------
+// Field-level translation workflow types
+// ---------------------------------------------------------------------------
+
+/**
+ * Shape of a single entry in the `workflowStates` array on `fieldTranslation.metadata`.
+ * Keyed by field × language combination.
+ */
+export interface FieldWorkflowStateEntry extends LocalizedObject {
+  /** The field's displayPath (e.g., 'bio', 'hero.title') */
+  field: string
+  status: 'needsReview' | 'approved' | 'stale'
+  source: 'ai' | 'manual'
+  updatedAt: string
+  reviewedBy?: string
+  /** JSON.stringify of the source locale's value at time of translation */
+  sourceSnapshot?: string
+}
+
+/**
+ * Merged state for a single field × locale cell in the inspector matrix.
+ * Combines document state (filled/empty) with metadata workflow state.
+ */
+export interface FieldCellState {
+  status: 'missing' | 'needsReview' | 'approved' | 'stale'
+  source?: 'ai' | 'manual'
+  sourceSnapshot?: string
+  reviewedBy?: string
+  updatedAt?: string
+}
+
+/**
+ * Convert a `workflowStates` array into a field::locale-keyed map for O(1) lookups.
+ */
+export function fieldWorkflowStatesToMap(
+  states: FieldWorkflowStateEntry[] | null | undefined,
+): Record<string, FieldWorkflowStateEntry> {
+  const map: Record<string, FieldWorkflowStateEntry> = {}
+  if (!states) return map
+  for (const entry of states) {
+    if (entry.field && entry.language) {
+      map[`${entry.field}::${entry.language}`] = entry
+    }
+  }
+  return map
+}
+
 /**
  * Per-locale translation info for a single document.
  */
