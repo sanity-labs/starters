@@ -87,7 +87,7 @@ export function createTranslationInspector(config: TranslationsConfig): Document
           : hasNeedsReview
             ? t('inspector.title.needs-review')
             : t('inspector.title'),
-        tone: hasStale ? 'caution' : hasNeedsReview ? 'caution' : undefined,
+        tone: hasStale ? 'suggest' : hasNeedsReview ? 'caution' : undefined,
         hidden,
       }
     },

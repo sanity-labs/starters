@@ -164,7 +164,7 @@ function StackedProgressBar({
   const segments: Array<{count: number; fillColor: string}> = [
     {count: counts.approved, fillColor: 'var(--card-badge-positive-bg-color)'},
     {count: counts.needsReview, fillColor: 'var(--card-badge-caution-bg-color)'},
-    {count: counts.stale, fillColor: 'var(--card-badge-caution-bg-color)'},
+    {count: counts.stale, fillColor: 'var(--card-badge-suggest-bg-color)'},
     {count: counts.usingFallback, fillColor: 'var(--card-badge-default-bg-color)'},
     {count: counts.missing, fillColor: 'var(--card-badge-critical-bg-color)'},
   ]
@@ -172,7 +172,7 @@ function StackedProgressBar({
   const badges: Array<{
     status: TranslationWorkflowStatus
     count: number
-    tone: 'positive' | 'caution' | 'default' | 'critical'
+    tone: 'positive' | 'caution' | 'suggest' | 'default' | 'critical'
     label: string
     style?: React.CSSProperties
   }> = [
@@ -191,9 +191,8 @@ function StackedProgressBar({
     {
       status: 'stale',
       count: counts.stale,
-      tone: 'caution',
+      tone: 'suggest',
       label: t('status.stale.label'),
-      style: {opacity: 0.75},
     },
     {
       status: 'usingFallback',

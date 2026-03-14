@@ -256,11 +256,10 @@ export function FieldTranslationContent({
                   {staleCount > 0 && (
                     <Box
                       style={{
-                        background: 'var(--card-badge-caution-bg-color)',
+                        background: 'var(--card-badge-suggest-bg-color)',
                         height: '100%',
                         transition: 'width 0.3s ease',
                         width: `${(staleCount / totalCount) * 100}%`,
-                        opacity: 0.6,
                       }}
                     />
                   )}
@@ -288,7 +287,7 @@ export function FieldTranslationContent({
                     </Badge>
                   )}
                   {staleCount > 0 && (
-                    <Badge tone="caution" fontSize={1} padding={2}>
+                    <Badge tone="suggest" fontSize={1} padding={2}>
                       {t('field-translations.badge.stale', {count: staleCount})}
                     </Badge>
                   )}
@@ -454,8 +453,8 @@ const STATUS_COLORS: Record<FieldCellState['status'], {bg: string; border: strin
     border: 'var(--card-badge-caution-fg-color)',
   },
   stale: {
-    bg: 'var(--card-badge-caution-fg-color)',
-    border: 'var(--card-badge-caution-fg-color)',
+    bg: 'var(--card-badge-suggest-fg-color)',
+    border: 'var(--card-badge-suggest-fg-color)',
   },
   missing: {
     bg: 'transparent',
@@ -474,7 +473,7 @@ function WorkflowDot({status}: {status: FieldCellState['status']}) {
         height: 10,
         width: 10,
         flexShrink: 0,
-        opacity: status === 'stale' ? 0.7 : 1,
+        opacity: 1,
       }}
     />
   )
@@ -570,8 +569,8 @@ function CellStatus({
           <Flex justify="center">
             <Box
               style={{
-                background: 'var(--card-badge-suggest-fg-color)',
-                border: '2px solid var(--card-badge-suggest-fg-color)',
+                background: 'var(--card-fg-color)',
+                border: '2px solid var(--card-fg-color)',
                 borderRadius: '50%',
                 height: 10,
                 width: 10,
