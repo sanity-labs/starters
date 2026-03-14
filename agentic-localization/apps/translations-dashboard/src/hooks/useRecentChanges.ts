@@ -108,15 +108,16 @@ export function useRecentChanges(
         // Skip entries without updatedAt — they can't be sorted chronologically
         if (!ws.updatedAt) continue
 
-        const locale = localeLookup.get(ws._key)
+        const wsLanguage = ws.language
+        const locale = localeLookup.get(wsLanguage)
 
         entries.push({
           documentId: baseDoc?._id ?? null,
           documentTitle: baseDoc?.title ?? null,
           documentType: baseDoc?._type ?? null,
           localeFlag: locale?.flag ?? '',
-          localeName: locale?.title ?? ws._key,
-          localeTag: ws._key,
+          localeName: locale?.title ?? wsLanguage,
+          localeTag: wsLanguage,
           reviewedBy: ws.reviewedBy ?? null,
           source: ws.source ?? null,
           status: ws.status,

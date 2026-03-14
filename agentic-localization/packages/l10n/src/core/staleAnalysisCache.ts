@@ -122,5 +122,5 @@ export async function writeReviewProgress(
     .setIfMissing({'staleAnalysis.reviewProgress': []})
     .unset([`staleAnalysis.reviewProgress[_key=="${progressKey}"]`])
     .append('staleAnalysis.reviewProgress', [entry])
-    .commit()
+    .commit({autoGenerateArrayKeys: true})
 }

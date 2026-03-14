@@ -120,7 +120,7 @@ export const handler = documentEventHandler<StaleEventData>(async ({context, eve
   const patch = client.patch(metadata._id)
 
   for (const entry of entriesToMark) {
-    const keyPath = `workflowStates[_key == "${entry._key}"]`
+    const keyPath = `workflowStates[language == "${entry.language}"]`
     patch.set({
       [`${keyPath}.staleSourceRev`]: _rev,
       [`${keyPath}.status`]: 'stale',
@@ -132,7 +132,7 @@ export const handler = documentEventHandler<StaleEventData>(async ({context, eve
   try {
     await patch.commit()
     console.log(
-      `[StaleDetection] Successfully marked ${entriesToMark.length} locale(s) as stale: ${entriesToMark.map((e) => e._key).join(', ')}`,
+      `[StaleDetection] Successfully marked ${entriesToMark.length} locale(s) as stale: ${entriesToMark.map((e) => e.language).join(', ')}`,
     )
   } catch (error) {
     console.error(`[StaleDetection] Failed to patch metadata "${metadata._id}":`, error)

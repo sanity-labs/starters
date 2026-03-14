@@ -23,6 +23,7 @@ export const workflowStatesField = defineField({
     defineArrayMember({
       type: 'object',
       fields: [
+        defineField({name: 'language', type: 'string'}),
         defineField({
           name: 'status',
           type: 'string',

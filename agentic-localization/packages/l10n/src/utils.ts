@@ -1,7 +1,7 @@
 // --- Intl-powered locale utilities ---
 
-const languageNames = new Intl.DisplayNames('en', {type: 'language', fallback: 'none'})
-const regionNames = new Intl.DisplayNames('en', {type: 'region', fallback: 'none'})
+const languageNames = new Intl.DisplayNames(undefined, {type: 'language', fallback: 'none'})
+const regionNames = new Intl.DisplayNames(undefined, {type: 'region', fallback: 'none'})
 
 /**
  * Validate a BCP-47 locale code (e.g., "en-US", "ja-JP", "zh-Hans-CN").
@@ -30,11 +30,6 @@ export function isValidLocale(code: string | undefined): boolean {
 }
 
 // Derive text direction from Intl.Locale (getTextInfo is a V8/Node 18+ extension)
-type LocaleWithTextInfo = Intl.Locale & {
-  textInfo?: {direction: string}
-  getTextInfo?: () => {direction: string}
-}
-
 /**
  * Convert a region code (e.g., "US") to its flag emoji using regional indicator symbols.
  */
@@ -60,40 +55,29 @@ export function getFlagFromCode(localeCode: string): string {
 
 /**
  * Derive locale metadata from a BCP-47 code using Intl APIs.
- * Returns display name, native name, text direction, and plural category count.
+ * Returns display name and native name.
  */
 export function resolveLocaleDefaults(code: string): {
   title: string
   nativeName: string
-  direction: 'ltr' | 'rtl'
-  pluralCategories: number
 } {
-  const locale = new Intl.Locale(code) as LocaleWithTextInfo
-  const language = locale.language
+  const language = new Intl.Locale(code).language
 
-  // Display name in English (e.g., "German (Germany)" for de-DE)
-  const title = new Intl.DisplayNames('en', {type: 'language'}).of(code) ?? code
+  // Display name in the user's locale (e.g., "German (Germany)" for de-DE on an English system)
+  const title = new Intl.DisplayNames(undefined, {type: 'language'}).of(code) ?? code
 
   // Display name in the locale's own language (e.g., "Deutsch" for de-DE)
   const nativeName = new Intl.DisplayNames(language, {type: 'language'}).of(language) ?? code
 
-  // Text direction via Intl.Locale extension (V8/Node 18+)
-  const textInfo = locale.textInfo ?? locale.getTextInfo?.()
-  const direction: 'ltr' | 'rtl' = textInfo?.direction === 'rtl' ? 'rtl' : 'ltr'
-
-  // Count distinct CLDR plural categories by probing representative numbers
-  const pr = new Intl.PluralRules(code)
-  const categories = new Set([0, 1, 2, 3, 5, 11, 21, 100, 1000000].map((n) => pr.select(n)))
-
-  return {title, nativeName, direction, pluralCategories: categories.size}
+  return {title, nativeName}
 }
 
 // --- Intl-powered pluralization for Studio UI strings ---
 
-const enPlural = new Intl.PluralRules('en')
+const localePlural = new Intl.PluralRules()
 
 function pluralize(count: number, one: string, other: string): string {
-  return `${count} ${enPlural.select(count) === 'one' ? one : other}`
+  return `${count} ${localePlural.select(count) === 'one' ? one : other}`
 }
 
 // --- Sanity schema validators ---

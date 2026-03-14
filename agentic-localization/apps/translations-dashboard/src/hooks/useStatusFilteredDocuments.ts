@@ -88,7 +88,7 @@ export function useStatusFilteredDocuments(
 
       if (meta?.translations) {
         for (const t of meta.translations) {
-          translationMap.set(t._key, t)
+          translationMap.set(t.language, t)
         }
       }
 

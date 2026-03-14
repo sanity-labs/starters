@@ -20,6 +20,7 @@ import {useMemo} from 'react'
 
 import {
   type AggregateData,
+  type TranslationMetadataEntry,
   buildFallbackMap,
   buildMetadataLookup,
   buildWorkflowStateMap,
@@ -99,12 +100,12 @@ export function useGapDocuments(
 
     for (const doc of typeDocs) {
       const meta = metadataLookup.get(doc._id)
-      const translationMap = new Map<string, {_key: string; ref: string}>()
+      const translationMap = new Map<string, TranslationMetadataEntry>()
       const workflowStateMap = buildWorkflowStateMap(meta?.workflowStates ?? null)
 
       if (meta?.translations) {
         for (const t of meta.translations) {
-          translationMap.set(t._key, t)
+          translationMap.set(t.language, t)
         }
       }
 

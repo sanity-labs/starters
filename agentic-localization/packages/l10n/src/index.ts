@@ -20,6 +20,7 @@ export {
   workflowStatesToMap,
   type DocumentState,
   type LocaleTranslation,
+  type LocalizedObject,
   type PreTranslatedSuggestion,
   type ResolvedTranslationsConfig,
   type ReviewProgress,

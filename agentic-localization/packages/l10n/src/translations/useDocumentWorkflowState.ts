@@ -80,7 +80,7 @@ export function useDocumentWorkflowState(
 
   const workflowEntry = useMemo(() => {
     if (!language || !metadata?.workflowStates) return undefined
-    const map = workflowStatesToMap(metadata.workflowStates)
+    const map = workflowStatesToMap(metadata.workflowStates as WorkflowStateEntry[])
     return map[language]
   }, [language, metadata])
 

@@ -2,14 +2,14 @@ import {getPublishedId} from 'sanity'
 
 import {getTranslationMetadataId} from '@starter/l10n/core/ids'
 
-import type {TranslationReference} from '../types'
+import {createReference} from './createReference'
 
 /** Shape accepted by `client.createIfNotExists()` for metadata documents. */
 type NewTranslationMetadata = {
   _id: string
   _type: 'translation.metadata'
   schemaTypes: string[]
-  translations: TranslationReference[]
+  translations: ReturnType<typeof createReference>[]
 }
 
 /**
@@ -35,16 +35,8 @@ export function buildMetadataDocument(
 export function buildTranslationReference(
   documentId: string,
   languageKey: string,
-): TranslationReference {
-  return {
-    _key: languageKey,
-    _type: 'internationalizedArrayReferenceValue',
-    value: {
-      _ref: getPublishedId(documentId),
-      _type: 'reference',
-      _weak: true,
-    },
-  }
+): ReturnType<typeof createReference> {
+  return createReference(languageKey, getPublishedId(documentId), 'document')
 }
 
 export {METADATA_EXISTS_QUERY} from '../queries/metadataQueries'

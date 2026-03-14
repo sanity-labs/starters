@@ -1,22 +1,24 @@
+import type {TranslationReference} from '@sanity/document-internationalization'
 import {getPublishedId} from 'sanity'
 
-import type {TranslationReference} from '../types'
-
+/**
+ * Create a translation.metadata reference entry.
+ * `_key` is auto-generated via `autoGenerateArrayKeys` on `.commit()`.
+ * `_strengthenOnPublish` auto-strengthens the weak ref once the referenced doc is published.
+ */
 export function createReference(
-  key: string,
+  languageId: string,
   ref: string,
   type: string,
-  strengthenOnPublish: boolean = false,
-): TranslationReference {
+): Omit<TranslationReference, '_key'> {
   return {
-    _key: key,
     _type: 'internationalizedArrayReferenceValue',
+    language: languageId,
     value: {
       _ref: getPublishedId(ref),
       _type: 'reference',
       _weak: true,
-      // If the user has configured weakReferences, we won't want to strengthen them
-      ...(strengthenOnPublish ? {_strengthenOnPublish: {type}} : {}),
+      _strengthenOnPublish: {type},
     },
   }
 }

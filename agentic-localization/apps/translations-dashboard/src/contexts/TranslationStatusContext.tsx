@@ -1,3 +1,5 @@
+import type {LocalizedObject} from '@starter/l10n'
+
 import {useClient} from '@sanity/sdk-react'
 import {
   createContext,
@@ -99,20 +101,22 @@ export function TranslationStatusProvider({
         const result = await client.fetch<
           Array<{
             _id: string
-            translations: Array<{
-              _key: string
-              draftExists: boolean
-              publishedExists: boolean
-              ref: string
-              versionIds: string[]
-            }>
-            workflowStates: Array<{
-              _key: string
-              reviewedBy?: string
-              source?: string
-              status?: string
-              updatedAt?: string
-            }> | null
+            translations: Array<
+              LocalizedObject & {
+                draftExists: boolean
+                publishedExists: boolean
+                ref: string
+                versionIds: string[]
+              }
+            >
+            workflowStates: Array<
+              LocalizedObject & {
+                reviewedBy?: string
+                source?: string
+                status?: string
+                updatedAt?: string
+              }
+            > | null
           }>
         >(BATCH_METADATA_STATUS_QUERY, {metadataIds}, {perspective: 'raw'})
 
@@ -127,7 +131,7 @@ export function TranslationStatusProvider({
             {reviewedBy?: string; source?: string; status?: string; updatedAt?: string}
           > = {}
           for (const entry of wfArray) {
-            wfStates[entry._key] = entry
+            wfStates[entry.language] = entry
           }
 
           // Create a lookup map for this metadata's translations
@@ -136,7 +140,7 @@ export function TranslationStatusProvider({
             {draftExists: boolean; publishedExists: boolean; ref: string; versionIds: string[]}
           >()
           for (const t of metadata.translations || []) {
-            translationMap.set(t._key, t)
+            translationMap.set(t.language, t)
           }
 
           // Compute status for each locale

@@ -6,6 +6,7 @@
  */
 
 import type {KeyedObject} from 'sanity'
+import type {LANGUAGE_FIELD_NAME} from 'sanity-plugin-internationalized-array'
 
 /**
  * Configuration for the translations system.
@@ -77,10 +78,17 @@ export type TranslationInFlightStatus = 'translating' | 'failed'
 export type TranslationStatus = TranslationWorkflowStatus | TranslationInFlightStatus
 
 /**
- * Shape of a single entry in the `workflowStates` array on `translation.metadata`.
- * Each item is keyed by locale ID via the `_key` field (e.g., `_key: 'es-MX'`).
+ * A keyed array item indexed by locale.
+ * Extends `KeyedObject` (`_key`) with the plugin's language field name (`language`).
  */
-export interface WorkflowStateEntry extends KeyedObject {
+export type LocalizedObject = KeyedObject & {[K in typeof LANGUAGE_FIELD_NAME]: string}
+
+/**
+ * Shape of a single entry in the `workflowStates` array on `translation.metadata`.
+ * The locale is identified by the `language` field (e.g., `language: 'es-MX'`).
+ * `_key` is a random unique ID (not the locale code).
+ */
+export interface WorkflowStateEntry extends LocalizedObject {
   status: TranslationWorkflowStatus
   source?: 'ai' | 'manual'
   updatedAt?: string
@@ -180,39 +188,15 @@ export interface StaleAnalysisCache {
 
 /**
  * Convert a `workflowStates` array into a locale-keyed map for O(1) lookups.
- *
- * Handles both the correct array shape `[{_key, ...}]` and the legacy object
- * shape `{localeId: {...}}` written by a bug in the `client.create` path
- * before this was fixed. Existing metadata documents in the wild may still
- * have the object shape until they are re-translated.
  */
 export function workflowStatesToMap(
-  states:
-    | Array<Partial<WorkflowStateEntry> & {_key: string}>
-    | Record<string, Omit<WorkflowStateEntry, '_key'>>
-    | null
-    | undefined,
+  states: WorkflowStateEntry[] | null | undefined,
 ): Record<string, WorkflowStateEntry> {
   const map: Record<string, WorkflowStateEntry> = {}
   if (!states) return map
-
-  // Correct shape: array of keyed entries
-  if (Array.isArray(states)) {
-    for (const entry of states) {
-      if (entry.status) map[entry._key] = entry as WorkflowStateEntry
-    }
-    return map
+  for (const entry of states) {
+    if (entry.status) map[entry.language] = entry
   }
-
-  // Legacy shape: plain object keyed by localeId (created before fix)
-  if (typeof states === 'object') {
-    for (const [key, entry] of Object.entries(states)) {
-      // TS can't infer full type from spread + Omit — assertion is safe here
-      map[key] = {_key: key, ...entry} as WorkflowStateEntry
-    }
-    return map
-  }
-
   return map
 }
 

@@ -269,7 +269,7 @@ export function buildTranslationBriefs(locales: {code: string; title: string}[])
       // Special case: article-simultaneous-global-launch ja-JP → stale demo
       if (sourceId === 'article-simultaneous-global-launch' && t.localeCode === 'ja-JP') {
         workflowStates.push({
-          _key: t.localeCode,
+          language: t.localeCode,
           status: 'stale',
           source: 'ai',
           updatedAt: daysAgo(seedDate, 1),
@@ -277,14 +277,14 @@ export function buildTranslationBriefs(locales: {code: string; title: string}[])
         })
       } else if (isDraft) {
         workflowStates.push({
-          _key: t.localeCode,
+          language: t.localeCode,
           status: 'needsReview',
           source: 'ai',
           updatedAt: daysAgo(seedDate, 1 + Math.random()),
         })
       } else {
         workflowStates.push({
-          _key: t.localeCode,
+          language: t.localeCode,
           status: 'approved',
           source: 'ai',
           updatedAt: daysAgo(seedDate, 3 + Math.random() * 4),
@@ -334,9 +334,9 @@ export function buildTranslationBriefs(locales: {code: string; title: string}[])
       _id: `translation.metadata.${sourceId}`,
       _type: 'translation.metadata',
       translations: [
-        {_key: 'en-US', value: ref(sourceId)},
+        {language: 'en-US', value: ref(sourceId)},
         ...translations.map((t) => ({
-          _key: t.localeCode,
+          language: t.localeCode,
           value: isDraftId(t.documentId) ? weakRef(t.baseId, 'article') : ref(t.baseId),
         })),
       ],

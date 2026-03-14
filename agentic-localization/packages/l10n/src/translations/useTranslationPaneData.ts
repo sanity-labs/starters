@@ -63,6 +63,7 @@ const TRANSLATION_METADATA_QUERY = defineQuery(`*[
   staleAnalysis,
   "translations": translations[]{
     _key,
+    language,
     "ref": value._ref
   }
 }`)
@@ -72,7 +73,7 @@ const CANDIDATE_IDS_QUERY = defineQuery(`*[_id in $candidateIds]._id`)
 const BASE_DOC_REF_QUERY = defineQuery(`*[
   _type == "translation.metadata"
   && (references($documentId) || references($publishedId))
-][0].translations[_key == $defaultLanguage][0].value._ref`)
+][0].translations[language == $defaultLanguage][0].value._ref`)
 
 // ---------------------------------------------------------------------------
 // Locale type
@@ -236,12 +237,14 @@ async function computeTranslationSnapshot(
   }
 
   // Compute per-locale status
-  const workflowStatesMap = workflowStatesToMap(metadata?.workflowStates)
+  const workflowStatesMap = workflowStatesToMap(
+    metadata?.workflowStates as WorkflowStateEntry[] | undefined,
+  )
 
   const translationMap = new Map<string, string>()
   if (metadata?.translations) {
     for (const t of metadata.translations) {
-      if (t.ref) translationMap.set(t._key, t.ref)
+      if (t.ref && t.language) translationMap.set(t.language, t.ref)
     }
   }
 
