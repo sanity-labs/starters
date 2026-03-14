@@ -21,11 +21,18 @@ import {
 import * as Accordion from '@radix-ui/react-accordion'
 import {Badge, Button, Card, Flex, Heading, Label, Spinner, Stack, Text} from '@sanity/ui'
 import {useCallback, useMemo, useState} from 'react'
-import {DEFAULT_STUDIO_CLIENT_OPTIONS, getPublishedId, useClient, useDocumentValues} from 'sanity'
+import {
+  DEFAULT_STUDIO_CLIENT_OPTIONS,
+  getPublishedId,
+  useClient,
+  useDocumentValues,
+  useTranslation,
+} from 'sanity'
 import {toPlainText} from '@portabletext/toolkit'
 import {InlineDiff} from './InlineDiff'
 import {PortableTextDiff} from './PortableTextDiff'
 import {getReviewProgress, writeReviewProgress} from '../core/staleAnalysisCache'
+import {l10nLocaleNamespace} from '../i18n'
 import styles from './SuggestionAccordion.module.css'
 import type {
   PreTranslatedSuggestion,
@@ -264,6 +271,7 @@ function SuggestionAccordionHeader({
   suggestion: StaleAnalysisSuggestion
   status: SuggestionStatus
 }) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   const fieldLabel = suggestion.fieldName.charAt(0).toUpperCase() + suggestion.fieldName.slice(1)
   const isRetranslate = suggestion.recommendation === 'retranslate'
   const isMuted = status === 'skipped'
@@ -274,20 +282,22 @@ function SuggestionAccordionHeader({
     if (status === 'applied') {
       return (
         <Badge fontSize={1} padding={2} tone={isRetranslate ? 'positive' : 'default'}>
-          {isRetranslate ? 'Translation updated' : 'Kept current'}
+          {isRetranslate
+            ? t('stale-analysis.translation-updated')
+            : t('stale-analysis.kept-current')}
         </Badge>
       )
     }
     if (status === 'skipped') {
       return (
         <Badge fontSize={1} padding={2} tone="caution">
-          Skipped
+          {t('stale-analysis.skipped')}
         </Badge>
       )
     } else {
       return (
         <Badge fontSize={1} padding={2} tone="default">
-          Pending
+          {t('stale-analysis.pending')}
         </Badge>
       )
     }
@@ -325,6 +335,7 @@ function SuggestionAccordionPanel({
   onSkip: () => void
   translatedDocumentId: string
 }) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   const [showDiff, setShowDiff] = useState(false)
 
   const isRetranslate = suggestion.recommendation === 'retranslate'
@@ -340,7 +351,11 @@ function SuggestionAccordionPanel({
           <Stack space={3}>
             <Card padding={3} radius={2} tone="suggest" border>
               <Text size={2} weight="semibold">
-                Recommendation: {isRetranslate ? 'Update translation' : 'Keep current translation'}
+                {t('stale-analysis.recommendation', {
+                  recommendation: isRetranslate
+                    ? t('stale-analysis.recommend-update')
+                    : t('stale-analysis.recommend-keep'),
+                })}
               </Text>
             </Card>
             {isRetranslate && hasPreTranslation && (
@@ -355,7 +370,7 @@ function SuggestionAccordionPanel({
           {/* --- Reason section --- */}
           <Stack space={3}>
             <Label size={2} weight="semibold" muted>
-              Reason
+              {t('stale-analysis.reason')}
             </Label>
             <Card padding={3} radius={2} tone="suggest" border>
               <Text size={1}>{whatChanged}</Text>
@@ -382,7 +397,7 @@ function SuggestionAccordionPanel({
                   {showDiff ? <ChevronDownIcon /> : <ChevronRightIcon />}
                 </Text>
                 <Text size={0} muted>
-                  {showDiff ? 'Hide word-level changes' : 'Show word-level changes'}
+                  {showDiff ? t('stale-analysis.hide-diff') : t('stale-analysis.show-diff')}
                 </Text>
               </Flex>
               {showDiff && (
@@ -397,14 +412,14 @@ function SuggestionAccordionPanel({
 
           {applyDisabled && (
             <Text size={0} muted>
-              Suggested translation not yet available
+              {t('stale-analysis.no-suggestion')}
             </Text>
           )}
 
           {/* --- Actions --- */}
           <Stack space={2}>
             <Button
-              text={isRetranslate ? 'Apply suggested update' : 'Keep current translation'}
+              text={isRetranslate ? t('stale-analysis.apply') : t('stale-analysis.keep')}
               icon={CheckmarkCircleIcon}
               tone="positive"
               onClick={onApply}
@@ -415,7 +430,7 @@ function SuggestionAccordionPanel({
               style={{width: '100%'}}
             />
             <Button
-              text="Skip"
+              text={t('stale-analysis.skip')}
               mode="ghost"
               onClick={onSkip}
               disabled={isApplying}
@@ -435,23 +450,25 @@ function SuggestionAccordionPanel({
 // ---------------------------------------------------------------------------
 
 export function AIAnalysisLoading() {
+  const {t} = useTranslation(l10nLocaleNamespace)
   return (
     <Flex align="center" gap={2} padding={3}>
       <Spinner muted />
       <Text size={1} muted>
-        Analyzing changes…
+        {t('stale-analysis.analyzing')}
       </Text>
     </Flex>
   )
 }
 
 export function AIAnalysisError({error, onRetry}: {error: Error; onRetry: () => void}) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   return (
     <Stack space={3} padding={3}>
-      <Text size={1}>Unable to analyze changes.</Text>
-      <Button text="Retry" onClick={onRetry} mode="ghost" />
+      <Text size={1}>{t('stale-analysis.error')}</Text>
+      <Button text={t('retry')} onClick={onRetry} mode="ghost" />
       <Text size={1} muted>
-        You can still review changes manually in the Raw Diff tab.
+        {t('stale-analysis.error-fallback')}
       </Text>
     </Stack>
   )
@@ -484,6 +501,7 @@ export function StaleAIAnalysisStickyBar({
   onDismissStale,
   isDismissing,
 }: StaleAIAnalysisStickyBarProps) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   const hasContent = allResolved || pendingCount > 0
   if (!hasContent) return null
 
@@ -498,22 +516,22 @@ export function StaleAIAnalysisStickyBar({
           <Flex gap={2} wrap="wrap">
             {retranslatedCount > 0 && (
               <Badge tone="positive" fontSize={1} padding={2}>
-                {retranslatedCount} translation{retranslatedCount !== 1 ? 's' : ''} updated
+                {t('stale-analysis.updated-count', {count: retranslatedCount})}
               </Badge>
             )}
             {dismissedCount > 0 && (
               <Badge tone="default" fontSize={1} padding={2}>
-                {dismissedCount} kept as-is
+                {t('stale-analysis.kept-count', {count: dismissedCount})}
               </Badge>
             )}
             {skippedCount > 0 && (
               <Badge tone="caution" fontSize={1} padding={2}>
-                {skippedCount} skipped
+                {t('stale-analysis.skipped-count', {count: skippedCount})}
               </Badge>
             )}
           </Flex>
           <Button
-            text="Mark as Reviewed"
+            text={t('stale-analysis.mark-reviewed')}
             icon={CheckmarkCircleIcon}
             tone="positive"
             onClick={onDismissStale}
@@ -524,7 +542,7 @@ export function StaleAIAnalysisStickyBar({
         </Stack>
       ) : (
         <Button
-          text="Apply all recommendations"
+          text={t('stale-analysis.apply-all')}
           icon={SparklesIcon}
           tone="primary"
           onClick={onApplyAll}
@@ -748,6 +766,7 @@ export function StaleAIAnalysis({
 
   // --- Render ---
 
+  const {t} = useTranslation(l10nLocaleNamespace)
   const {explanation} = analysis
 
   return (
@@ -755,7 +774,7 @@ export function StaleAIAnalysis({
       <Stack space={4}>
         {/* Materiality badge with merged explanation */}
         <Stack space={3}>
-          <Label size={2}>Summary</Label>
+          <Label size={2}>{t('stale-analysis.summary')}</Label>
           <MaterialityBadge materiality={analysis.materiality} explanation={explanation} />
         </Stack>
 
@@ -768,7 +787,7 @@ export function StaleAIAnalysis({
           onValueChange={handleValueChange}
         >
           <Label size={2} style={{marginBottom: 12}}>
-            Fields to review
+            {t('stale-analysis.fields-to-review')}
           </Label>
           <Stack space={2}>
             {analysis.suggestions.map((suggestion) => {
@@ -803,9 +822,7 @@ export function StaleAIAnalysis({
               <InfoOutlineIcon />
             </Text>
             <Text size={1} muted>
-              {analysis.droppedSuggestionCount} suggestion
-              {analysis.droppedSuggestionCount !== 1 ? 's were' : ' was'} excluded (referenced an
-              unrecognized field)
+              {t('stale-analysis.excluded', {count: analysis.droppedSuggestionCount})}
             </Text>
           </Flex>
         )}

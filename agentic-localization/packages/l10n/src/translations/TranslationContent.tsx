@@ -21,6 +21,7 @@ import {
   getPublishedId,
   useDocumentVersionInfo,
   usePerspective,
+  useTranslation,
 } from 'sanity'
 import {useRouter} from 'sanity/router'
 import type {RouterPanes} from 'sanity/structure'
@@ -33,6 +34,7 @@ import type {
   TranslationInFlightStatus,
   TranslationWorkflowStatus,
 } from '../core/types'
+import {l10nLocaleNamespace} from '../i18n'
 import {useTranslateActions} from './useTranslateActions'
 import {
   useTranslationPaneData,
@@ -122,6 +124,7 @@ function StackedProgressBar({
   selectedStatuses: Set<TranslationWorkflowStatus>
   onToggleStatus: (status: TranslationWorkflowStatus) => void
 }) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   const counts = useMemo(() => {
     const result = {
       missing: 0,
@@ -161,7 +164,7 @@ function StackedProgressBar({
   const segments: Array<{count: number; fillColor: string}> = [
     {count: counts.approved, fillColor: 'var(--card-badge-positive-bg-color)'},
     {count: counts.needsReview, fillColor: 'var(--card-badge-caution-bg-color)'},
-    {count: counts.stale, fillColor: 'var(--card-badge-caution-bg-color)'},
+    {count: counts.stale, fillColor: 'var(--card-badge-suggest-bg-color)'},
     {count: counts.usingFallback, fillColor: 'var(--card-badge-default-bg-color)'},
     {count: counts.missing, fillColor: 'var(--card-badge-critical-bg-color)'},
   ]
@@ -169,26 +172,35 @@ function StackedProgressBar({
   const badges: Array<{
     status: TranslationWorkflowStatus
     count: number
-    tone: 'positive' | 'caution' | 'default' | 'critical'
+    tone: 'positive' | 'caution' | 'suggest' | 'default' | 'critical'
     label: string
     style?: React.CSSProperties
   }> = [
-    {status: 'approved', count: counts.approved, tone: 'positive', label: 'approved'},
-    {status: 'needsReview', count: counts.needsReview, tone: 'caution', label: 'needs review'},
+    {
+      status: 'approved',
+      count: counts.approved,
+      tone: 'positive',
+      label: t('status.approved.label'),
+    },
+    {
+      status: 'needsReview',
+      count: counts.needsReview,
+      tone: 'caution',
+      label: t('status.needs-review.label'),
+    },
     {
       status: 'stale',
       count: counts.stale,
-      tone: 'caution',
-      label: 'stale',
-      style: {opacity: 0.75},
+      tone: 'suggest',
+      label: t('status.stale.label'),
     },
     {
       status: 'usingFallback',
       count: counts.usingFallback,
       tone: 'default',
-      label: 'using fallback',
+      label: t('status.fallback.label'),
     },
-    {status: 'missing', count: counts.missing, tone: 'critical', label: 'missing'},
+    {status: 'missing', count: counts.missing, tone: 'critical', label: t('status.missing.label')},
   ]
 
   return (
@@ -196,7 +208,7 @@ function StackedProgressBar({
       <Stack space={3}>
         <Flex align="center" justify="space-between">
           <Text size={1} weight="semibold">
-            {completedCount} of {counts.total} translated
+            {t('translations.progress', {completed: completedCount, total: counts.total})}
           </Text>
           <Text size={1} muted>
             {completedPercent}%
@@ -238,7 +250,7 @@ function StackedProgressBar({
                   key={b.status}
                   content={
                     <Box padding={2}>
-                      <Text size={1}>Click to select all {b.label}</Text>
+                      <Text size={1}>{t('translations.select-all', {label: b.label})}</Text>
                     </Box>
                   }
                   animate
@@ -308,16 +320,23 @@ function SortHeader({
   )
 }
 
-function resolveDocStateLabel(draft: unknown, published: unknown, versions: unknown): string {
-  if (published) return 'Published'
-  if (versions && Array.isArray(versions) && versions.length > 0) return 'In release'
-  if (draft) return 'Draft'
-  return 'Missing'
+function resolveDocStateLabel(
+  draft: unknown,
+  published: unknown,
+  versions: unknown,
+  t: (key: string) => string,
+): string {
+  if (published) return t('translations.doc-state.published')
+  if (versions && Array.isArray(versions) && versions.length > 0)
+    return t('translations.doc-state.in-release')
+  if (draft) return t('translations.doc-state.draft')
+  return t('translations.doc-state.missing')
 }
 
 function DocStatusDot({documentId}: {documentId: string}) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   const {draft, published, versions} = useDocumentVersionInfo(documentId)
-  const label = resolveDocStateLabel(draft, published, versions)
+  const label = resolveDocStateLabel(draft, published, versions, t)
   return (
     <Tooltip
       content={
@@ -361,16 +380,17 @@ function FallbackDocStatusDot({
 function getNavigationTarget(
   locale: LocaleTranslation,
   locales: LocaleTranslation[],
+  t: (key: string, params?: Record<string, string | number>) => string,
 ): {targetId: string; tooltipLabel: string} | null {
   if (locale.translatedDocumentId && locale.documentState !== 'none') {
-    return {targetId: locale.translatedDocumentId, tooltipLabel: 'Go to translation'}
+    return {targetId: locale.translatedDocumentId, tooltipLabel: t('translations.go-to')}
   }
   if (locale.translationStatus === 'usingFallback' && locale.fallbackLocale) {
     const fallback = locales.find((l) => l.localeId === locale.fallbackLocale)
     if (fallback?.translatedDocumentId && fallback.documentState !== 'none') {
       return {
         targetId: fallback.translatedDocumentId,
-        tooltipLabel: `Go to fallback document (${locale.fallbackLocale})`,
+        tooltipLabel: t('translations.go-to-fallback', {locale: locale.fallbackLocale}),
       }
     }
   }
@@ -386,12 +406,13 @@ function StatusDot({
   allLocales: LocaleTranslation[]
   baseDocumentId: string
 }) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   if (locale.translationStatus === 'missing') {
     return (
       <Tooltip
         content={
           <Box padding={2}>
-            <Text size={1}>Missing</Text>
+            <Text size={1}>{t('translations.status.missing')}</Text>
           </Box>
         }
         animate
@@ -436,12 +457,13 @@ function StatusBadge({
   inFlightStatus?: TranslationInFlightStatus
   inFlightError?: string
 }) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   const isInFlight = inFlightStatus === 'translating'
   const hasFailed = inFlightStatus === 'failed'
   const displayStatus = isInFlight && workflowStatus ? workflowStatus : effectiveStatus
   const display = getStatusDisplay(displayStatus)
   const Icon = display.icon
-  const statusLabel = isInFlight ? 'Working' : display.label
+  const statusLabel = isInFlight ? t('translations.status.working') : display.label
 
   return (
     <td style={{padding: '8px', whiteSpace: 'nowrap', width: 1}}>
@@ -528,9 +550,11 @@ function LocaleRow({
 
   const isSelectable = isTranslatable || isReviewable
 
+  const {t} = useTranslation(l10nLocaleNamespace)
+
   const isInFlight = inFlightStatus === 'translating'
 
-  const navTarget = getNavigationTarget(locale, allLocales)
+  const navTarget = getNavigationTarget(locale, allLocales, t)
 
   const handleTitleClick = useCallback(() => {
     if (navTarget) {
@@ -681,6 +705,7 @@ function LoadingState() {
 }
 
 export function ErrorState({message, onRetry}: {message: string; onRetry: () => void}) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   return (
     <Card padding={4} tone="critical">
       <Stack space={3}>
@@ -688,7 +713,7 @@ export function ErrorState({message, onRetry}: {message: string; onRetry: () => 
           {message}
         </Text>
         <Flex justify="center">
-          <Button text="Retry" tone="critical" mode="ghost" onClick={onRetry} fontSize={1} />
+          <Button text={t('retry')} tone="critical" mode="ghost" onClick={onRetry} fontSize={1} />
         </Flex>
       </Stack>
     </Card>
@@ -704,6 +729,7 @@ export function TranslationContent({
   config,
   onClose,
 }: TranslationContentProps) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   const isBaseLanguage = !config.defaultLanguage || documentLanguage === config.defaultLanguage
   const stylesInjected = useRef(false)
 
@@ -721,13 +747,11 @@ export function TranslationContent({
   const {dataPromise, refresh} = useTranslationPaneData(effectiveDocumentId, config)
 
   if (!config.internationalizedTypes.includes(documentType)) {
-    return <EmptyState message={`"${documentType}" is not configured for internationalization.`} />
+    return <EmptyState message={t('translations.not-configured', {documentType})} />
   }
 
   if (!documentLanguage) {
-    return (
-      <EmptyState message="This document does not have a language set. Set a language in the document form to manage translations." />
-    )
+    return <EmptyState message={t('translations.no-language')} />
   }
 
   if (!isBaseLanguage && baseDocumentId === undefined) {
@@ -735,7 +759,7 @@ export function TranslationContent({
   }
 
   if (!isBaseLanguage && !effectiveDocumentId) {
-    return <EmptyState message="Could not find the base language document for this translation." />
+    return <EmptyState message={t('translations.no-base-document')} />
   }
 
   if (!dataPromise) {
@@ -787,6 +811,7 @@ function TranslationContentInner({
   isBaseLanguage: boolean
   onClose?: () => void
 }) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   const {locales, metadataId, workflowStates, staleAnalysis} = use(dataPromise)
 
   const {selectedReleaseId} = usePerspective()
@@ -981,14 +1006,14 @@ function TranslationContentInner({
             <TranslateIcon />
           </Text>
           <Text size={1} weight="medium">
-            Translation Manager
+            {t('translations.title')}
           </Text>
           <Box flex={1} />
           {metadataId && (
             <Tooltip
               content={
                 <Box padding={2}>
-                  <Text size={1}>View metadata document</Text>
+                  <Text size={1}>{t('translations.view-metadata')}</Text>
                 </Box>
               }
               animate
@@ -996,7 +1021,7 @@ function TranslationContentInner({
               portal
             >
               <Button
-                aria-label="View metadata document"
+                aria-label={t('translations.view-metadata')}
                 icon={DatabaseIcon}
                 mode="bleed"
                 onClick={() => navigateToDocument(metadataId)}
@@ -1007,7 +1032,7 @@ function TranslationContentInner({
             <Tooltip
               content={
                 <Box padding={2}>
-                  <Text size={1}>Close</Text>
+                  <Text size={1}>{t('close')}</Text>
                 </Box>
               }
               animate
@@ -1015,7 +1040,7 @@ function TranslationContentInner({
               portal
             >
               <Button
-                aria-label="Close inspector"
+                aria-label={t('close-inspector')}
                 icon={CloseIcon}
                 mode="bleed"
                 onClick={onClose}
@@ -1090,14 +1115,14 @@ function TranslationContentInner({
           <TranslateIcon />
         </Text>
         <Text size={1} weight="medium">
-          Translations
+          {t('translations.title')}
         </Text>
         <Box flex={1} />
         {metadataId && (
           <Tooltip
             content={
               <Box padding={2}>
-                <Text size={1}>View metadata document</Text>
+                <Text size={1}>{t('translations.view-metadata')}</Text>
               </Box>
             }
             animate
@@ -1105,7 +1130,7 @@ function TranslationContentInner({
             portal
           >
             <Button
-              aria-label="View metadata document"
+              aria-label={t('translations.view-metadata')}
               icon={DatabaseIcon}
               mode="bleed"
               onClick={() => navigateToDocument(metadataId)}
@@ -1116,14 +1141,19 @@ function TranslationContentInner({
           <Tooltip
             content={
               <Box padding={2}>
-                <Text size={1}>Close</Text>
+                <Text size={1}>{t('close')}</Text>
               </Box>
             }
             animate
             placement="bottom"
             portal
           >
-            <Button aria-label="Close inspector" icon={CloseIcon} mode="bleed" onClick={onClose} />
+            <Button
+              aria-label={t('close-inspector')}
+              icon={CloseIcon}
+              mode="bleed"
+              onClick={onClose}
+            />
           </Tooltip>
         )}
       </Flex>
@@ -1136,7 +1166,7 @@ function TranslationContentInner({
                   <PackageIcon />
                 </Text>
                 <Text size={1} muted>
-                  Working in: {releaseName}
+                  {t('translations.working-in-release', {releaseName})}
                 </Text>
               </Flex>
             </Card>
@@ -1151,7 +1181,7 @@ function TranslationContentInner({
           {locales.length === 0 ? (
             <Card padding={3} tone="transparent" border radius={2}>
               <Text size={1} muted align="center">
-                No target locales configured.
+                {t('translations.no-locales')}
               </Text>
             </Card>
           ) : (
@@ -1176,7 +1206,7 @@ function TranslationContentInner({
                         }}
                       />
                       <SortHeader
-                        label="Language"
+                        label={t('translations.header.language')}
                         column="language"
                         currentSort={sortColumn}
                         currentDirection={sortDirection}
@@ -1184,7 +1214,7 @@ function TranslationContentInner({
                         index={0}
                       />
                       <SortHeader
-                        label="Status"
+                        label={t('translations.header.status')}
                         column="status"
                         currentSort={sortColumn}
                         currentDirection={sortDirection}

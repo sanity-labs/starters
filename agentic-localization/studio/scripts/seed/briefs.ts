@@ -348,3 +348,99 @@ export function buildTranslationBriefs(locales: {code: string; title: string}[])
 
   return {translatedBriefs, translationMetadata}
 }
+
+// ─── Field-level translation metadata ────────────────────────────────────────
+// Creates `fieldTranslation.metadata` documents for person bios.
+// These track workflow state for internationalizedArray field translations.
+
+/**
+ * Specify which persons should have translated bios, and their workflow states.
+ * Matches the field translation workflow: needsReview (AI just translated),
+ * approved (human reviewed), stale (source changed).
+ */
+const personFieldTranslations: Record<
+  string,
+  Record<string, {status: 'needsReview' | 'approved' | 'stale'}>
+> = {
+  'person-elena-vasquez': {
+    'de-DE': {status: 'approved'},
+    'fr-FR': {status: 'needsReview'},
+    'ja-JP': {status: 'approved'},
+  },
+  'person-james-okafor': {
+    'de-DE': {status: 'needsReview'},
+    'fr-FR': {status: 'approved'},
+  },
+  'person-mei-tanaka': {
+    'ja-JP': {status: 'approved'},
+    'de-DE': {status: 'stale'},
+  },
+  'person-sofia-andersson': {
+    'fr-FR': {status: 'needsReview'},
+  },
+}
+
+/**
+ * Build field-level translation briefs for person bios.
+ * Returns generation briefs (for AI bio generation) and metadata documents.
+ */
+export function buildFieldTranslationBriefs(locales: {code: string; title: string}[]) {
+  const localesByCode = Object.fromEntries(locales.map((l) => [l.code, l]))
+  const seedDate = new Date('2026-02-25T10:00:00Z')
+
+  const bioGenerationBriefs: Array<{
+    personId: string
+    personName: string
+    role: string
+    locale: {code: string; title: string}
+  }> = []
+
+  const fieldTranslationMetadata: Array<Record<string, unknown>> = []
+
+  for (const person of personBriefs) {
+    const translations = personFieldTranslations[person._id]
+    if (!translations) continue
+
+    const workflowStates: Array<Record<string, unknown>> = []
+
+    for (const [localeCode, opts] of Object.entries(translations)) {
+      const locale = localesByCode[localeCode]
+      if (!locale) continue
+
+      bioGenerationBriefs.push({
+        personId: person._id,
+        personName: person.name,
+        role: person.prompt.role,
+        locale,
+      })
+
+      workflowStates.push({
+        _key: `bio--${localeCode}`,
+        field: 'bio',
+        language: localeCode,
+        status: opts.status,
+        source: 'ai',
+        updatedAt:
+          opts.status === 'stale'
+            ? daysAgo(seedDate, 8)
+            : opts.status === 'approved'
+              ? daysAgo(seedDate, 3 + Math.random() * 4)
+              : daysAgo(seedDate, 1 + Math.random()),
+        ...(opts.status === 'approved' && {reviewedBy: 'person-mei-tanaka'}),
+        // sourceSnapshot will be set during generation when we know the actual en-US bio value
+      })
+    }
+
+    if (workflowStates.length > 0) {
+      fieldTranslationMetadata.push({
+        _id: `fieldTranslation.metadata.${person._id}`,
+        _type: 'fieldTranslation.metadata',
+        documentRef: ref(person._id),
+        documentType: 'person',
+        workflowStates,
+      })
+    }
+  }
+
+  return {bioGenerationBriefs, fieldTranslationMetadata}
+}

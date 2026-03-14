@@ -79,6 +79,7 @@
   "devDependencies": {
     "@portabletext/toolkit": "^5.0.1",
     "@portabletext/types": "^4.0.1",
+    "@sanity/assist": "catalog:",
     "@sanity/client": "catalog:",
     "@sanity/codegen": "^5.10.1",
     "@sanity/icons": "catalog:",
@@ -102,6 +103,7 @@
   },
   "peerDependencies": {
     "@portabletext/toolkit": "^5.0.0",
+    "@sanity/assist": "^6.0.0",
     "@sanity/client": "^7.0.0",
     "@sanity/icons": "^3.0.0",
     "@sanity/id-utils": "^1.0.0",
