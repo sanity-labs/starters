@@ -5,7 +5,7 @@ import {DEFAULT_LANGUAGE} from '@/sanity/queries'
 export const metadata: Metadata = {
   title: 'How It Works — L10n Starter',
   description:
-    'Architecture overview: how this starter implements document-level localization with Sanity, Next.js path-based i18n routing, and AI-powered translation.',
+    'Architecture overview: how this starter implements document-level and field-level localization with Sanity, Next.js path-based i18n routing, AI-powered translation, and editorial review workflows.',
 }
 
 /* ------------------------------------------------------------------ */
@@ -143,9 +143,9 @@ export default async function ArchitecturePage({params}: {params: Promise<{lang:
           How this localization system works
         </h1>
         <p className="mt-4 text-lg text-[var(--color-text-secondary)] leading-relaxed max-w-2xl">
-          A technical walkthrough of the patterns behind this starter: document-level localization
-          in Sanity, path-based i18n routing in Next.js, and AI-powered translation with glossary
-          and style guide support.
+          A technical walkthrough of the patterns behind this starter: document-level and
+          field-level localization in Sanity, path-based i18n routing in Next.js, AI-powered
+          translation, and editorial review workflows.
         </p>
       </header>
 
@@ -155,10 +155,13 @@ export default async function ArchitecturePage({params}: {params: Promise<{lang:
         <nav className="flex flex-wrap gap-2">
           {[
             ['#content-model', 'Content model'],
+            ['#field-level', 'Field-level i18n'],
+            ['#slug-uniqueness', 'Slug uniqueness'],
             ['#routing', 'i18n routing'],
             ['#querying', 'Querying by locale'],
             ['#fallback', 'Fallback strategy'],
             ['#translation', 'AI translation'],
+            ['#editorial-workflow', 'Editorial workflow'],
             ['#architecture-diagram', 'System diagram'],
           ].map(([href, label]) => (
             <a
@@ -192,10 +195,16 @@ export default async function ArchitecturePage({params}: {params: Promise<{lang:
       </p>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
-        The alternative — field-level localization, where every field stores an object of
-        locale&rarr;value pairs — works for small amounts of translatable content but breaks down at
-        scale. Document-level keeps each translation independently publishable, reviewable, and
-        versionable.
+        Document-level keeps each translation independently publishable, reviewable, and
+        versionable. For fields where a full document copy would be overkill — like a person&apos;s
+        bio — this starter also supports{' '}
+        <a
+          href="#field-level"
+          className="text-[var(--color-accent)] underline underline-offset-2 hover:text-[var(--color-accent-hover)] transition-[color] duration-[var(--transition-fast)]"
+        >
+          field-level localization
+        </a>{' '}
+        using internationalized arrays.
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2 mb-6">
@@ -239,6 +248,113 @@ export default async function ArchitecturePage({params}: {params: Promise<{lang:
   // - Injecting the \`language\` field into 'article' schemas
   // - Registering l10n.locale, l10n.glossary, l10n.styleGuide types
   // - Connecting to @sanity/document-internationalization
+})`}
+      </CodeBlock>
+
+      {/* ------------------------------------------------------------ */}
+      {/* Field-level localization                                      */}
+      {/* ------------------------------------------------------------ */}
+      <SectionHeading id="field-level">Field-level localization</SectionHeading>
+
+      <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
+        Not every translatable field needs a full document copy. For cases like a person&apos;s bio,
+        this starter uses <strong>internationalized arrays</strong> — a single field that stores one
+        value per locale. The document itself stays in one language, but specific fields can hold
+        translations inline.
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-2 mb-6">
+        <Card>
+          <p className="text-sm font-medium mb-2">When to use document-level</p>
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            The whole document needs translating (articles, pages, posts). Each translation is
+            independently publishable and versionable.
+          </p>
+        </Card>
+        <Card>
+          <p className="text-sm font-medium mb-2">When to use field-level</p>
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            Only a few fields need translating on an otherwise language-neutral document (person
+            bio, product description, category label).
+          </p>
+        </Card>
+      </div>
+
+      <CodeBlock title="Field-level i18n on a person schema — person.ts">
+        {`defineField({
+  name: 'bio',
+  title: 'Bio',
+  type: 'internationalizedArrayText',
+  // Stores: [{ _key, language: "en-US", value: "..." },
+  //          { _key, language: "de-DE", value: "..." }]
+})`}
+      </CodeBlock>
+
+      <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
+        Field-level translations get the same editorial workflow as document-level: each
+        field&times;locale cell tracks its own state (needs review, approved, stale) via a{' '}
+        <code className="text-sm bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
+          fieldTranslation.metadata
+        </code>{' '}
+        document. See the{' '}
+        <a
+          href="#editorial-workflow"
+          className="text-[var(--color-accent)] underline underline-offset-2 hover:text-[var(--color-accent-hover)] transition-[color] duration-[var(--transition-fast)]"
+        >
+          editorial workflow
+        </a>{' '}
+        section for details.
+      </p>
+
+      {/* ------------------------------------------------------------ */}
+      {/* Slug uniqueness                                               */}
+      {/* ------------------------------------------------------------ */}
+      <SectionHeading id="slug-uniqueness">Slug uniqueness per language</SectionHeading>
+
+      <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
+        With document-level localization, an English article and its German translation are separate
+        documents — but they often need the same slug. By default, Sanity enforces globally unique
+        slugs, which would prevent this.
+      </p>
+
+      <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
+        This starter includes a custom uniqueness validator that scopes the check to the same
+        language. Two documents can share a slug as long as they&apos;re in different languages.
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-2 mb-6">
+        <Card>
+          <p className="text-sm font-medium text-green-700 mb-1">Allowed</p>
+          <p className="text-sm font-mono">/en-US/getting-started</p>
+          <p className="text-sm font-mono">/de-DE/getting-started</p>
+          <p className="text-xs text-[var(--color-text-muted)] mt-1">
+            Same slug, different language
+          </p>
+        </Card>
+        <Card>
+          <p className="text-sm font-medium text-red-700 mb-1">Rejected</p>
+          <p className="text-sm font-mono">/en-US/getting-started</p>
+          <p className="text-sm font-mono">/en-US/getting-started</p>
+          <p className="text-xs text-[var(--color-text-muted)] mt-1">Same slug, same language</p>
+        </Card>
+      </div>
+
+      <CodeBlock title="Custom slug validator — isUniqueOtherThanLanguage.ts">
+        {`// Only check for duplicates within the same language
+const query = \`!defined(*[
+  _type == $type &&
+  slug.current == $slug &&
+  language == $language &&
+  !(_id in [$draft, $published])
+][0]._id)\`
+
+// Applied to slug fields:
+defineField({
+  name: 'slug',
+  type: 'slug',
+  options: {
+    isUnique: isUniqueOtherThanLanguage,
+  },
 })`}
       </CodeBlock>
 
@@ -528,6 +644,98 @@ export default async function ArchitecturePage({params}: {params: Promise<{lang:
       </CodeBlock>
 
       {/* ------------------------------------------------------------ */}
+      {/* Editorial Workflow                                             */}
+      {/* ------------------------------------------------------------ */}
+      <SectionHeading id="editorial-workflow">Editorial review workflow</SectionHeading>
+
+      <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
+        AI translation is fast, but publishing without human review is risky. This starter includes
+        a full editorial workflow for both document-level and field-level translations.
+      </p>
+
+      <h3 className="text-lg font-semibold mt-10 mb-4">Translation lifecycle</h3>
+
+      <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
+        Every translation — whether a full document or a single field — moves through the same
+        states:
+      </p>
+
+      <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+        <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800">
+          Review
+        </span>
+        <span className="text-[var(--color-text-muted)]">&rarr;</span>
+        <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+          Approved
+        </span>
+        <span className="text-[var(--color-text-muted)]">&rarr;</span>
+        <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
+          Stale
+        </span>
+        <span className="text-[var(--color-text-muted)]">&rarr;</span>
+        <span className="text-xs text-[var(--color-text-muted)]">re-translate or dismiss</span>
+      </div>
+
+      <div className="space-y-3 mb-6">
+        <Card>
+          <p className="text-sm">
+            <strong>Needs review</strong> — A translation was just created by AI. An editor should
+            verify it before it goes live.
+          </p>
+        </Card>
+        <Card>
+          <p className="text-sm">
+            <strong>Approved</strong> — An editor has reviewed and accepted the translation.
+          </p>
+        </Card>
+        <Card>
+          <p className="text-sm">
+            <strong>Stale</strong> — The source content changed after the translation was approved.
+            The system compares a stored snapshot of the source against the current value and shows
+            a diff so editors can decide whether to re-translate or dismiss the change.
+          </p>
+        </Card>
+      </div>
+
+      <h3 className="text-lg font-semibold mt-10 mb-4">Publish gating</h3>
+
+      <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
+        Both the Publish and Schedule actions are disabled when a document has unresolved
+        translations (needs review or stale). This prevents incomplete or outdated translations from
+        going live. The actions show a tooltip explaining which translations need attention.
+      </p>
+
+      <h3 className="text-lg font-semibold mt-10 mb-4">How state is tracked</h3>
+
+      <div className="grid gap-4 sm:grid-cols-2 mb-6">
+        <Card>
+          <p className="text-sm font-medium mb-2">Document-level</p>
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            Workflow state is stored in the{' '}
+            <code className="text-xs bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
+              translation.metadata
+            </code>{' '}
+            document that already links translations together. Each entry in the{' '}
+            <code className="text-xs bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
+              workflowStates
+            </code>{' '}
+            array tracks one locale&apos;s status.
+          </p>
+        </Card>
+        <Card>
+          <p className="text-sm font-medium mb-2">Field-level</p>
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            A separate{' '}
+            <code className="text-xs bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
+              fieldTranslation.metadata
+            </code>{' '}
+            document (liveEdit, hidden) tracks per-field&times;per-locale state with a deterministic
+            ID derived from the parent document and field path.
+          </p>
+        </Card>
+      </div>
+
+      {/* ------------------------------------------------------------ */}
       {/* System Diagram                                                */}
       {/* ------------------------------------------------------------ */}
       <SectionHeading id="architecture-diagram">System diagram</SectionHeading>
@@ -560,8 +768,8 @@ export default async function ArchitecturePage({params}: {params: Promise<{lang:
           </div>
         </div>
 
-        {/* Articles linked by translation.metadata */}
-        <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/40 px-4 py-3 mb-4">
+        {/* Document-level: articles linked by translation.metadata */}
+        <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/40 px-4 py-3 mb-3">
           <div className="flex items-center justify-center gap-3 text-sm">
             <span className="font-mono text-xs text-[var(--color-text-secondary)]">
               article <span className="text-[var(--color-text-muted)]">(en-US)</span>
@@ -572,22 +780,87 @@ export default async function ArchitecturePage({params}: {params: Promise<{lang:
             </span>
           </div>
           <p className="text-[11px] text-[var(--color-text-muted)] text-center mt-1">
-            linked via translation.metadata
+            linked via translation.metadata + workflowStates
           </p>
         </div>
 
-        {/* Translate API */}
-        <div className="text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)] text-white px-3 py-1 text-xs font-medium">
-            Translate API
-          </span>
-          <p className="text-[11px] text-[var(--color-text-muted)] mt-1">
-            glossary + style guide &rarr; AI translation
+        {/* Field-level: internationalized arrays with fieldTranslation.metadata */}
+        <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/40 px-4 py-3 mb-4">
+          <div className="flex items-center justify-center gap-3 text-sm">
+            <span className="font-mono text-xs text-[var(--color-text-secondary)]">
+              person.bio <span className="text-[var(--color-text-muted)]">[en-US, de-DE, ...]</span>
+            </span>
+          </div>
+          <p className="text-[11px] text-[var(--color-text-muted)] text-center mt-1">
+            internationalized array + fieldTranslation.metadata
           </p>
+        </div>
+
+        {/* Translate API + workflow */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="text-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)] text-white px-3 py-1 text-xs font-medium">
+              Translate API
+            </span>
+            <p className="text-[11px] text-[var(--color-text-muted)] mt-1">
+              glossary + style guide &rarr; AI translation
+            </p>
+          </div>
+          <div className="text-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] px-3 py-1 text-xs font-medium text-[var(--color-text-secondary)]">
+              Editorial workflow
+            </span>
+            <p className="text-[11px] text-[var(--color-text-muted)] mt-1">
+              review &rarr; approve &rarr; stale detection
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* — Connection arrow — */}
+      {/* — Connection arrow (Studio → Functions) — */}
+      <div className="flex flex-col items-center py-1 text-[var(--color-text-muted)]">
+        <div className="w-px h-4 bg-[var(--color-border)]" />
+        <span className="text-xs font-medium my-1">document events</span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          className="size-4"
+        >
+          <path
+            fillRule="evenodd"
+            d="M10 3a.75.75 0 0 1 .75.75v10.19l3.72-3.72a.75.75 0 1 1 1.06 1.06l-5 5a.75.75 0 0 1-1.06 0l-5-5a.75.75 0 1 1 1.06-1.06l3.72 3.72V3.75A.75.75 0 0 1 10 3Z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </div>
+
+      {/* — Sanity Functions layer — */}
+      <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] backdrop-blur-xl p-5 mb-2">
+        <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">
+          Sanity Functions
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/40 px-3 py-2">
+            <p className="text-xs font-semibold text-[var(--color-text-primary)]">
+              mark-translations-stale
+            </p>
+            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+              Flags translations when the source document changes
+            </p>
+          </div>
+          <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/40 px-3 py-2">
+            <p className="text-xs font-semibold text-[var(--color-text-primary)]">
+              analyze-stale-translations
+            </p>
+            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+              AI analysis of what changed and whether retranslation is needed
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* — Connection arrow (Functions → Frontend) — */}
       <div className="flex flex-col items-center py-1 text-[var(--color-text-muted)]">
         <div className="w-px h-4 bg-[var(--color-border)]" />
         <span className="text-xs font-medium my-1">GROQ queries</span>
