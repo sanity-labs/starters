@@ -1,6 +1,6 @@
 ---
 name: sanity-l10n
-description: 'Work with a Sanity starter that uses structured content (glossaries, style guides, locale metadata) to make AI translation enterprise-grade. Covers prompt assembly, automated stale detection via Sanity Functions, translation quality evals, and the Agent Actions Translate API. Trigger on: customize glossary, add terminology, translation style guide, run evals, deploy functions, prompt assembly, debug translation, extend l10n plugin, Agent Actions Translate, blueprint deploy, stale detection, pre-translation. Complements sanity-best-practices (general i18n) and add-l10n-frontend (frontend rendering).'
+description: 'Work with a Sanity starter that uses structured content (glossaries, style guides, locale metadata) to make AI translation enterprise-grade. Covers prompt assembly, automated stale detection via Sanity Functions, translation quality evals, and the Agent Actions Translate API. Trigger on: customize glossary, add terminology, translation style guide, run evals, deploy functions, prompt assembly, debug translation, extend l10n plugin, Agent Actions Translate, blueprint deploy, stale detection, pre-translation, field-level translation, field translation, internationalizedArray, field workflow, publish gate, field matrix, per-field translate, field approve, review workflow, translate field action. Complements sanity-best-practices (general i18n) and add-l10n-frontend (frontend rendering).'
 ---
 
 # Sanity Agentic Localization
@@ -47,6 +47,29 @@ Read `references/architecture.md` for the full project map. Key entry points:
   functions.
 - Start here: `packages/l10n/src/promptAssembly.ts` — the core bridge between
   structured metadata and the Translate API.
+
+### Two-Tier Architecture
+
+The starter supports two complementary translation approaches:
+
+- **Document-level** (`@sanity/document-internationalization`) — one document per
+  locale. Used for content types where the entire document is translated (e.g.,
+  articles). Configured via `localizedSchemaTypes` in `createL10n()`.
+- **Field-level** (`sanity-plugin-internationalized-array`) — inline
+  `internationalizedArray*` fields on a single document. Used for types where
+  only specific fields need translation (e.g., person bios). Auto-detected by
+  the inspector via schema walk.
+
+Key field-level entry points:
+
+- `packages/l10n/src/translations/FieldTranslationContent.tsx` — field x locale
+  matrix inspector
+- `packages/l10n/src/translations/deriveFieldCellStates.ts` — pure state
+  derivation (6 rules)
+- `packages/l10n/src/translations/useFieldTranslateActions.ts` — translation
+  orchestration (translate, approve, dismiss)
+- `packages/l10n/src/core/types.ts` — `FieldWorkflowStateEntry`,
+  `FieldCellState` types
 
 ## Jobs to Be Done
 
@@ -133,6 +156,51 @@ Load `references/troubleshooting.md` for common issues:
 - Eval failures (sourceText/fieldPath mismatch, auth token resolution)
 - Functions issues (pnpm dep resolution, env var loading in jiti)
 
+### 8. Understand the field-level translation architecture
+
+- When to use document-level vs field-level: see "Two-Tier Architecture" above
+- The `fieldTranslation.metadata` schema uses `liveEdit: true` (patches write
+  directly, no draft), `hidden: true`, and deterministic IDs via
+  `getFieldTranslationMetadataId()`
+- The 6 derivation rules in `deriveFieldCellStates.ts` merge document state with
+  metadata to produce the `FieldCellState` matrix
+- Inspector auto-detection: `useInternationalizedFields` walks the compiled
+  schema to find all `internationalizedArray*` fields — no manual registration
+- Load `references/field-level-patterns.md` for the full data flow, hook API,
+  and translation pipeline details
+
+### 9. Add field-level translations to a document type
+
+1. Change the field type to `internationalizedArrayText` (or
+   `internationalizedArrayString`) in your schema definition
+2. The inspector auto-discovers it — no registration needed
+3. Deploy schema: `cd studio && pnpm exec sanity schema deploy`
+
+Example: `studio/schemaTypes/person.ts` uses `internationalizedArrayText` for
+the `bio` field. The field-level inspector automatically detects it and shows
+the field x locale matrix.
+
+### 10. Customize the field-level review workflow
+
+Load `references/field-level-patterns.md` for details on:
+
+- Publish gate behavior — `createFieldTranslationPublishGate` wraps
+  PublishAction, disables when `needsReview` or `stale` entries exist
+- Concurrency limits — `MAX_CONCURRENT = 5` in `useFieldTranslateActions.ts`
+- Stale detection sensitivity — `sourceSnapshot` comparison uses
+  `JSON.stringify`, debounce is 500ms in `useStaleSyncEffect`
+- Load `references/customization-guide.md` for modification guidance
+
+### 11. Debug field-level translation issues
+
+Load `references/troubleshooting.md` for common issues:
+
+- Metadata not created — needs write permission (`liveEdit: true`)
+- Publish blocked but translations look fine — stale metadata
+- Fields not appearing in matrix — must use `internationalizedArray*` type
+- Stale not detected — client-side only, runs when inspector is open
+- Translations missing from matrix — check source content exists
+
 ## Anti-Patterns
 
 - **Do NOT duplicate l10n schema types** — the plugin registers them via
@@ -148,6 +216,15 @@ Load `references/troubleshooting.md` for common issues:
   Pass `token` explicitly. See `packages/l10n/evals/authToken.ts`.
 - **Do NOT skip `sanity schema deploy`** — Agent Actions requires deployed
   schema. Schema ID is `_.schemas.default`.
+- **Do NOT manually create `fieldTranslation.metadata` documents** —
+  deterministic IDs via `getFieldTranslationMetadataId()`. The hooks and actions
+  create them automatically with `createIfNotExists`.
+- **Do NOT use `useFormValue` for field translation data** — the inspector
+  renders outside form context. Use `documentStore.listenQuery()` instead (see
+  `useFieldTranslationData.ts`).
+- **Do NOT skip the publish gate** — `createFieldTranslationPublishGate` wraps
+  PublishAction. Don't remove it or bypass it without understanding the
+  consequences for translation review workflows.
 
 ## Reference Files
 
@@ -156,6 +233,7 @@ Load `references/troubleshooting.md` for common issues:
 | `references/architecture.md`        | You need the full project map, data flow, or schema overview |
 | `references/customization-guide.md` | Customizing glossaries, style guides, evals, or functions    |
 | `references/troubleshooting.md`     | Debugging translation, eval, or deployment issues            |
+| `references/field-level-patterns.md` | Understanding or customizing the field-level translation workflow |
 
 ## Companion Skills
 

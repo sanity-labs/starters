@@ -91,6 +91,61 @@ The `pluralize()` utility in the plugin handles this correctly.
 `isValidLocale()` uses the `Intl.Locale` constructor. Invalid codes throw — the
 schema validation in `translationLocale.tsx` catches this.
 
+## Field-Level Translation Issues
+
+### Publish blocked but translations look fine
+
+Stale metadata may be out of sync with actual document content. The publish
+gate reads from `fieldTranslation.metadata`, not from the document itself.
+
+Check the metadata in Vision:
+
+```groq
+*[_id == "fieldTranslation.metadata.<publishedDocId>"][0]{
+  workflowStates[]{field, language, status, sourceSnapshot}
+}
+```
+
+If entries show `needsReview` or `stale` but the translations are correct,
+either approve them via the inspector or patch the metadata to `approved`.
+
+### Fields not appearing in matrix
+
+The field must use an `internationalizedArray*` type (e.g.,
+`internationalizedArrayText`, `internationalizedArrayString`). Regular `string`
+or `text` fields are not detected.
+
+Also, fields inside array-of-objects (`depth: -1`) are detected but excluded
+from the inspector's bulk translate UI. Only top-level and object-nested fields
+appear.
+
+### Stale detection not working
+
+Stale detection is **client-side only** — it runs in `deriveFieldCellStates()`
+when the inspector is open. If nobody opens the inspector after a source edit,
+staleness won't be detected or persisted.
+
+The comparison uses `JSON.stringify` of the source locale's value. If the
+metadata entry has no `sourceSnapshot` (e.g., pre-existing content before the
+workflow was added), stale detection is skipped for that entry.
+
+### "No source content" error
+
+The source language is the first non-empty entry in the internationalized array.
+If no entry has a value, there's nothing to translate from. Fill at least one
+locale's value first.
+
+### Metadata document not created
+
+`fieldTranslation.metadata` uses `liveEdit: true` — patches write directly
+without a draft/publish cycle. This requires the user to have write permission
+on the dataset. If the user only has draft-level permissions, metadata creation
+will fail silently.
+
+The metadata document is created via `createIfNotExists` in
+`useFieldTranslateActions` — it's created on first translate or approve action,
+not on inspector open.
+
 ## Functions Issues
 
 ### Dependencies not found at runtime

@@ -185,6 +185,66 @@ The blueprint file is loaded by jiti (not Node.js directly).
 The blueprint uses `readFileSync` + manual parsing instead. See the top of
 `sanity.blueprint.ts`.
 
+## Field-Level Workflow Customization
+
+### Adding Field-Level Types
+
+The `internationalizedArray` plugin is configured inside `createL10n()` in
+`packages/l10n/src/plugin.ts`:
+
+```ts
+internationalizedArray({
+  languages: (client) => client.fetch<Language[]>(SUPPORTED_LANGUAGES_QUERY),
+  defaultLanguages: [defaultLanguage],
+  fieldTypes: ['string', 'text'],
+})
+```
+
+To support additional value types (e.g., `blockContent`), add them to the
+`fieldTypes` array. Then use `internationalizedArrayBlockContent` as the field
+type in your schema.
+
+### Customizing the Publish Gate
+
+`createFieldTranslationPublishGate` in
+`packages/l10n/src/translations/useFieldTranslationPublishGate.ts` wraps
+PublishAction and disables it when `needsReview` or `stale` entries exist.
+
+It's wired in `plugin.ts` via the `document.actions` callback — it wraps any
+action with `action === 'publish'` for types NOT in `localizedSchemaTypes`
+(those use document-level translation instead).
+
+To modify gating rules:
+
+- **Change which statuses block publish** — edit the `hasUnresolved` check in
+  the gate function (e.g., only block on `stale`, allow `needsReview` through)
+- **Add a force-publish override** — check the user's role before returning
+  `disabled: true`, or add a confirmation dialog
+- **Remove the gate entirely** — remove the `document.actions` callback in
+  `plugin.ts`
+
+### Customizing Concurrency
+
+Translation API calls are limited to `MAX_CONCURRENT = 5` concurrent requests
+in `packages/l10n/src/translations/useFieldTranslateActions.ts`.
+
+Lower this value if you're hitting rate limits. Raise it if you have higher API
+quotas and want faster bulk operations. The constant is at the top of the file.
+
+### Customizing Stale Detection
+
+Stale detection compares `sourceSnapshot` (stored at translation time) against
+the current source value using `JSON.stringify` equality. This runs client-side
+in `deriveFieldCellStates()` — it only fires when the inspector is open.
+
+The `useStaleSyncEffect` debounces metadata writes at 500ms to avoid excessive
+writes during rapid source edits. To adjust:
+
+- **Debounce interval** — change the `500` timeout in `useStaleSyncEffect.ts`
+- **Comparison granularity** — the `JSON.stringify` comparison is exact. For
+  more lenient comparison (e.g., ignoring whitespace changes), modify the
+  `isSourceChanged` check in `deriveFieldCellStates.ts`
+
 ## Eval Framework
 
 ### Two Test Suites
