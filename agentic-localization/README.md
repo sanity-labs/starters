@@ -79,6 +79,8 @@ Opens the Studio at [localhost:3333](http://localhost:3333), the translations da
 
 ## How it works
 
+> **[View the architecture diagram (PDF)](.github/agentic-localization-architecture.pdf)** for a visual overview of the full system.
+
 1. **Define metadata** in the Studio: locales, glossaries (approved translations, do-not-translate terms, forbidden terms), and style guides (formality, tone, audience instructions per locale)
 2. **Assemble prompt**: `assembleStyleGuide()` converts structured metadata into an instruction string; `filterGlossaryByContent()` prunes to relevant terms
 3. **Translate**: `buildTranslateParams()` packages everything for the [Agent Actions Translate API](https://www.sanity.io/docs/agent-actions), including protected phrases extracted from do-not-translate entries
