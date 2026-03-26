@@ -25,7 +25,8 @@ export default async function HomePage() {
           </h1>
 
           <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-neutral-500">
-            Performance equipment and apparel for every winter discipline. From alpine to ice sports, podium-ready gear awaits.
+            Performance equipment and apparel for every winter discipline. From alpine to ice
+            sports, podium-ready gear awaits.
           </p>
 
           <div className="mt-10">

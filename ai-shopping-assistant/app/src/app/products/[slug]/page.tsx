@@ -28,7 +28,12 @@ interface ProductResult {
     sku?: string | null
     available?: boolean | null
     color?: {_id: string; title: string | null; hex?: string | null} | null
-    sizes?: Array<{_id: string; title: string | null; code: string | null; sortOrder?: number | null}> | null
+    sizes?: Array<{
+      _id: string
+      title: string | null
+      code: string | null
+      sortOrder?: number | null
+    }> | null
     images?: Array<{
       asset?: {_id: string; url: string | null; metadata?: {lqip?: string | null} | null} | null
       alt?: string | null
@@ -63,7 +68,10 @@ export default async function ProductPage({params}: Props) {
 
   // Get unique colors and sizes from variants
   const colorMap = new Map<string, {_id: string; title: string | null; hex?: string | null}>()
-  const sizeMap = new Map<string, {_id: string; title: string | null; code: string | null; sortOrder?: number | null}>()
+  const sizeMap = new Map<
+    string,
+    {_id: string; title: string | null; code: string | null; sortOrder?: number | null}
+  >()
 
   variants?.forEach((v) => {
     if (v.color?._id) colorMap.set(v.color._id, v.color)

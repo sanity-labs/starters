@@ -18,10 +18,7 @@ function useChatOpen() {
     window.addEventListener(CHANGE_EVENT, cb)
     return () => window.removeEventListener(CHANGE_EVENT, cb)
   }, [])
-  const getSnapshot = useCallback(
-    () => sessionStorage.getItem(STORAGE_KEY) === 'true',
-    [],
-  )
+  const getSnapshot = useCallback(() => sessionStorage.getItem(STORAGE_KEY) === 'true', [])
   return useSyncExternalStore(subscribe, getSnapshot, () => false)
 }
 

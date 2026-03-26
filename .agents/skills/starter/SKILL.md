@@ -36,17 +36,17 @@ my-starter/
 
 Every starter must have:
 
-| File | Purpose |
-| --- | --- |
-| `package.json` | `"type": "module"`, `engines`, `packageManager`, scripts |
-| `pnpm-workspace.yaml` | Workspace packages + `catalog:` for shared dep versions |
-| `.env.example` | Template with comments, no real values |
-| `.gitignore` | Self-contained, covers all starter concerns |
-| `.npmrc` | `enable-pre-post-scripts=true` (required for pnpm 10.x) |
-| `.oxfmtrc.json` | `semi: false`, `singleQuote: true`, `printWidth: 100`, `bracketSpacing: false` |
-| `README.md` | Getting started, prerequisites, project structure |
-| `AGENT.md` | Agent context for Claude Code / Cursor / etc. |
-| `CLAUDE.md` | Symlink to `AGENT.md` |
+| File                  | Purpose                                                                        |
+| --------------------- | ------------------------------------------------------------------------------ |
+| `package.json`        | `"type": "module"`, `engines`, `packageManager`, scripts                       |
+| `pnpm-workspace.yaml` | Workspace packages + `catalog:` for shared dep versions                        |
+| `.env.example`        | Template with comments, no real values                                         |
+| `.gitignore`          | Self-contained, covers all starter concerns                                    |
+| `.npmrc`              | `enable-pre-post-scripts=true` (required for pnpm 10.x)                        |
+| `.oxfmtrc.json`       | `semi: false`, `singleQuote: true`, `printWidth: 100`, `bracketSpacing: false` |
+| `README.md`           | Getting started, prerequisites, project structure                              |
+| `AGENT.md`            | Agent context for Claude Code / Cursor / etc.                                  |
+| `CLAUDE.md`           | Symlink to `AGENT.md`                                                          |
 
 ## Environment Variables
 
@@ -58,11 +58,11 @@ Single root `.env.local` cascades to all workspaces. Never committed.
 
 Loading patterns by context:
 
-| Context | Pattern |
-| --- | --- |
-| Studio CLI (`sanity.cli.ts`) | `process.loadEnvFile(\`${__dirname}/../.env.local\`)` |
-| Blueprint (`sanity.blueprint.ts`) | `readFileSync` + manual parse (jiti quirk) |
-| Vite apps | `vite: { envDir: '..' }` pointing to root |
+| Context                           | Pattern                                                 |
+| --------------------------------- | ------------------------------------------------------- |
+| Studio CLI (`sanity.cli.ts`)      | `process.loadEnvFile(\`${\_\_dirname}/../.env.local\`)` |
+| Blueprint (`sanity.blueprint.ts`) | `readFileSync` + manual parse (jiti quirk)              |
+| Vite apps                         | `vite: { envDir: '..' }` pointing to root               |
 
 ## Shared Config Packages
 
