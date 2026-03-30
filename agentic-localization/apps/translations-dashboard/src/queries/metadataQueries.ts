@@ -23,6 +23,7 @@ export const BATCH_METADATA_STATUS_QUERY = defineQuery(`*[
   workflowStates,
   "translations": translations[]{
     _key,
+    language,
     "ref": value._ref,
     "publishedExists": defined(*[_id == ^.value._ref][0]),
     "draftExists": defined(*[_id == "drafts." + ^.value._ref][0]),

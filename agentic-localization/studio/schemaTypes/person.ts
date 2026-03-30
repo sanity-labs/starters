@@ -16,8 +16,7 @@ export const person = defineType({
     defineField({
       name: 'bio',
       title: 'Bio',
-      type: 'text',
-      rows: 3,
+      type: 'internationalizedArrayText',
     }),
     defineField({
       name: 'image',
@@ -42,7 +41,14 @@ export const person = defineType({
     select: {
       title: 'name',
       media: 'image',
-      description: 'bio',
+      bio: 'bio',
+    },
+    prepare({title, media, bio}) {
+      const description = Array.isArray(bio)
+        ? (bio.find((entry: {language?: string}) => entry.language === 'en-US')?.value ??
+          bio[0]?.value)
+        : bio
+      return {title, media, description}
     },
   },
 })

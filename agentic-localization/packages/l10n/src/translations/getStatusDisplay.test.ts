@@ -42,7 +42,7 @@ describe('getStatusDisplay', () => {
     expect(getStatusDisplay('missing').tone).toBe('critical')
   })
 
-  it('returns caution tone for stale', () => {
-    expect(getStatusDisplay('stale').tone).toBe('caution')
+  it('returns suggest tone for stale', () => {
+    expect(getStatusDisplay('stale').tone).toBe('suggest')
   })
 })

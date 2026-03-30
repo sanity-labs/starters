@@ -6,7 +6,6 @@ import type {PortableTextBlock} from '@portabletext/types'
 import type {TransformTargetDocument, TranslateDocument} from '@sanity/client'
 import type {Language} from '@sanity/document-internationalization'
 import type {Get} from '@sanity/codegen'
-// Import from @sanity/types (9 KB) instead of `sanity` (the full Studio — 9+ MB).
 import {isImage, isPortableTextTextBlock, isReference, isSlug} from '@sanity/types'
 
 const isString = (v: unknown): v is string => typeof v === 'string'

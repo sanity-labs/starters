@@ -73,9 +73,7 @@ export async function processDocumentTranslationsWithProgress(
       metadataDoc.translations = []
     }
 
-    const existingLanguageKeys = metadataDoc.translations.map(
-      (translation: {_key: string}) => translation._key,
-    )
+    const existingLanguageKeys = metadataDoc.translations.map((translation) => translation.language)
     const missingLocales = availableLanguages.filter(
       (locale) => !existingLanguageKeys.includes(locale.id),
     )
@@ -111,16 +109,14 @@ export async function processDocumentTranslationsWithProgress(
     const validLocales = missingLocales.filter((locale) => locale.id && locale.title)
 
     // Ensure source reference exists before concurrent translations
-    const sourceExists = metadataDoc.translations?.some(
-      (t: {_key: string}) => t._key === baseLanguage,
-    )
+    const sourceExists = metadataDoc.translations?.some((t) => t.language === baseLanguage)
     if (!sourceExists) {
       const sourceReference = createReference(baseLanguage, baseDocumentId, documentType)
       await client
         .patch(metadataDoc._id)
         .setIfMissing({translations: []})
         .insert('before', 'translations[0]', [sourceReference])
-        .commit()
+        .commit({autoGenerateArrayKeys: true})
     }
 
     await processWithConcurrencyLimit(
@@ -205,15 +201,15 @@ export async function processDocumentTranslationsWithProgress(
             // Update metadata with translation reference
             const translationReference = createReference(locale.id, publishedId, documentType)
             const translationExists = metadataDoc.translations?.some(
-              (t: {_key: string}) => t._key === locale.id,
+              (t) => t.language === locale.id,
             )
 
             let patch = client.patch(metadataDoc._id).setIfMissing({translations: []})
             if (translationExists) {
-              patch = patch.unset([`translations[_key=="${locale.id}"]`])
+              patch = patch.unset([`translations[language=="${locale.id}"]`])
             }
             patch = patch.append('translations', [translationReference])
-            await patch.commit()
+            await patch.commit({autoGenerateArrayKeys: true})
 
             await writeWorkflowState(client, metadataDoc._id, locale.id)
 

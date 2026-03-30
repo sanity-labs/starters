@@ -1,11 +1,13 @@
-import {definePlugin, type SchemaTypeDefinition} from 'sanity'
+import {definePlugin, type DocumentActionComponent, type SchemaTypeDefinition} from 'sanity'
 import {documentInternationalization, type Language} from '@sanity/document-internationalization'
+import {internationalizedArray} from 'sanity-plugin-internationalized-array'
 
 import {localeTranslation} from './schemas/localeTranslation'
 import {glossaryEntry} from './schemas/glossaryEntry'
 import {translationLocale} from './schemas/translationLocale'
 import {translationGlossary} from './schemas/translationGlossary'
 import {translationStyleGuide} from './schemas/translationStyleGuide'
+import {fieldTranslationMetadata} from './schemas/fieldTranslationMetadata'
 import {l10nUsEnglishLocaleBundle} from './i18n'
 import {SUPPORTED_LANGUAGES_QUERY} from './queries'
 import {languageFieldName} from './types'
@@ -13,6 +15,7 @@ import {injectLanguageField} from './languageField'
 import {LocaleNavbar} from './components/LocaleNavbar'
 import {LocaleBadge} from './components/LocaleBadge'
 import {createTranslationInspector} from './translations/createTranslationPanePlugin'
+import {createFieldTranslationPublishGate} from './translations/useFieldTranslationPublishGate'
 
 interface L10nOptions {
   localizedSchemaTypes: readonly string[]
@@ -46,6 +49,7 @@ export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L1
           translationLocale,
           translationGlossary,
           translationStyleGuide,
+          fieldTranslationMetadata,
         ],
         templates: (prev) => [
           ...prev,
@@ -62,6 +66,18 @@ export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L1
       },
       document: {
         inspectors: (prev) => [translationInspector, ...prev],
+        // Wrap the publish action with a confirmation gate when there are
+        // unreviewed or stale field translations.
+        actions: (prev: DocumentActionComponent[], context) => {
+          // Only gate document types that have internationalized array fields.
+          // The gate hook itself is lightweight (single listenQuery) so the
+          // overhead for non-matching types is negligible, but we skip
+          // system types to be safe.
+          if (localizedSchemaTypes.includes(context.schemaType)) return prev
+          return prev.map((action) =>
+            action.action === 'publish' ? createFieldTranslationPublishGate(action) : action,
+          )
+        },
         // Replace the plain locale badge from @sanity/document-internationalization
         // with our flag-enhanced version. The i18n plugin wraps LanguageBadge in an
         // anonymous arrow, so we identify it by exclusion: keep only named badges
@@ -76,6 +92,11 @@ export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L1
           hideLanguageFilter: (ctx) => localizedSchemaTypes.includes(ctx.schemaType),
           supportedLanguages: (client) => client.fetch<Language[]>(SUPPORTED_LANGUAGES_QUERY),
           schemaTypes: [...localizedSchemaTypes],
+        }),
+        internationalizedArray({
+          languages: (client) => client.fetch<Language[]>(SUPPORTED_LANGUAGES_QUERY),
+          defaultLanguages: [defaultLanguage],
+          fieldTypes: ['string', 'text'],
         }),
       ],
     })(),

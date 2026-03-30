@@ -9,11 +9,12 @@
  */
 
 import {
+  AddCircleIcon,
   CheckmarkCircleIcon,
   CircleIcon,
   EditIcon,
   ErrorOutlineIcon,
-  WarningOutlineIcon,
+  SyncIcon,
 } from '@sanity/icons'
 import type {BadgeTone} from '@sanity/ui'
 import type {ComponentType, CSSProperties} from 'react'
@@ -34,7 +35,7 @@ export interface StatusDisplay {
 const STATUS_DISPLAY_MAP: Record<TranslationStatus, StatusDisplay> = {
   // Workflow states (persistent, stored in workflowStates on metadata)
   missing: {
-    icon: CircleIcon,
+    icon: AddCircleIcon,
     tone: 'critical',
     label: 'Missing',
     tooltip: 'No translation exists for this locale',
@@ -58,8 +59,8 @@ const STATUS_DISPLAY_MAP: Record<TranslationStatus, StatusDisplay> = {
     tooltip: 'Translation reviewed and approved',
   },
   stale: {
-    icon: WarningOutlineIcon,
-    tone: 'caution',
+    icon: SyncIcon,
+    tone: 'suggest',
     label: 'Stale',
     tooltip: 'Source document has changed since this translation was created',
   },

@@ -19,8 +19,10 @@
 import {Badge, Box, Card, Flex, Stack, Text} from '@sanity/ui'
 import {diffArrays} from 'diff'
 import {useCallback, useMemo, useState} from 'react'
+import {useTranslation} from 'sanity'
 
 import {extractBlockText} from '../core/extractBlockText'
+import {l10nLocaleNamespace} from '../i18n'
 import {InlineDiff} from './InlineDiff'
 
 // --- Constants ---
@@ -179,6 +181,7 @@ const REMOVED_TEXT_STYLE: React.CSSProperties = {
 const CONTEXT_TRUNCATE_LENGTH = 100
 
 function BlockDiffRow({blockDiff}: {blockDiff: BlockDiff}) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   // Separator — no block number, just a visual break between non-adjacent groups
   if (blockDiff.type === 'separator') {
     return (
@@ -206,7 +209,7 @@ function BlockDiffRow({blockDiff}: {blockDiff: BlockDiff}) {
         {blockDiff.type === 'added' && (
           <Stack space={2}>
             <Badge tone="positive" fontSize={0}>
-              added
+              {t('diff.block-added')}
             </Badge>
             <Text size={1} style={ADDED_TEXT_STYLE}>
               {blockDiff.newText}
@@ -217,7 +220,7 @@ function BlockDiffRow({blockDiff}: {blockDiff: BlockDiff}) {
         {blockDiff.type === 'removed' && (
           <Stack space={2}>
             <Badge tone="critical" fontSize={0}>
-              removed
+              {t('diff.block-removed')}
             </Badge>
             <Text size={1} style={REMOVED_TEXT_STYLE}>
               {blockDiff.oldText}
@@ -244,6 +247,7 @@ export function PortableTextDiff({
   newBlocks,
   maxBlocks = DEFAULT_MAX_BLOCKS,
 }: PortableTextDiffProps) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   const [showAll, setShowAll] = useState(false)
   const toggleShowAll = useCallback(() => setShowAll((prev) => !prev), [])
 
@@ -283,7 +287,7 @@ export function PortableTextDiff({
     return (
       <Card padding={3} radius={2} tone="transparent" border>
         <Text size={1} muted>
-          No text content changes detected
+          {t('diff.no-changes')}
         </Text>
       </Card>
     )
@@ -311,7 +315,7 @@ export function PortableTextDiff({
           }}
           onClick={toggleShowAll}
         >
-          + {hiddenCount} more block change{hiddenCount !== 1 ? 's' : ''}
+          {t('diff.more-changes', {count: hiddenCount})}
         </Text>
       )}
     </Stack>

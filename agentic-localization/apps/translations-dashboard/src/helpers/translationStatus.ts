@@ -181,6 +181,7 @@ async function fetchTranslationsForDocument(
           && (references($documentId) || references($publishedId))
         ].translations[]{
           _key,
+          language,
           "publishedId": value._ref,
           "allVersions": *[_id match "versions.*." + ^.value._ref]{
             _id,

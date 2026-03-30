@@ -90,7 +90,9 @@ export function useRetranslateStale(aggregateData: AggregateData) {
             try {
               // Find the translated document ID from metadata
               const meta = metadataLookup.get(target.baseDocId)
-              const translationRef = meta?.translations?.find((t) => t._key === target.localeTag)
+              const translationRef = meta?.translations?.find(
+                (t) => t.language === target.localeTag,
+              )
 
               if (!translationRef?.ref) {
                 // No existing translation found — skip (shouldn't happen for stale docs)
@@ -122,17 +124,17 @@ export function useRetranslateStale(aggregateData: AggregateData) {
                 await client
                   .patch(meta._id)
                   .setIfMissing({workflowStates: []})
-                  .unset([`workflowStates[_key=="${target.localeTag}"]`])
+                  .unset([`workflowStates[language=="${target.localeTag}"]`])
                   .append('workflowStates', [
                     {
-                      _key: target.localeTag,
+                      language: target.localeTag,
                       source: 'ai',
                       sourceRevision: sourceDoc?._rev,
                       status: 'needsReview',
                       updatedAt: new Date().toISOString(),
                     },
                   ])
-                  .commit()
+                  .commit({autoGenerateArrayKeys: true})
               }
 
               completed++

@@ -15,6 +15,9 @@ import {Box, Card, Flex, Text} from '@sanity/ui'
 import type {Change} from 'diff'
 import {diffWords} from 'diff'
 import {useCallback, useMemo, useState} from 'react'
+import {useTranslation} from 'sanity'
+
+import {l10nLocaleNamespace} from '../i18n'
 
 // --- Constants ---
 
@@ -60,6 +63,7 @@ function totalLength(changes: Change[]): number {
 // --- Main component ---
 
 export function InlineDiff({oldValue, newValue, maxLength = DEFAULT_MAX_LENGTH}: InlineDiffProps) {
+  const {t} = useTranslation(l10nLocaleNamespace)
   const [showFull, setShowFull] = useState(false)
   const toggleFull = useCallback(() => setShowFull((prev) => !prev), [])
 
@@ -107,10 +111,7 @@ export function InlineDiff({oldValue, newValue, maxLength = DEFAULT_MAX_LENGTH}:
           whiteSpace: 'nowrap',
         }}
       >
-        <Text>
-          {wordsRemoved} word{wordsRemoved !== 1 ? 's' : ''} removed, {wordsAdded} word
-          {wordsAdded !== 1 ? 's' : ''} added
-        </Text>
+        <Text>{t('diff.sr-summary', {removed: wordsRemoved, added: wordsAdded})}</Text>
       </Box>
 
       {/* Inline diff content */}
@@ -146,7 +147,7 @@ export function InlineDiff({oldValue, newValue, maxLength = DEFAULT_MAX_LENGTH}:
               marginLeft: 4,
             }}
           >
-            … [show full diff]
+            {t('diff.show-full')}
           </span>
         )}
       </Text>

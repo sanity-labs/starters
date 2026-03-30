@@ -128,6 +128,7 @@ const TranslationsList = ({
         const result = await client.fetch<{
           _allTranslations: Array<{
             _key: string
+            language: string
             allVersions: Array<{_id: string; language: null | string; title: null | string}>
             draft?: {_id: string; language: null | string; title: null | string} | null
             published?: {_id: string; language: null | string; title: null | string} | null
@@ -140,6 +141,7 @@ const TranslationsList = ({
               && (references($documentId) || references($publishedDocId))
             ].translations[]{
               _key,
+              language,
               "publishedId": value._ref,
               "published": *[_id == ^.value._ref][0]{
                 _id,
@@ -166,7 +168,7 @@ const TranslationsList = ({
         const stateMap = new Map<string, TranslationState>()
         if (result?._allTranslations) {
           for (const t of result._allTranslations) {
-            const language = t._key
+            const language = t.language
             if (!language) continue
 
             const versions: TranslationState['versions'] = []

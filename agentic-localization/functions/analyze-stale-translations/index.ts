@@ -99,14 +99,10 @@ function extractPTText(value: unknown): string {
   return value.map(extractBlockText).filter(Boolean).join(' ')
 }
 
-/** Normalize workflowStates to array form. */
-function normalizeWorkflowStates(raw: MetadataDoc['workflowStates']): WorkflowStateEntry[] {
-  if (!raw) return []
-  if (Array.isArray(raw)) return raw.filter((e): e is WorkflowStateEntry => !!e.status)
-  // Legacy object shape
-  return Object.entries(raw as Record<string, Omit<WorkflowStateEntry, '_key'>>).map(
-    ([key, entry]) => ({_key: key, ...entry}) as WorkflowStateEntry,
-  )
+/** Filter workflowStates to valid entries. */
+function filterWorkflowStates(raw: MetadataDoc['workflowStates']): WorkflowStateEntry[] {
+  if (!raw || !Array.isArray(raw)) return []
+  return raw.filter((e): e is WorkflowStateEntry => !!e.status)
 }
 
 /**
@@ -191,7 +187,7 @@ export const handler = documentEventHandler<AnalyzeStaleEventData>(async ({conte
   }
 
   // Normalize workflowStates
-  const workflowStates = normalizeWorkflowStates(metadata.workflowStates)
+  const workflowStates = filterWorkflowStates(metadata.workflowStates)
   const staleEntries = workflowStates.filter((ws) => ws.status === 'stale')
 
   if (staleEntries.length === 0) {
@@ -222,7 +218,7 @@ export const handler = documentEventHandler<AnalyzeStaleEventData>(async ({conte
   }
 
   // Step 3: Find the base-language source document
-  const baseTranslation = metadata.translations?.find((t) => t._key === BASE_LANGUAGE)
+  const baseTranslation = metadata.translations?.find((t) => t.language === BASE_LANGUAGE)
   const sourceDocRef = baseTranslation?.value?._ref
   if (!sourceDocRef) {
     console.log(`[AnalyzeStale] No base-language (${BASE_LANGUAGE}) translation ref found`)
@@ -238,7 +234,7 @@ export const handler = documentEventHandler<AnalyzeStaleEventData>(async ({conte
   }
 
   console.log(
-    `[AnalyzeStale] Analyzing: source=${publishedSourceId}, oldRev=${sourceRevision}, staleRev=${staleSourceRev}, staleLocales=${staleEntries.map((e) => e._key).join(',')}`,
+    `[AnalyzeStale] Analyzing: source=${publishedSourceId}, oldRev=${sourceRevision}, staleRev=${staleSourceRev}, staleLocales=${staleEntries.map((e) => e.language).join(',')}`,
   )
 
   // Step 4: Fetch historical + current source documents
@@ -399,7 +395,7 @@ export const handler = documentEventHandler<AnalyzeStaleEventData>(async ({conte
   const preTranslations: PreTranslatedSuggestion[] = []
 
   if (fieldsToTranslate.length > 0) {
-    const staleLocaleIds = staleEntries.map((e) => e._key)
+    const staleLocaleIds = staleEntries.map((e) => e.language)
 
     console.log(
       `[AnalyzeStale] Pre-translating ${fieldsToTranslate.length} fields x ${staleLocaleIds.length} locales`,
