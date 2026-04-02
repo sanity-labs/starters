@@ -18,7 +18,7 @@
     "validate": "sanity-template-validate"
   },
   "devDependencies": {
-    "@sanity/blueprints": "^0.13.1",
+    "@sanity/blueprints": "^0.14.0",
     "@sanity/client": "catalog:",
     "@sanity/template-validator": "^3.0.0",
     "@starter/eslint-config": "workspace:*",
@@ -26,7 +26,7 @@
     "concurrently": "^9.2.1",
     "eslint": "^9.39.3",
     "groq": "catalog:",
-    "oxfmt": "^0.36.0",
+    "oxfmt": "^0.42.0",
     "sanity": "catalog:",
     "tsx": "^4.21.0"
   },

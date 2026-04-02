@@ -16,7 +16,7 @@
     "@sanity/functions": "^1.2.1",
     "@starter/tsconfig": "workspace:*",
     "groq": "catalog:",
-    "rolldown": "^1.0.0-rc.8",
+    "rolldown": "^1.0.0-rc.12",
     "sanity": "catalog:"
   }
 }

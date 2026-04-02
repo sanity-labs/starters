@@ -12,10 +12,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sanity/vision": "catalog:",
+    "@sanity/icons": "catalog:",
+    "@sanity/ui": "^3.1.14",
+    "@sanity/vision": "5.19.0",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "sanity": "catalog:",
+    "sanity": "5.19.0",
     "styled-components": "catalog:"
   },
   "devDependencies": {

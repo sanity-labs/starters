@@ -1,6 +1,6 @@
 {
   "extends": "@starter/tsconfig/base.json",
-  "include": ["schemaTypes/**/*.ts", "scripts/**/*.ts"],
+  "include": ["**/*.ts", "**/*.tsx"],
   "compilerOptions": {
     "noEmit": true
   }
