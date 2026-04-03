@@ -7,6 +7,7 @@ import {
   useDocumentOperation,
 } from 'sanity'
 import {SyncIcon} from '@sanity/icons'
+import {requestSync} from '../utils/requestSync'
 
 export function SyncToProviderAction(props: DocumentActionProps): DocumentActionDescription | null {
   const {id, type, published, draft} = props
@@ -30,12 +31,9 @@ export function SyncToProviderAction(props: DocumentActionProps): DocumentAction
 
   const handleSync = useCallback(async () => {
     setDialogOpen(false)
-    const draftId = `drafts.${id}`
-    if (!draft) {
-      await client.createIfNotExists({...published, _id: draftId} as any)
-    }
-    await client.patch(draftId).set({syncState: 'requested'}).commit()
-    publish.execute()
+    await requestSync(client, {id, document: (draft || published) as Record<string, any>}, () =>
+      publish.execute(),
+    )
   }, [client, draft, published, id, publish])
 
   if (!doc?.name) return null

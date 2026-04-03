@@ -305,8 +305,13 @@ export function GenerateEmailButton(props: ObjectInputProps) {
             Fill in a Goal or Key Message to enable AI generation.
           </Text>
         )}
+        {hasPrompt && (
+          <Text size={1} muted weight="medium">
+            Generates: Subject, Preheader, and Body
+          </Text>
+        )}
         {hasGenerated && lastGeneratedAt && (
-          <Text size={1} muted>
+          <Text size={0} muted>
             Generated {generationCount} {generationCount === 1 ? 'time' : 'times'} — last{' '}
             {formatRelativeTime(lastGeneratedAt)}
           </Text>

@@ -1,7 +1,7 @@
 import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
 import {visionTool} from '@sanity/vision'
-import {presentationTool, defineDocuments} from 'sanity/presentation'
+import {presentationTool, defineDocuments, defineLocations} from 'sanity/presentation'
 import {schemaTypes} from './schemaTypes'
 import {structure} from './structure'
 import {SyncToProviderAction} from './components/SyncToProviderAction'
@@ -33,7 +33,32 @@ export default defineConfig({
             route: '/campaigns/:slug',
             filter: '_type == "campaign" && slug.current == $slug',
           },
+          {
+            route: '/emails/preview/:id',
+            resolve: (ctx) => ({
+              filter: '_type == "emailMessage" && _id == $id',
+              params: {id: ctx.params.id},
+            }),
+          },
         ]),
+        locations: {
+          emailMessage: defineLocations({
+            select: {title: 'title', id: '_id'},
+            resolve: (doc) => ({
+              locations: [
+                {title: doc?.title || 'Untitled Email', href: `/emails/preview/${doc?.id}`},
+              ],
+            }),
+          }),
+          campaign: defineLocations({
+            select: {title: 'title', slug: 'slug.current'},
+            resolve: (doc) => ({
+              locations: [
+                {title: doc?.title || 'Untitled Campaign', href: `/campaigns/${doc?.slug}`},
+              ],
+            }),
+          }),
+        },
       },
     }),
     structureTool({structure}),
