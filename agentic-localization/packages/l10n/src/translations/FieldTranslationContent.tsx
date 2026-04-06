@@ -115,20 +115,23 @@ export function FieldTranslationContent({
 
   const progressPercent = totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0
 
-  // Per-locale missing counts — drives per-column translate buttons
-  const missingByLocale = useMemo(() => {
-    const counts = new Map<string, number>()
+  // Per-locale stats — drives per-column translate buttons
+  const localeStats = useMemo(() => {
+    const missing = new Map<string, number>()
+    const translatable = new Map<string, number>()
     for (const [fieldPath, localeStates] of Object.entries(cellStates)) {
       const sourceLocale = snapshot.sourceLanguages[fieldPath]
       if (!sourceLocale) continue
       for (const [localeId, state] of Object.entries(localeStates)) {
         if (localeId === sourceLocale) continue
+        // Count fields that have source content (translatable regardless of current state)
+        translatable.set(localeId, (translatable.get(localeId) ?? 0) + 1)
         if (state.status === 'missing') {
-          counts.set(localeId, (counts.get(localeId) ?? 0) + 1)
+          missing.set(localeId, (missing.get(localeId) ?? 0) + 1)
         }
       }
     }
-    return counts
+    return {missing, translatable}
   }, [cellStates, snapshot.sourceLanguages])
 
   // Group fields by parent for nested display
@@ -347,7 +350,8 @@ export function FieldTranslationContent({
                         </Text>
                       </th>
                       {locales.map((locale) => {
-                        const localeMissing = missingByLocale.get(locale.id) ?? 0
+                        const localeMissing = localeStats.missing.get(locale.id) ?? 0
+                        const localeTranslatable = localeStats.translatable.get(locale.id) ?? 0
                         return (
                           <th
                             key={locale.id}
@@ -360,10 +364,15 @@ export function FieldTranslationContent({
                             }}
                           >
                             <Flex align="center" justify="center" gap={1}>
-                              <Text size={1} weight="medium" style={{cursor: 'default'}}>
+                              <Text
+                                size={1}
+                                weight="medium"
+                                muted={localeTranslatable === 0}
+                                style={{cursor: 'default'}}
+                              >
                                 {locale.id}
                               </Text>
-                              {localeMissing > 0 && (
+                              {localeMissing > 0 && localeTranslatable > 0 && (
                                 <Tooltip
                                   content={
                                     <Box padding={2}>
@@ -478,6 +487,7 @@ export function FieldTranslationContent({
                 icon={CheckmarkCircleIcon}
                 onClick={approveAll}
                 text={t('field-translations.action.approve', {count: needsReviewCount})}
+                disabled={isTranslating}
                 style={{width: '100%'}}
               />
             )}
