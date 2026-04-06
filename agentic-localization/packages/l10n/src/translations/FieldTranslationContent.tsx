@@ -68,6 +68,7 @@ export function FieldTranslationContent({
   const {
     translateCell,
     translateField,
+    translateLocale,
     translateAllEmpty,
     approveCell,
     approveAll,
@@ -113,6 +114,22 @@ export function FieldTranslationContent({
   }, [cellStates, snapshot.sourceLanguages])
 
   const progressPercent = totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0
+
+  // Per-locale missing counts — drives per-column translate buttons
+  const missingByLocale = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const [fieldPath, localeStates] of Object.entries(cellStates)) {
+      const sourceLocale = snapshot.sourceLanguages[fieldPath]
+      if (!sourceLocale) continue
+      for (const [localeId, state] of Object.entries(localeStates)) {
+        if (localeId === sourceLocale) continue
+        if (state.status === 'missing') {
+          counts.set(localeId, (counts.get(localeId) ?? 0) + 1)
+        }
+      }
+    }
+    return counts
+  }, [cellStates, snapshot.sourceLanguages])
 
   // Group fields by parent for nested display
   const fieldGroups = useMemo(() => {
@@ -329,22 +346,54 @@ export function FieldTranslationContent({
                           {t('field-translations.header.field')}
                         </Text>
                       </th>
-                      {locales.map((locale) => (
-                        <th
-                          key={locale.id}
-                          style={{
-                            borderBottom: '1px solid var(--card-border-color)',
-                            fontWeight: 500,
-                            padding: '8px',
-                            textAlign: 'center',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          <Text size={1} weight="medium" style={{cursor: 'default'}}>
-                            {locale.id}
-                          </Text>
-                        </th>
-                      ))}
+                      {locales.map((locale) => {
+                        const localeMissing = missingByLocale.get(locale.id) ?? 0
+                        return (
+                          <th
+                            key={locale.id}
+                            style={{
+                              borderBottom: '1px solid var(--card-border-color)',
+                              fontWeight: 500,
+                              padding: '8px',
+                              textAlign: 'center',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <Flex align="center" justify="center" gap={1}>
+                              <Text size={1} weight="medium" style={{cursor: 'default'}}>
+                                {locale.id}
+                              </Text>
+                              {localeMissing > 0 && (
+                                <Tooltip
+                                  content={
+                                    <Box padding={2}>
+                                      <Text size={1}>
+                                        {t('field-translations.action.translate-locale', {
+                                          count: localeMissing,
+                                          locale: locale.title,
+                                        })}
+                                      </Text>
+                                    </Box>
+                                  }
+                                  animate
+                                  placement="bottom"
+                                  portal
+                                >
+                                  <Button
+                                    icon={TranslateIcon}
+                                    mode="bleed"
+                                    tone="suggest"
+                                    fontSize={0}
+                                    padding={1}
+                                    onClick={() => translateLocale(locale.id)}
+                                    disabled={isTranslating}
+                                  />
+                                </Tooltip>
+                              )}
+                            </Flex>
+                          </th>
+                        )
+                      })}
                       <th
                         style={{
                           borderBottom: '1px solid var(--card-border-color)',

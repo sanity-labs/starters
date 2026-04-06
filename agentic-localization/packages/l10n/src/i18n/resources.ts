@@ -81,6 +81,7 @@ export default {
   'field-translations.cell.click-translate': 'Click to translate',
   'field-translations.cell.translate-field': 'Translate all empty for this field',
   'field-translations.action.translate-missing': 'Translate {{count}} missing',
+  'field-translations.action.translate-locale': 'Translate {{count}} fields to {{locale}}',
   'field-translations.action.approve': 'Approve {{count}} translations',
   'field-translations.legend.approved': 'approved',
   'field-translations.legend.review': 'review',
