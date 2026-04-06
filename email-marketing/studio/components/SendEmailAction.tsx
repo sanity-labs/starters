@@ -6,13 +6,11 @@ import {
   useClient,
   useDocumentOperation,
 } from 'sanity'
-import {PlayIcon, SyncIcon} from '@sanity/icons'
-import {requestSync} from '../utils/requestSync'
+import {PlayIcon} from '@sanity/icons'
 
 type ValidationResult = {
   valid: boolean
   message?: string
-  syncTarget?: {id: string}
 }
 
 export function SendEmailAction(props: DocumentActionProps): DocumentActionDescription | null {
@@ -22,7 +20,6 @@ export function SendEmailAction(props: DocumentActionProps): DocumentActionDescr
   const {publish} = useDocumentOperation(id, type)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [validation, setValidation] = useState<ValidationResult>({valid: false})
-  const [syncing, setSyncing] = useState(false)
 
   const status = doc?.status as string | undefined
   const sendState = doc?.sendState as string | undefined
@@ -45,27 +42,51 @@ export function SendEmailAction(props: DocumentActionProps): DocumentActionDescr
       const emailDoc = await client.fetch(
         `*[_id == $id || _id == $draftId][0]{
           subject,
-          "list": campaign->list->{_id, externalId, name},
-          "audience": audience->{_id, externalId, name},
-          "audienceRef": audience._ref
+          "lists": campaign->lists[]->{_id, externalId, name},
+          "includedSegments": includedSegments[]->{_id, externalId, name},
+          "excludedSegments": excludedSegments[]->{_id, externalId, name},
+          "campaignIncluded": campaign->includedSegments[]->{_id, externalId, name},
+          "campaignExcluded": campaign->excludedSegments[]->{_id, externalId, name},
         }`,
         {id, draftId: `drafts.${id}`},
       )
 
-      if (!emailDoc?.list?.externalId) {
+      if (!emailDoc?.lists || emailDoc.lists.length === 0) {
         setValidation({
           valid: false,
-          message: `The list "${emailDoc?.list?.name ?? 'unknown'}" hasn't been synced to Klaviyo yet.`,
-          syncTarget: emailDoc?.list?._id ? {id: emailDoc.list._id} : undefined,
+          message: 'The campaign has no lists assigned.',
         })
         return
       }
 
-      if (emailDoc.audienceRef && !emailDoc.audience?.externalId) {
+      const listsWithoutExternal = emailDoc.lists.filter(
+        (l: {externalId?: string}) => !l.externalId,
+      )
+      if (listsWithoutExternal.length > 0) {
+        const names = listsWithoutExternal
+          .map((l: {name?: string}) => l.name ?? 'unknown')
+          .join(', ')
         setValidation({
           valid: false,
-          message: `The audience "${emailDoc?.audience?.name ?? 'unknown'}" hasn't been synced to Klaviyo yet.`,
-          syncTarget: emailDoc?.audience?._id ? {id: emailDoc.audience._id} : undefined,
+          message: `The following lists haven't been synced to Klaviyo yet: ${names}.`,
+        })
+        return
+      }
+
+      const effectiveIncluded = emailDoc.includedSegments?.length
+        ? emailDoc.includedSegments
+        : (emailDoc.campaignIncluded ?? [])
+      const effectiveExcluded = emailDoc.excludedSegments?.length
+        ? emailDoc.excludedSegments
+        : (emailDoc.campaignExcluded ?? [])
+
+      const allSegments = [...effectiveIncluded, ...effectiveExcluded]
+      const unsyncedSegments = allSegments.filter((s: {externalId?: string}) => !s.externalId)
+      if (unsyncedSegments.length > 0) {
+        const names = unsyncedSegments.map((s: {name?: string}) => s.name ?? 'unknown').join(', ')
+        setValidation({
+          valid: false,
+          message: `The following segments haven't been synced to Klaviyo yet: ${names}.`,
         })
         return
       }
@@ -78,7 +99,11 @@ export function SendEmailAction(props: DocumentActionProps): DocumentActionDescr
         return
       }
 
-      const target = emailDoc.audience?.name ?? emailDoc.list?.name ?? 'unknown'
+      const listNames = emailDoc.lists.map((l: {name?: string}) => l.name).join(', ')
+      const segmentNames = effectiveIncluded.length
+        ? effectiveIncluded.map((s: {name?: string}) => s.name).join(', ')
+        : null
+      const target = segmentNames ? `${segmentNames} (lists: ${listNames})` : listNames
       setValidation({valid: true, message: `Send to ${target}?`})
     } catch {
       setValidation({
@@ -103,42 +128,6 @@ export function SendEmailAction(props: DocumentActionProps): DocumentActionDescr
     publish.execute()
   }, [client, draft, published, id, publish])
 
-  const handleSyncResource = useCallback(async () => {
-    if (!validation.syncTarget || syncing) return
-    setSyncing(true)
-    try {
-      const targetId = validation.syncTarget.id
-      const doc = await client.getDocument(targetId)
-      if (doc) {
-        await requestSync(client, {id: targetId, document: doc})
-      }
-      // Poll until the Sanity Function completes the sync
-      for (let i = 0; i < 30; i++) {
-        await new Promise((r) => setTimeout(r, 1000))
-        const updated = await client.fetch(`*[_id == $id][0]{syncState, errorMessage}`, {
-          id: targetId,
-        })
-        if (updated?.syncState === 'synced') {
-          await validate()
-          return
-        }
-        if (updated?.syncState === 'error') {
-          setValidation({
-            valid: false,
-            message: updated.errorMessage || 'Sync failed. Please try again.',
-          })
-          return
-        }
-      }
-      setValidation({
-        valid: false,
-        message: 'Sync is taking longer than expected. Close and try again.',
-      })
-    } finally {
-      setSyncing(false)
-    }
-  }, [client, validation.syncTarget, syncing, validate])
-
   const needsApproval = status !== 'approved' && status !== 'sent' && !isError && !isSent
 
   const label = isSending
@@ -162,20 +151,9 @@ export function SendEmailAction(props: DocumentActionProps): DocumentActionDescr
     dialog: dialogOpen
       ? {
           type: 'confirm' as const,
-          message: syncing
-            ? 'Syncing to Klaviyo\u2026'
-            : (validation.message ?? 'Checking prerequisites\u2026'),
-          onCancel: syncing ? () => {} : () => setDialogOpen(false),
-          onConfirm: validation.valid
-            ? handleSend
-            : validation.syncTarget
-              ? handleSyncResource
-              : () => setDialogOpen(false),
-          ...(syncing
-            ? {confirmButtonText: 'Syncing\u2026', confirmButtonIcon: SyncIcon}
-            : validation.syncTarget && !validation.valid
-              ? {confirmButtonText: 'Sync Now', confirmButtonIcon: SyncIcon}
-              : {}),
+          message: validation.message ?? 'Checking prerequisites\u2026',
+          onCancel: () => setDialogOpen(false),
+          onConfirm: validation.valid ? handleSend : () => setDialogOpen(false),
         }
       : null,
   }

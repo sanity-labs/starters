@@ -113,7 +113,7 @@ export function GenerateEmailButton(props: ObjectInputProps) {
   const keyMessage = useFormValue(['prompt', 'keyMessage']) as string | undefined
   const tone = useFormValue(['prompt', 'tone']) as string[] | undefined
   const additionalContext = useFormValue(['prompt', 'additionalContext']) as string | undefined
-  const audienceRef = useFormValue(['audience']) as {_ref?: string} | undefined
+  const includedSegments = useFormValue(['includedSegments']) as Array<{_ref?: string}> | undefined
   const generationCount = (useFormValue(['prompt', 'generationCount']) as number | undefined) ?? 0
   const lastGeneratedAt = useFormValue(['prompt', 'lastGeneratedAt']) as string | undefined
 
@@ -145,10 +145,11 @@ export function GenerateEmailButton(props: ObjectInputProps) {
 
     try {
       let audienceContext: {name?: string; behaviorNotes?: string} | undefined
-      if (audienceRef?._ref) {
+      const firstSegmentRef = includedSegments?.[0]?._ref
+      if (firstSegmentRef) {
         audienceContext = await client.fetch(
-          `*[_type == "audience" && _id == $id][0]{name, behaviorNotes}`,
-          {id: audienceRef._ref},
+          `*[_type == "segment" && _id == $id][0]{name, behaviorNotes}`,
+          {id: firstSegmentRef},
         )
       }
 
@@ -195,7 +196,7 @@ export function GenerateEmailButton(props: ObjectInputProps) {
     keyMessage,
     tone,
     additionalContext,
-    audienceRef,
+    includedSegments,
     generationCount,
     useBrandVoice,
     hasBrandVoice,

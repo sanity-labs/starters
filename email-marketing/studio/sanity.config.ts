@@ -4,9 +4,10 @@ import {visionTool} from '@sanity/vision'
 import {presentationTool, defineDocuments, defineLocations} from 'sanity/presentation'
 import {schemaTypes} from './schemaTypes'
 import {structure} from './structure'
-import {SyncToProviderAction} from './components/SyncToProviderAction'
+import {ImportFromKlaviyoAction} from './components/ImportFromKlaviyoAction'
 import {SendEmailAction} from './components/SendEmailAction'
-import {SyncStatusBadge} from './components/SyncStatusBadge'
+import {SendStatusBadge} from './components/SyncStatusBadge'
+import {OpenKlaviyoAction} from './components/OpenKlaviyoAction'
 
 const projectId = process.env.SANITY_STUDIO_PROJECT_ID!
 const dataset = process.env.SANITY_STUDIO_DATASET || 'production'
@@ -67,17 +68,20 @@ export default defineConfig({
 
   document: {
     actions: (prev, {schemaType}) => {
-      if (schemaType === 'list' || schemaType === 'audience') {
-        return [SyncToProviderAction, ...prev]
+      if (schemaType === 'klaviyoImport') {
+        return [ImportFromKlaviyoAction, OpenKlaviyoAction, ...prev]
       }
       if (schemaType === 'emailMessage') {
         return [SendEmailAction, ...prev]
       }
+      if (schemaType === 'list' || schemaType === 'segment') {
+        return prev.filter(({action}) => action !== 'delete' && action !== 'duplicate')
+      }
       return prev
     },
     badges: (prev, {schemaType}) => {
-      if (['list', 'audience', 'emailMessage'].includes(schemaType)) {
-        return [...prev, SyncStatusBadge]
+      if (schemaType === 'emailMessage') {
+        return [...prev, SendStatusBadge]
       }
       return prev
     },
@@ -85,17 +89,22 @@ export default defineConfig({
 
   schema: {
     types: schemaTypes,
-    templates: (prev) => [
-      ...prev,
-      {
-        id: 'emailMessage-for-campaign',
-        title: 'Email for Campaign',
-        schemaType: 'emailMessage',
-        parameters: [{name: 'campaignId', type: 'string'}],
-        value: ({campaignId}: {campaignId: string}) => ({
-          campaign: {_type: 'reference', _ref: campaignId, _weak: true},
+    templates: (prev) =>
+      prev
+        .filter(
+          (t) =>
+            !['list', 'segment', 'klaviyoImport'].includes(
+              'schemaType' in t ? (t.schemaType as string) : '',
+            ),
+        )
+        .concat({
+          id: 'emailMessage-for-campaign',
+          title: 'Email for Campaign',
+          schemaType: 'emailMessage',
+          parameters: [{name: 'campaignId', type: 'string'}],
+          value: ({campaignId}: {campaignId: string}) => ({
+            campaign: {_type: 'reference', _ref: campaignId, _weak: true},
+          }),
         }),
-      },
-    ],
   },
 })

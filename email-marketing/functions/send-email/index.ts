@@ -15,11 +15,14 @@ const EMAIL_QUERY = groq`
     sendState,
     externalTemplateId,
     externalCampaignId,
+    "includedSegments": includedSegments[]->{_id, name, externalId},
+    "excludedSegments": excludedSegments[]->{_id, name, externalId},
     "campaign": campaign->{
       _id, title, slug,
-      "list": list->{_id, name, externalId}
+      "lists": lists[]->{_id, name, externalId},
+      "includedSegments": includedSegments[]->{_id, name, externalId},
+      "excludedSegments": excludedSegments[]->{_id, name, externalId}
     },
-    "audience": audience->{_id, name, externalId},
     body[]{
       ...,
       _type == "emailSection" => {
@@ -58,13 +61,13 @@ export const handler = documentEventHandler(async ({context, event}) => {
       )
     }
 
-    const list = email.campaign?.list
-    if (!list?.externalId) {
-      throw new Error('Campaign list must be synced to your email provider first')
+    const lists = email.campaign?.lists ?? []
+    if (lists.length === 0) {
+      throw new Error('Campaign must have at least one subscriber list')
     }
-
-    if (email.audience && !email.audience.externalId) {
-      throw new Error('Audience must be synced to your email provider first')
+    const unsyncedLists = lists.filter((l: any) => !l.externalId)
+    if (unsyncedLists.length > 0) {
+      throw new Error('All campaign lists must be imported from Klaviyo first')
     }
 
     if (!email.subject) {
@@ -95,8 +98,27 @@ export const handler = documentEventHandler(async ({context, event}) => {
     const templateId = templateResult.data.id
     await client.patch(docId).set({externalTemplateId: templateId}).commit()
 
-    // Build audience config — target segment if audience is set, otherwise target list
-    const audienceId = email.audience?.externalId ?? list.externalId
+    // Resolve effective segments — email overrides campaign
+    const effectiveIncluded = email.includedSegments?.length
+      ? email.includedSegments
+      : (email.campaign?.includedSegments ?? [])
+    const effectiveExcluded = email.excludedSegments?.length
+      ? email.excludedSegments
+      : (email.campaign?.excludedSegments ?? [])
+
+    // Validate all segments have Klaviyo IDs
+    const allSegments = [...effectiveIncluded, ...effectiveExcluded]
+    const unsyncedSegments = allSegments.filter((s: any) => !s.externalId)
+    if (unsyncedSegments.length > 0) {
+      const names = unsyncedSegments.map((s: any) => s.name).join(', ')
+      throw new Error(`These segments must be imported from Klaviyo first: ${names}`)
+    }
+
+    // Build Klaviyo audience payload
+    const listIds = lists.map((l: any) => l.externalId)
+    const includedSegmentIds = effectiveIncluded.map((s: any) => s.externalId)
+    const includedIds = [...listIds, ...includedSegmentIds]
+    const excludedIds = effectiveExcluded.map((s: any) => s.externalId).filter(Boolean)
 
     // Create Klaviyo campaign with inline message definition
     const campaignResult = await klaviyoFetch('/campaigns/', {
@@ -106,7 +128,10 @@ export const handler = documentEventHandler(async ({context, event}) => {
           type: 'campaign',
           attributes: {
             name: email.title ?? 'Untitled Campaign',
-            audiences: {included: [audienceId]},
+            audiences: {
+              included: includedIds,
+              ...(excludedIds.length > 0 ? {excluded: excludedIds} : {}),
+            },
             'campaign-messages': {
               data: [
                 {

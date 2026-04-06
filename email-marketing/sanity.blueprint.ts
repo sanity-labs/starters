@@ -3,21 +3,12 @@ import {defineBlueprint, defineDocumentFunction} from '@sanity/blueprints'
 export default defineBlueprint({
   resources: [
     defineDocumentFunction({
-      name: 'sync-list',
-      src: 'functions/dist/sync-list',
+      name: 'import-klaviyo',
+      src: 'functions/dist/import-klaviyo',
       event: {
         on: ['update'],
-        filter: '_type == "list" && syncState == "requested"',
-        projection: '{_id, name, syncState}',
-      },
-    }),
-    defineDocumentFunction({
-      name: 'sync-audience',
-      src: 'functions/dist/sync-audience',
-      event: {
-        on: ['update'],
-        filter: '_type == "audience" && syncState == "requested"',
-        projection: '{_id, name, syncState}',
+        filter: '_type == "klaviyoImport" && importState == "requested"',
+        projection: '{_id, importState}',
       },
     }),
     defineDocumentFunction({

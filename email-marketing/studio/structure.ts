@@ -1,5 +1,5 @@
 import type {StructureResolver} from 'sanity/structure'
-import {RocketIcon, BasketIcon, UsersIcon, FilterIcon, UserIcon, CogIcon} from '@sanity/icons'
+import {RocketIcon, BasketIcon, UsersIcon, FilterIcon, SyncIcon, CogIcon} from '@sanity/icons'
 
 export const structure: StructureResolver = (S) =>
   S.list()
@@ -40,20 +40,24 @@ export const structure: StructureResolver = (S) =>
         .child(S.documentTypeList('product').title('Products')),
       S.divider(),
       S.listItem()
-        .title('Subscribers')
-        .icon(UserIcon)
+        .title('Klaviyo')
+        .icon(SyncIcon)
         .child(
           S.list()
-            .title('Subscribers')
+            .title('Klaviyo')
             .items([
+              S.listItem()
+                .title('Import')
+                .icon(SyncIcon)
+                .child(S.document().documentId('klaviyoImport').schemaType('klaviyoImport')),
               S.listItem()
                 .title('Lists')
                 .icon(UsersIcon)
-                .child(S.documentTypeList('list').title('Lists')),
+                .child(S.documentTypeList('list').title('Lists').menuItems([])),
               S.listItem()
-                .title('Audiences')
+                .title('Segments')
                 .icon(FilterIcon)
-                .child(S.documentTypeList('audience').title('Audiences')),
+                .child(S.documentTypeList('segment').title('Segments').menuItems([])),
             ]),
         ),
       S.divider(),

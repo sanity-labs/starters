@@ -65,28 +65,52 @@ export default async function CampaignPage(props: Props) {
           <StatusBadge status={campaign.status} />
         </div>
         {campaign.description && <p className="text-gray-500 mt-2">{campaign.description}</p>}
-        {campaign.list?.name && (
+        {campaign.lists && campaign.lists.length > 0 && (
           <p className="text-sm text-gray-400 mt-3">
-            List: <span className="text-gray-600">{campaign.list.name}</span>
+            Lists:{' '}
+            <span className="text-gray-600">
+              {campaign.lists.map((l: {name: string}) => l.name).join(', ')}
+            </span>
           </p>
         )}
       </div>
 
-      {campaign.audiences && campaign.audiences.length > 0 && (
+      {(campaign.includedSegments?.length > 0 || campaign.excludedSegments?.length > 0) && (
         <section className="mb-8">
-          <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">
-            Audiences
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {campaign.audiences.map((audience: {_id: string; name: string}) => (
-              <span
-                key={audience._id}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-indigo-50 text-indigo-700"
-              >
-                {audience.name}
-              </span>
-            ))}
-          </div>
+          {campaign.includedSegments?.length > 0 && (
+            <>
+              <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">
+                Included Segments
+              </h2>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {campaign.includedSegments.map((seg: {_id: string; name: string}) => (
+                  <span
+                    key={seg._id}
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-indigo-50 text-indigo-700"
+                  >
+                    {seg.name}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
+          {campaign.excludedSegments?.length > 0 && (
+            <>
+              <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">
+                Excluded Segments
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {campaign.excludedSegments.map((seg: {_id: string; name: string}) => (
+                  <span
+                    key={seg._id}
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-red-50 text-red-700"
+                  >
+                    {seg.name}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
         </section>
       )}
 
@@ -102,7 +126,7 @@ export default async function CampaignPage(props: Props) {
                 title: string
                 subject?: string
                 status?: string | null
-                audience?: {name: string}
+                includedSegments?: Array<{_id: string; name: string}>
               }) => (
                 <Link
                   key={email._id}
@@ -118,9 +142,10 @@ export default async function CampaignPage(props: Props) {
                           Subject: {email.subject}
                         </p>
                       )}
-                      {email.audience?.name && (
+                      {email.includedSegments && email.includedSegments.length > 0 && (
                         <p className="text-xs text-gray-400 mt-1">
-                          Audience: {email.audience.name}
+                          Segments:{' '}
+                          {email.includedSegments.map((s: {name: string}) => s.name).join(', ')}
                         </p>
                       )}
                     </div>

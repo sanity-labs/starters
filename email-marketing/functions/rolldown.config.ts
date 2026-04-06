@@ -2,20 +2,9 @@ import {defineConfig} from 'rolldown'
 
 export default [
   defineConfig({
-    input: {index: 'sync-list/index.ts'},
+    input: {index: 'import-klaviyo/index.ts'},
     output: {
-      dir: 'dist/sync-list',
-      cleanDir: true,
-      codeSplitting: false,
-      minify: true,
-      comments: false,
-    },
-    platform: 'node',
-  }),
-  defineConfig({
-    input: {index: 'sync-audience/index.ts'},
-    output: {
-      dir: 'dist/sync-audience',
+      dir: 'dist/import-klaviyo',
       cleanDir: true,
       codeSplitting: false,
       minify: true,

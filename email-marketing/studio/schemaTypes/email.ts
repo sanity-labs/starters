@@ -147,6 +147,15 @@ export const email = defineType({
   title: 'Email',
   type: 'document',
   icon: EnvelopeIcon,
+  fieldsets: [
+    {
+      name: 'targeting',
+      title: 'Targeting',
+      description:
+        "By default, this email uses the campaign's segment targeting. Add segments here to override for this email only.",
+      options: {collapsible: true, collapsed: true},
+    },
+  ],
   fields: [
     defineField({
       name: 'prompt',
@@ -214,10 +223,22 @@ export const email = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
-      name: 'audience',
-      title: 'Audience',
-      type: 'reference',
-      to: [{type: 'audience'}],
+      name: 'includedSegments',
+      title: 'Included Segments',
+      type: 'array',
+      fieldset: 'targeting',
+      description:
+        "Override the campaign's included segments for this email only. Leave empty to inherit from campaign.",
+      of: [{type: 'reference', to: [{type: 'segment'}]}],
+    }),
+    defineField({
+      name: 'excludedSegments',
+      title: 'Excluded Segments',
+      type: 'array',
+      fieldset: 'targeting',
+      description:
+        "Override the campaign's excluded segments for this email only. Leave empty to inherit from campaign.",
+      of: [{type: 'reference', to: [{type: 'segment'}]}],
     }),
     defineField({
       name: 'subject',

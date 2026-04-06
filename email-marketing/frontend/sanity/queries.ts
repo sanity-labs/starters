@@ -7,7 +7,7 @@ export const allCampaignsQuery = defineQuery(`
     "slug": slug.current,
     status,
     description,
-    list->{name},
+    lists[]->{name},
     "emailCount": count(*[_type == "emailMessage" && campaign._ref == ^._id]),
   }
 `)
@@ -24,15 +24,17 @@ export const campaignBySlugQuery = defineQuery(`
     "slug": slug.current,
     status,
     description,
-    list->{name, description},
-    audiences[]->{_id, name, description},
+    lists[]->{name, description},
+    includedSegments[]->{_id, name, description},
+    excludedSegments[]->{_id, name, description},
     "emails": *[_type == "emailMessage" && campaign._ref == ^._id] | order(_createdAt asc) {
       _id,
       title,
       subject,
       preheader,
       status,
-      audience->{_id, name},
+      includedSegments[]->{_id, name},
+      excludedSegments[]->{_id, name},
     },
   }
 `)
@@ -44,8 +46,9 @@ export const emailByIdQuery = defineQuery(`
     subject,
     preheader,
     status,
-    campaign->{_id, title, "slug": slug.current, list->{name}},
-    audience->{name, behaviorNotes},
+    campaign->{_id, title, "slug": slug.current, lists[]->{name}},
+    includedSegments[]->{name, behaviorNotes},
+    excludedSegments[]->{name},
     sendState,
     lastSentAt,
     body[] {

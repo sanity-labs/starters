@@ -1,91 +1,52 @@
 import {defineField, defineType} from 'sanity'
 import {FilterIcon} from '@sanity/icons'
-import {ErrorBanner} from '../components/ErrorBanner'
+import {KlaviyoDocumentDescription} from '../components/KlaviyoDocumentDescription'
 
-export const audience = defineType({
-  name: 'audience',
-  title: 'Audience',
+export const segment = defineType({
+  name: 'segment',
+  title: 'Segment',
   type: 'document',
   icon: FilterIcon,
   fields: [
     defineField({
+      name: 'klaviyoDescription',
+      title: 'Klaviyo',
+      type: 'string',
+      components: {input: KlaviyoDocumentDescription},
+      readOnly: true,
+    }),
+    defineField({
       name: 'name',
       title: 'Name',
       type: 'string',
+      readOnly: true,
       validation: (rule) => rule.required(),
     }),
     defineField({
-      name: 'slug',
-      title: 'Slug',
-      type: 'slug',
-      options: {source: 'name', maxLength: 96},
+      name: 'externalId',
+      title: 'Klaviyo ID',
+      type: 'string',
+      readOnly: true,
       hidden: true,
-    }),
-    defineField({
-      name: 'list',
-      title: 'Subscriber List',
-      type: 'reference',
-      to: [{type: 'list'}],
-      validation: (rule) => rule.required(),
     }),
     defineField({
       name: 'description',
       title: 'Description',
       type: 'text',
       rows: 3,
+      description:
+        'Describe this segment — who they are and what defines them. Helps editors understand the targeting criteria.',
     }),
     defineField({
       name: 'behaviorNotes',
       title: 'Behavior Notes',
       type: 'text',
       rows: 3,
-      description: 'Copy tone guidance for AI generation',
-    }),
-    defineField({
-      name: 'externalId',
-      title: 'External ID',
-      type: 'string',
-      description: 'ID from your email service provider',
-      readOnly: true,
-      hidden: true,
-    }),
-    defineField({
-      name: 'syncState',
-      title: 'Sync State',
-      type: 'string',
-      options: {
-        list: [
-          {title: 'Idle', value: 'idle'},
-          {title: 'Requested', value: 'requested'},
-          {title: 'Syncing', value: 'syncing'},
-          {title: 'Synced', value: 'synced'},
-          {title: 'Error', value: 'error'},
-        ],
-      },
-      readOnly: true,
-      hidden: true,
-      initialValue: 'idle',
-    }),
-    defineField({
-      name: 'lastSyncedAt',
-      title: 'Last Synced At',
-      type: 'datetime',
-      readOnly: true,
-      hidden: true,
-    }),
-    defineField({
-      name: 'syncErrorMessage',
-      title: 'Sync Error Message',
-      type: 'string',
-      readOnly: true,
-      components: {input: ErrorBanner},
+      description:
+        'Tone and style guidance for AI-generated email content targeting this segment. For example: "Use casual, friendly tone — these are loyal repeat buyers."',
     }),
   ],
   preview: {
-    select: {title: 'name', list: 'list.name'},
-    prepare: ({title, list}) => ({
-      title: title ?? 'Untitled Audience',
-      subtitle: list,
-    }),
+    select: {title: 'name'},
   },
 })
