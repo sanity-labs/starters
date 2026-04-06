@@ -20,6 +20,7 @@ import {
   DEFAULT_STUDIO_CLIENT_OPTIONS,
   getDraftId,
   getPublishedId,
+  getValueAtPath,
   getVersionId,
   useClient,
   useCurrentUser,
@@ -208,18 +209,8 @@ export function useFieldTranslateActions(
         _type: doc._type as string,
       })
 
-      // Navigate to the field
-      let current: unknown = doc
-      for (const segment of field.path) {
-        if (current && typeof current === 'object' && !Array.isArray(current)) {
-          current = (current as Record<string, unknown>)[segment]
-        } else {
-          current = undefined
-          break
-        }
-      }
-
-      const entries = (Array.isArray(current) ? current : []) as InternationalizedArrayItem[]
+      const fieldValue = getValueAtPath(doc, field.path)
+      const entries = (Array.isArray(fieldValue) ? fieldValue : []) as InternationalizedArrayItem[]
       const sourceEntry = entries.find(
         (e) => e.language === sourceLocaleId && e.value != null && e.value !== '',
       )
@@ -245,10 +236,10 @@ export function useFieldTranslateActions(
       )
 
       // Extract the translated value from the returned document.
-      let translatedField: unknown = translated
-      for (const segment of field.path) {
-        translatedField = (translatedField as Record<string, unknown> | undefined)?.[segment]
-      }
+      const translatedField = getValueAtPath(
+        (translated ?? {}) as Record<string, unknown>,
+        field.path,
+      )
       const translatedEntries = Array.isArray(translatedField) ? translatedField : []
       const translatedEntry = translatedEntries.find(
         (e: Record<string, unknown>) => e._key === sourceEntry._key,

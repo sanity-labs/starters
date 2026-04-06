@@ -62,6 +62,7 @@ export function useTranslate(): {translate: TranslateFn} {
 
       return agentClient.agent.action.translate({
         ...params,
+        conditionalPaths: {defaultHidden: false},
         ...(context.styleGuide && {styleGuide: context.styleGuide}),
         ...(context.protectedPhrases.length > 0 && {
           protectedPhrases: context.protectedPhrases,
