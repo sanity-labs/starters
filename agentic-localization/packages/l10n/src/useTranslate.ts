@@ -39,6 +39,36 @@ export interface TranslateFn {
   ): Promise<T | null>
 }
 
+// ---------------------------------------------------------------------------
+// Batch translate types (fieldLanguageMap)
+// ---------------------------------------------------------------------------
+
+export interface FieldLanguageMapEntry {
+  inputLanguageId: string
+  inputPath: string
+  outputs: Array<{id: string; outputPath: string}>
+}
+
+/**
+ * Params for a batch field translation via `fieldLanguageMap`.
+ * Omits `target` (defaults to document root) and `fromLanguage`
+ * (each entry carries its own `inputLanguageId`).
+ */
+export interface TranslateBatchParams {
+  schemaId: string
+  documentId: string
+  toLanguage: {id: string; title?: string}
+  noWrite: true
+  fieldLanguageMap: FieldLanguageMapEntry[]
+}
+
+export interface TranslateBatchFn {
+  <T extends Record<string, unknown> = Record<string, unknown>>(
+    params: TranslateBatchParams,
+    sourceDocument?: Record<string, unknown>,
+  ): Promise<T | null>
+}
+
 /**
  * Hook providing a context-aware `translate()` function.
  *
@@ -52,7 +82,7 @@ export interface TranslateFn {
  * //    ^? {bio: string} | null
  * ```
  */
-export function useTranslate(): {translate: TranslateFn} {
+export function useTranslate(): {translate: TranslateFn; translateBatch: TranslateBatchFn} {
   const agentClient = useClient({...DEFAULT_STUDIO_CLIENT_OPTIONS, apiVersion: AGENT_API_VERSION})
   const {getContextForLocale} = useTranslationContext()
 
@@ -72,5 +102,35 @@ export function useTranslate(): {translate: TranslateFn} {
     [agentClient, getContextForLocale],
   ) as TranslateFn
 
-  return {translate}
+  /**
+   * Batch translate multiple fields in a single API call via `fieldLanguageMap`.
+   *
+   * Uses the raw HTTP endpoint because `@sanity/client` types don't expose
+   * `fieldLanguageMap` on `TranslateDocument` yet. The backend accepts it as
+   * a sibling parameter alongside `styleGuide` and `protectedPhrases`.
+   *
+   * 1 API call = 1 AI credit regardless of the number of fields.
+   */
+  const translateBatch: TranslateBatchFn = useCallback(
+    async (params: TranslateBatchParams, sourceDocument?: Record<string, unknown>) => {
+      const context = await getContextForLocale(params.toLanguage.id, sourceDocument)
+      const {dataset} = agentClient.config()
+
+      return agentClient.request<Record<string, unknown>>({
+        method: 'POST',
+        uri: `/agent/action/translate/${dataset}`,
+        body: {
+          ...params,
+          conditionalPaths: {defaultHidden: false},
+          ...(context.styleGuide && {styleGuide: context.styleGuide}),
+          ...(context.protectedPhrases.length > 0 && {
+            protectedPhrases: context.protectedPhrases,
+          }),
+        },
+      })
+    },
+    [agentClient, getContextForLocale],
+  ) as TranslateBatchFn
+
+  return {translate, translateBatch}
 }

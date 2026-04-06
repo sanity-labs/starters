@@ -30,7 +30,7 @@ import {
 import {randomKey} from '@sanity/util/content'
 import type {InternationalizedArrayItem} from 'sanity-plugin-internationalized-array'
 
-import {useTranslate} from '../useTranslate'
+import {useTranslate, type FieldLanguageMapEntry} from '../useTranslate'
 import type {InternationalizedFieldDescriptor} from '../fieldActions/useInternationalizedFields'
 import type {FieldCellState} from '../core/types'
 import {getFieldTranslationMetadataId} from '../core/fieldMetadataIds'
@@ -133,7 +133,7 @@ export function useFieldTranslateActions(
   cellStates?: Record<string, Record<string, FieldCellState>>,
 ): FieldTranslateActionsResult {
   const client = useClient(DEFAULT_STUDIO_CLIENT_OPTIONS)
-  const {translate} = useTranslate()
+  const {translate, translateBatch} = useTranslate()
   const {perspectiveStack, selectedReleaseId} = usePerspective()
   const currentUser = useCurrentUser()
 
@@ -287,6 +287,157 @@ export function useFieldTranslateActions(
       await tx.commit()
     },
     [client, translate, schemaId, perspectiveStack, selectedReleaseId, metadataId, documentType],
+  )
+
+  // ---------------------------------------------------------------------------
+  // Batch translation — 1 API call per locale for all fields
+  // ---------------------------------------------------------------------------
+
+  const processBatch = useCallback(
+    async (
+      locale: Language,
+      cells: Array<{field: InternationalizedFieldDescriptor; localeId: string}>,
+    ): Promise<void> => {
+      const snap = snapshotRef.current
+      const {documentId} = snap
+
+      const actionDocumentId = selectedReleaseId
+        ? getVersionId(documentId, selectedReleaseId)
+        : getDraftId(documentId)
+
+      // Fetch document once for the entire batch
+      const doc = await client.fetch<Record<string, unknown> | null>(
+        `*[_id == $id][0]`,
+        {id: documentId},
+        {perspective: perspectiveStack},
+      )
+      if (!doc) throw new Error('Document not found')
+
+      await client.createIfNotExists({
+        ...doc,
+        _id: actionDocumentId,
+        _type: doc._type as string,
+      })
+
+      // Build fieldLanguageMap + collect source data per cell
+      const fieldLanguageMap: FieldLanguageMapEntry[] = []
+      const cellSourceData = new Map<
+        string,
+        {field: InternationalizedFieldDescriptor; sourceEntry: InternationalizedArrayItem; sourceSnapshot: string}
+      >()
+
+      for (const {field} of cells) {
+        const sourceLocaleId = snap.sourceLanguages[field.displayPath]
+        if (!sourceLocaleId) continue
+
+        const fieldValue = getValueAtPath(doc, field.path)
+        const entries = (Array.isArray(fieldValue) ? fieldValue : []) as InternationalizedArrayItem[]
+        const sourceEntry = entries.find(
+          (e) => e.language === sourceLocaleId && e.value != null && e.value !== '',
+        )
+        if (!sourceEntry?.value || !sourceEntry._key) continue
+
+        const fieldName = field.path.join('.')
+        fieldLanguageMap.push({
+          inputLanguageId: sourceLocaleId,
+          inputPath: `${fieldName}[_key=="${sourceEntry._key}"].value`,
+          outputs: [{id: locale.id, outputPath: `${fieldName}[_key=="${sourceEntry._key}"].value`}],
+        })
+
+        cellSourceData.set(field.displayPath, {
+          field,
+          sourceEntry,
+          sourceSnapshot: JSON.stringify(sourceEntry.value),
+        })
+      }
+
+      if (fieldLanguageMap.length === 0) return
+
+      // Single API call — 1 credit for all fields in this locale
+      const translated = await translateBatch(
+        {
+          schemaId,
+          documentId: actionDocumentId,
+          toLanguage: {id: locale.id, title: locale.title},
+          noWrite: true,
+          fieldLanguageMap,
+        },
+        doc,
+      )
+
+      const responseDoc = (translated ?? {}) as Record<string, unknown>
+
+      // Extract translated values and apply patches per field
+      const publishedId = getPublishedId(documentId)
+
+      for (const [displayPath, {field, sourceEntry, sourceSnapshot}] of cellSourceData) {
+        const key = cellKey(displayPath, locale.id)
+
+        try {
+          const translatedField = getValueAtPath(responseDoc, field.path)
+          const translatedEntries = Array.isArray(translatedField) ? translatedField : []
+          const translatedEntry = translatedEntries.find(
+            (e: Record<string, unknown>) => e._key === sourceEntry._key,
+          )
+
+          if (!translatedEntry?.value) {
+            dispatch({type: 'fail', key, error: `No translated value for "${displayPath}"`})
+            continue
+          }
+
+          const fieldName = field.path.join('.')
+          const itemType = `${field.typeName}Value`
+          const entryKey = randomKey(12)
+
+          // Patch document with translated value
+          await client
+            .patch(actionDocumentId)
+            .setIfMissing({[fieldName]: []})
+            .unset([`${fieldName}[language=="${locale.id}"]`])
+            .append(fieldName, [
+              {_key: entryKey, _type: itemType, language: locale.id, value: translatedEntry.value},
+            ])
+            .commit()
+
+          // Patch workflow metadata
+          const tx = client.transaction()
+          tx.createIfNotExists({
+            _id: metadataId,
+            _type: FIELD_METADATA_TYPE,
+            documentRef: {_ref: publishedId, _type: 'reference'},
+            documentType,
+            workflowStates: [],
+          })
+          tx.patch(metadataId, (p) =>
+            p
+              .setIfMissing({workflowStates: []})
+              .unset([`workflowStates[_key=="${workflowStateKey(displayPath, locale.id)}"]`])
+              .append('workflowStates', [
+                {
+                  _key: workflowStateKey(displayPath, locale.id),
+                  field: displayPath,
+                  language: locale.id,
+                  status: 'needsReview',
+                  source: 'ai',
+                  updatedAt: new Date().toISOString(),
+                  sourceSnapshot,
+                },
+              ]),
+          )
+          await tx.commit()
+
+          dispatch({type: 'complete', key})
+        } catch (err) {
+          console.error(`${LOG_PREFIX} [batch:${displayPath}:${locale.id}] Failed:`, err)
+          dispatch({
+            type: 'fail',
+            key,
+            error: err instanceof Error ? err.message : `Failed to translate ${displayPath}`,
+          })
+        }
+      }
+    },
+    [client, translateBatch, schemaId, perspectiveStack, selectedReleaseId, metadataId, documentType],
   )
 
   // Use ref for in-flight guard to avoid re-creating translateCell on every state change.
@@ -498,20 +649,91 @@ export function useFieldTranslateActions(
 
   const translateLocale = useCallback(
     (localeId: string) => {
-      for (const cell of emptyCells) {
-        if (cell.localeId === localeId) {
-          translateCell(cell.fieldPath, cell.localeId)
-        }
+      const locale = snapshotRef.current.locales.find((l) => l.id === localeId)
+      if (!locale) return
+
+      const localeCells = emptyCells.filter((c) => c.localeId === localeId)
+      if (localeCells.length === 0) return
+
+      // Resolve field descriptors for the batch
+      const batchCells = localeCells
+        .map((c) => {
+          const field = snapshotRef.current.fields.find((f) => f.displayPath === c.fieldPath)
+          return field ? {field, localeId: c.localeId} : null
+        })
+        .filter((c): c is {field: InternationalizedFieldDescriptor; localeId: string} => c !== null)
+
+      // Mark all cells as translating immediately for per-field progress
+      for (const cell of batchCells) {
+        dispatch({type: 'start', key: cellKey(cell.field.displayPath, cell.localeId)})
       }
+
+      startTransition(async () => {
+        try {
+          await processBatch(locale, batchCells)
+        } catch (err) {
+          console.error(`${LOG_PREFIX} [batch:${localeId}] Failed:`, err)
+          for (const cell of batchCells) {
+            const key = cellKey(cell.field.displayPath, cell.localeId)
+            dispatch({
+              type: 'fail',
+              key,
+              error: err instanceof Error ? err.message : `Batch translate failed`,
+            })
+          }
+        }
+      })
     },
-    [emptyCells, translateCell],
+    [emptyCells, processBatch, startTransition],
   )
 
   const translateAllEmpty = useCallback(() => {
+    // Group cells by locale for sequential batch calls (1 credit per locale)
+    const cellsByLocale = new Map<string, Array<{fieldPath: string; localeId: string}>>()
     for (const cell of emptyCells) {
-      translateCell(cell.fieldPath, cell.localeId)
+      const existing = cellsByLocale.get(cell.localeId) ?? []
+      existing.push(cell)
+      cellsByLocale.set(cell.localeId, existing)
     }
-  }, [emptyCells, translateCell])
+
+    // Sequential batch per locale — avoids rate limits
+    startTransition(async () => {
+      for (const [localeId, localeCells] of cellsByLocale) {
+        const locale = snapshotRef.current.locales.find((l) => l.id === localeId)
+        if (!locale) continue
+
+        const batchCells = localeCells
+          .map((c) => {
+            const field = snapshotRef.current.fields.find((f) => f.displayPath === c.fieldPath)
+            return field ? {field, localeId: c.localeId} : null
+          })
+          .filter(
+            (c): c is {field: InternationalizedFieldDescriptor; localeId: string} => c !== null,
+          )
+
+        if (batchCells.length === 0) continue
+
+        // Mark all cells for this locale as translating
+        for (const cell of batchCells) {
+          dispatch({type: 'start', key: cellKey(cell.field.displayPath, cell.localeId)})
+        }
+
+        try {
+          await processBatch(locale, batchCells)
+        } catch (err) {
+          console.error(`${LOG_PREFIX} [batch:${localeId}] Failed:`, err)
+          for (const cell of batchCells) {
+            const key = cellKey(cell.field.displayPath, cell.localeId)
+            dispatch({
+              type: 'fail',
+              key,
+              error: err instanceof Error ? err.message : `Batch translate failed`,
+            })
+          }
+        }
+      }
+    })
+  }, [emptyCells, processBatch, startTransition])
 
   return {
     translateCell,
