@@ -15,10 +15,8 @@ const EMAIL_QUERY = groq`
     sendState,
     externalTemplateId,
     externalCampaignId,
-    "includedSegments": includedSegments[]->{_id, name, externalId},
-    "excludedSegments": excludedSegments[]->{_id, name, externalId},
-    "campaign": campaign->{
-      _id, title, slug,
+    "campaigns": *[_type == "campaign" && email._ref == ^._id]{
+      _id, title,
       "lists": lists[]->{_id, name, externalId},
       "includedSegments": includedSegments[]->{_id, name, externalId},
       "excludedSegments": excludedSegments[]->{_id, name, externalId}
@@ -61,13 +59,11 @@ export const handler = documentEventHandler(async ({context, event}) => {
       )
     }
 
-    const lists = email.campaign?.lists ?? []
-    if (lists.length === 0) {
-      throw new Error('Campaign must have at least one subscriber list')
-    }
-    const unsyncedLists = lists.filter((l: any) => !l.externalId)
-    if (unsyncedLists.length > 0) {
-      throw new Error('All campaign lists must be imported from Klaviyo first')
+    const campaigns = email.campaigns ?? []
+    if (campaigns.length === 0) {
+      throw new Error(
+        'No campaigns reference this email. Create a campaign and assign this email first.',
+      )
     }
 
     if (!email.subject) {
@@ -98,98 +94,117 @@ export const handler = documentEventHandler(async ({context, event}) => {
     const templateId = templateResult.data.id
     await client.patch(docId).set({externalTemplateId: templateId}).commit()
 
-    // Resolve effective segments — email overrides campaign
-    const effectiveIncluded = email.includedSegments?.length
-      ? email.includedSegments
-      : (email.campaign?.includedSegments ?? [])
-    const effectiveExcluded = email.excludedSegments?.length
-      ? email.excludedSegments
-      : (email.campaign?.excludedSegments ?? [])
+    // Send to each campaign's audience
+    for (const campaign of campaigns) {
+      const lists = campaign.lists ?? []
+      if (lists.length === 0) {
+        throw new Error(`Campaign "${campaign.title}" must have at least one subscriber list`)
+      }
+      const unsyncedLists = lists.filter((l: any) => !l.externalId)
+      if (unsyncedLists.length > 0) {
+        throw new Error(
+          `Campaign "${campaign.title}": all lists must be imported from Klaviyo first`,
+        )
+      }
 
-    // Validate all segments have Klaviyo IDs
-    const allSegments = [...effectiveIncluded, ...effectiveExcluded]
-    const unsyncedSegments = allSegments.filter((s: any) => !s.externalId)
-    if (unsyncedSegments.length > 0) {
-      const names = unsyncedSegments.map((s: any) => s.name).join(', ')
-      throw new Error(`These segments must be imported from Klaviyo first: ${names}`)
-    }
+      const includedSegments = campaign.includedSegments ?? []
+      const excludedSegments = campaign.excludedSegments ?? []
 
-    // Build Klaviyo audience payload
-    const listIds = lists.map((l: any) => l.externalId)
-    const includedSegmentIds = effectiveIncluded.map((s: any) => s.externalId)
-    const includedIds = [...listIds, ...includedSegmentIds]
-    const excludedIds = effectiveExcluded.map((s: any) => s.externalId).filter(Boolean)
+      const allSegments = [...includedSegments, ...excludedSegments]
+      const unsyncedSegments = allSegments.filter((s: any) => !s.externalId)
+      if (unsyncedSegments.length > 0) {
+        const names = unsyncedSegments.map((s: any) => s.name).join(', ')
+        throw new Error(
+          `Campaign "${campaign.title}": these segments must be imported from Klaviyo first: ${names}`,
+        )
+      }
 
-    // Create Klaviyo campaign with inline message definition
-    const campaignResult = await klaviyoFetch('/campaigns/', {
-      method: 'POST',
-      body: {
-        data: {
-          type: 'campaign',
-          attributes: {
-            name: email.title ?? 'Untitled Campaign',
-            audiences: {
-              included: includedIds,
-              ...(excludedIds.length > 0 ? {excluded: excludedIds} : {}),
-            },
-            'campaign-messages': {
-              data: [
-                {
-                  type: 'campaign-message',
-                  attributes: {
-                    definition: {
-                      channel: 'email',
-                      content: {
-                        subject: email.subject,
-                        preview_text: email.preheader ?? '',
-                        from_email: settings.fromEmail,
-                        from_label: settings.fromLabel,
-                        reply_to_email: settings.replyToEmail ?? settings.fromEmail,
+      // Build Klaviyo audience payload
+      const listIds = lists.map((l: any) => l.externalId)
+      const includedSegmentIds = includedSegments.map((s: any) => s.externalId)
+      const includedIds = [...listIds, ...includedSegmentIds]
+      const excludedIds = excludedSegments.map((s: any) => s.externalId).filter(Boolean)
+
+      // Create Klaviyo campaign with inline message definition
+      const campaignResult = await klaviyoFetch('/campaigns/', {
+        method: 'POST',
+        body: {
+          data: {
+            type: 'campaign',
+            attributes: {
+              name: `${campaign.title} — ${email.title ?? 'Email'}`,
+              audiences: {
+                included: includedIds,
+                ...(excludedIds.length > 0 ? {excluded: excludedIds} : {}),
+              },
+              'campaign-messages': {
+                data: [
+                  {
+                    type: 'campaign-message',
+                    attributes: {
+                      definition: {
+                        channel: 'email',
+                        content: {
+                          subject: email.subject,
+                          preview_text: email.preheader ?? '',
+                          from_email: settings.fromEmail,
+                          from_label: settings.fromLabel,
+                          reply_to_email: settings.replyToEmail ?? settings.fromEmail,
+                        },
+                        label: email.title ?? 'Email',
                       },
-                      label: email.title ?? 'Email',
                     },
                   },
-                },
-              ],
+                ],
+              },
+              send_strategy: {method: 'immediate'},
             },
-            send_strategy: {method: 'immediate'},
           },
         },
-      },
-    })
-    const campaignId = campaignResult.data.id
-    await client.patch(docId).set({externalCampaignId: campaignId}).commit()
+      })
+      const klaviyoCampaignId = campaignResult.data.id
 
-    // Get the message ID from the campaign response and assign the template
-    const messageId = campaignResult.data.relationships?.['campaign-messages']?.data?.[0]?.id
-    if (!messageId) {
-      throw new Error('No campaign message ID returned from Klaviyo')
+      // Get the message ID from the campaign response and assign the template
+      const messageId = campaignResult.data.relationships?.['campaign-messages']?.data?.[0]?.id
+      if (!messageId) {
+        throw new Error(
+          `Campaign "${campaign.title}": no campaign message ID returned from Klaviyo`,
+        )
+      }
+
+      // Assign template to campaign message
+      await klaviyoFetch('/campaign-message-assign-template', {
+        method: 'POST',
+        body: {
+          data: {
+            type: 'campaign-message',
+            id: messageId,
+            relationships: {
+              template: {data: {type: 'template', id: templateId}},
+            },
+          },
+        },
+      })
+
+      // Trigger the send
+      await klaviyoFetch('/campaign-send-jobs/', {
+        method: 'POST',
+        body: {
+          data: {
+            type: 'campaign-send-job',
+            id: klaviyoCampaignId,
+          },
+        },
+      })
+
+      console.log(`[send-email] Sent "${email.title}" via campaign "${campaign.title}"`)
     }
 
-    // Assign template to campaign message
-    await klaviyoFetch('/campaign-message-assign-template', {
-      method: 'POST',
-      body: {
-        data: {
-          type: 'campaign-message',
-          id: messageId,
-          relationships: {
-            template: {data: {type: 'template', id: templateId}},
-          },
-        },
-      },
-    })
-
-    // Trigger the send
-    await klaviyoFetch('/campaign-send-jobs/', {
-      method: 'POST',
-      body: {
-        data: {
-          type: 'campaign-send-job',
-          id: campaignId,
-        },
-      },
-    })
+    // Store the last campaign ID (for reference)
+    await client
+      .patch(docId)
+      .set({externalCampaignId: campaigns[campaigns.length - 1]?._id})
+      .commit()
 
     // Success
     await client
@@ -202,7 +217,9 @@ export const handler = documentEventHandler(async ({context, event}) => {
       })
       .commit()
 
-    console.log(`[send-email] Successfully sent "${email.title}" via Klaviyo`)
+    console.log(
+      `[send-email] Successfully sent "${email.title}" via ${campaigns.length} campaign(s)`,
+    )
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     await client

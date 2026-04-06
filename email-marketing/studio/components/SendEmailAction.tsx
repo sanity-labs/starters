@@ -42,53 +42,58 @@ export function SendEmailAction(props: DocumentActionProps): DocumentActionDescr
       const emailDoc = await client.fetch(
         `*[_id == $id || _id == $draftId][0]{
           subject,
-          "lists": campaign->lists[]->{_id, externalId, name},
-          "includedSegments": includedSegments[]->{_id, externalId, name},
-          "excludedSegments": excludedSegments[]->{_id, externalId, name},
-          "campaignIncluded": campaign->includedSegments[]->{_id, externalId, name},
-          "campaignExcluded": campaign->excludedSegments[]->{_id, externalId, name},
+          "campaigns": *[_type == "campaign" && email._ref == ^._id]{
+            _id,
+            title,
+            "lists": lists[]->{_id, externalId, name},
+            "includedSegments": includedSegments[]->{_id, externalId, name},
+            "excludedSegments": excludedSegments[]->{_id, externalId, name},
+          },
         }`,
         {id, draftId: `drafts.${id}`},
       )
 
-      if (!emailDoc?.lists || emailDoc.lists.length === 0) {
+      if (!emailDoc?.campaigns || emailDoc.campaigns.length === 0) {
         setValidation({
           valid: false,
-          message: 'The campaign has no lists assigned.',
+          message:
+            'No campaigns reference this email. Create a campaign and assign this email first.',
         })
         return
       }
 
-      const listsWithoutExternal = emailDoc.lists.filter(
-        (l: {externalId?: string}) => !l.externalId,
-      )
-      if (listsWithoutExternal.length > 0) {
-        const names = listsWithoutExternal
-          .map((l: {name?: string}) => l.name ?? 'unknown')
-          .join(', ')
-        setValidation({
-          valid: false,
-          message: `The following lists haven't been synced to Klaviyo yet: ${names}.`,
-        })
-        return
-      }
+      for (const campaign of emailDoc.campaigns) {
+        if (!campaign.lists || campaign.lists.length === 0) {
+          setValidation({
+            valid: false,
+            message: `Campaign "${campaign.title}" has no lists assigned.`,
+          })
+          return
+        }
 
-      const effectiveIncluded = emailDoc.includedSegments?.length
-        ? emailDoc.includedSegments
-        : (emailDoc.campaignIncluded ?? [])
-      const effectiveExcluded = emailDoc.excludedSegments?.length
-        ? emailDoc.excludedSegments
-        : (emailDoc.campaignExcluded ?? [])
+        const unsyncedLists = campaign.lists.filter((l: {externalId?: string}) => !l.externalId)
+        if (unsyncedLists.length > 0) {
+          const names = unsyncedLists.map((l: {name?: string}) => l.name ?? 'unknown').join(', ')
+          setValidation({
+            valid: false,
+            message: `Campaign "${campaign.title}" has lists not synced to Klaviyo: ${names}.`,
+          })
+          return
+        }
 
-      const allSegments = [...effectiveIncluded, ...effectiveExcluded]
-      const unsyncedSegments = allSegments.filter((s: {externalId?: string}) => !s.externalId)
-      if (unsyncedSegments.length > 0) {
-        const names = unsyncedSegments.map((s: {name?: string}) => s.name ?? 'unknown').join(', ')
-        setValidation({
-          valid: false,
-          message: `The following segments haven't been synced to Klaviyo yet: ${names}.`,
-        })
-        return
+        const allSegments = [
+          ...(campaign.includedSegments ?? []),
+          ...(campaign.excludedSegments ?? []),
+        ]
+        const unsyncedSegments = allSegments.filter((s: {externalId?: string}) => !s.externalId)
+        if (unsyncedSegments.length > 0) {
+          const names = unsyncedSegments.map((s: {name?: string}) => s.name ?? 'unknown').join(', ')
+          setValidation({
+            valid: false,
+            message: `Campaign "${campaign.title}" has segments not synced to Klaviyo: ${names}.`,
+          })
+          return
+        }
       }
 
       if (!emailDoc.subject) {
@@ -99,12 +104,11 @@ export function SendEmailAction(props: DocumentActionProps): DocumentActionDescr
         return
       }
 
-      const listNames = emailDoc.lists.map((l: {name?: string}) => l.name).join(', ')
-      const segmentNames = effectiveIncluded.length
-        ? effectiveIncluded.map((s: {name?: string}) => s.name).join(', ')
-        : null
-      const target = segmentNames ? `${segmentNames} (lists: ${listNames})` : listNames
-      setValidation({valid: true, message: `Send to ${target}?`})
+      const campaignNames = emailDoc.campaigns.map((c: {title?: string}) => c.title).join(', ')
+      setValidation({
+        valid: true,
+        message: `Send via ${emailDoc.campaigns.length} campaign${emailDoc.campaigns.length === 1 ? '' : 's'}: ${campaignNames}?`,
+      })
     } catch {
       setValidation({
         valid: false,

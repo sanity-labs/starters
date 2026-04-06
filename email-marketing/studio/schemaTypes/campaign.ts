@@ -23,13 +23,6 @@ export const campaign = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
-      name: 'slug',
-      title: 'Slug',
-      type: 'slug',
-      options: {source: 'title', maxLength: 96},
-      hidden: true,
-    }),
-    defineField({
       name: 'description',
       title: 'Description',
       type: 'text',
@@ -48,6 +41,12 @@ export const campaign = defineType({
         layout: 'radio',
       },
       initialValue: 'planning',
+    }),
+    defineField({
+      name: 'email',
+      title: 'Email',
+      type: 'reference',
+      to: [{type: 'emailMessage'}],
     }),
     defineField({
       name: 'lists',
@@ -75,12 +74,6 @@ export const campaign = defineType({
       description:
         'Segments to exclude. Anyone in these segments will be removed from the send, even if they match an included list or segment.',
       of: [{type: 'reference', to: [{type: 'segment'}]}],
-    }),
-    defineField({
-      name: 'emails',
-      title: 'Emails',
-      type: 'array',
-      of: [{type: 'reference', to: [{type: 'emailMessage'}]}],
     }),
   ],
   preview: {

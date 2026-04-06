@@ -1,41 +1,12 @@
 import {defineQuery} from 'next-sanity'
 
-export const allCampaignsQuery = defineQuery(`
-  *[_type == "campaign" && defined(slug.current)] | order(_createdAt desc) {
+export const allEmailsQuery = defineQuery(`
+  *[_type == "emailMessage"] | order(_createdAt desc) {
     _id,
     title,
-    "slug": slug.current,
+    subject,
     status,
-    description,
-    lists[]->{name},
-    "emailCount": count(*[_type == "emailMessage" && campaign._ref == ^._id]),
-  }
-`)
-
-export const campaignSlugsQuery = defineQuery(`
-  *[_type == "campaign" && defined(slug.current)]
-  {"slug": slug.current}
-`)
-
-export const campaignBySlugQuery = defineQuery(`
-  *[_type == "campaign" && slug.current == $slug] [0] {
-    _id,
-    title,
-    "slug": slug.current,
-    status,
-    description,
-    lists[]->{name, description},
-    includedSegments[]->{_id, name, description},
-    excludedSegments[]->{_id, name, description},
-    "emails": *[_type == "emailMessage" && campaign._ref == ^._id] | order(_createdAt asc) {
-      _id,
-      title,
-      subject,
-      preheader,
-      status,
-      includedSegments[]->{_id, name},
-      excludedSegments[]->{_id, name},
-    },
+    "campaigns": *[_type == "campaign" && email._ref == ^._id]{title},
   }
 `)
 
@@ -46,9 +17,13 @@ export const emailByIdQuery = defineQuery(`
     subject,
     preheader,
     status,
-    campaign->{_id, title, "slug": slug.current, lists[]->{name}},
-    includedSegments[]->{name, behaviorNotes},
-    excludedSegments[]->{name},
+    "campaigns": *[_type == "campaign" && email._ref == ^._id]{
+      _id,
+      title,
+      lists[]->{name},
+      includedSegments[]->{_id, name, behaviorNotes},
+      excludedSegments[]->{_id, name},
+    },
     sendState,
     lastSentAt,
     body[] {

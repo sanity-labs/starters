@@ -1,4 +1,5 @@
 import {defineArrayMember, defineField, defineType} from 'sanity'
+import {defineIncomingReferenceDecoration} from 'sanity/structure'
 import {EnvelopeIcon} from '@sanity/icons'
 import {GenerateEmailButton} from '../components/GenerateEmailButton'
 import {ErrorBanner} from '../components/ErrorBanner'
@@ -147,14 +148,15 @@ export const email = defineType({
   title: 'Email',
   type: 'document',
   icon: EnvelopeIcon,
-  fieldsets: [
-    {
-      name: 'targeting',
-      title: 'Targeting',
-      description:
-        "By default, this email uses the campaign's segment targeting. Add segments here to override for this email only.",
-      options: {collapsible: true, collapsed: true},
-    },
+  fieldsets: [],
+  renderMembers: (members) => [
+    ...members,
+    defineIncomingReferenceDecoration({
+      name: 'campaigns',
+      title: 'Campaigns',
+      types: [{type: 'campaign'}],
+      description: 'These are the campaigns associated with this email.',
+    }),
   ],
   fields: [
     defineField({
@@ -214,31 +216,6 @@ export const email = defineType({
       title: 'Title',
       type: 'string',
       validation: (rule) => rule.required(),
-    }),
-    defineField({
-      name: 'campaign',
-      title: 'Campaign',
-      type: 'reference',
-      to: [{type: 'campaign'}],
-      validation: (rule) => rule.required(),
-    }),
-    defineField({
-      name: 'includedSegments',
-      title: 'Included Segments',
-      type: 'array',
-      fieldset: 'targeting',
-      description:
-        "Override the campaign's included segments for this email only. Leave empty to inherit from campaign.",
-      of: [{type: 'reference', to: [{type: 'segment'}]}],
-    }),
-    defineField({
-      name: 'excludedSegments',
-      title: 'Excluded Segments',
-      type: 'array',
-      fieldset: 'targeting',
-      description:
-        "Override the campaign's excluded segments for this email only. Leave empty to inherit from campaign.",
-      of: [{type: 'reference', to: [{type: 'segment'}]}],
     }),
     defineField({
       name: 'subject',

@@ -8,31 +8,7 @@ export const structure: StructureResolver = (S) =>
       S.listItem()
         .title('Campaigns')
         .icon(RocketIcon)
-        .child(
-          S.documentTypeList('campaign')
-            .title('Campaigns')
-            .child((campaignId) =>
-              S.list()
-                .title('Campaign')
-                .items([
-                  S.listItem()
-                    .title('Details')
-                    .icon(RocketIcon)
-                    .child(S.document().documentId(campaignId).schemaType('campaign')),
-                  S.listItem()
-                    .title('Emails')
-                    .child(
-                      S.documentTypeList('emailMessage')
-                        .title('Emails')
-                        .filter('_type == "emailMessage" && campaign._ref == $campaignId')
-                        .params({campaignId})
-                        .initialValueTemplates([
-                          S.initialValueTemplateItem('emailMessage-for-campaign', {campaignId}),
-                        ]),
-                    ),
-                ]),
-            ),
-        ),
+        .child(S.documentTypeList('campaign').title('Campaigns')),
       S.divider(),
       S.listItem()
         .title('Products')
@@ -47,7 +23,7 @@ export const structure: StructureResolver = (S) =>
             .title('Klaviyo')
             .items([
               S.listItem()
-                .title('Import')
+                .title('Sync / Import')
                 .icon(SyncIcon)
                 .child(S.document().documentId('klaviyoImport').schemaType('klaviyoImport')),
               S.listItem()

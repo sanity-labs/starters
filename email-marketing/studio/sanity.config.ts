@@ -31,10 +31,6 @@ export default defineConfig({
       resolve: {
         mainDocuments: defineDocuments([
           {
-            route: '/campaigns/:slug',
-            filter: '_type == "campaign" && slug.current == $slug',
-          },
-          {
             route: '/emails/preview/:id',
             resolve: (ctx) => ({
               filter: '_type == "emailMessage" && _id == $id',
@@ -48,14 +44,6 @@ export default defineConfig({
             resolve: (doc) => ({
               locations: [
                 {title: doc?.title || 'Untitled Email', href: `/emails/preview/${doc?.id}`},
-              ],
-            }),
-          }),
-          campaign: defineLocations({
-            select: {title: 'title', slug: 'slug.current'},
-            resolve: (doc) => ({
-              locations: [
-                {title: doc?.title || 'Untitled Campaign', href: `/campaigns/${doc?.slug}`},
               ],
             }),
           }),
@@ -90,21 +78,11 @@ export default defineConfig({
   schema: {
     types: schemaTypes,
     templates: (prev) =>
-      prev
-        .filter(
-          (t) =>
-            !['list', 'segment', 'klaviyoImport'].includes(
-              'schemaType' in t ? (t.schemaType as string) : '',
-            ),
-        )
-        .concat({
-          id: 'emailMessage-for-campaign',
-          title: 'Email for Campaign',
-          schemaType: 'emailMessage',
-          parameters: [{name: 'campaignId', type: 'string'}],
-          value: ({campaignId}: {campaignId: string}) => ({
-            campaign: {_type: 'reference', _ref: campaignId, _weak: true},
-          }),
-        }),
+      prev.filter(
+        (t) =>
+          !['list', 'segment', 'klaviyoImport'].includes(
+            'schemaType' in t ? (t.schemaType as string) : '',
+          ),
+      ),
   },
 })

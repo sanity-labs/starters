@@ -1,62 +1,65 @@
 import Link from 'next/link'
 
 import {sanityFetch} from '@/sanity/live'
-import {allCampaignsQuery} from '@/sanity/queries'
+import {allEmailsQuery} from '@/sanity/queries'
 
 const statusColors: Record<string, string> = {
-  planning: 'bg-yellow-100 text-yellow-800',
-  active: 'bg-green-100 text-green-800',
-  completed: 'bg-gray-100 text-gray-800',
+  draft: 'bg-gray-100 text-gray-600',
+  'ready-for-review': 'bg-blue-100 text-blue-800',
+  approved: 'bg-green-100 text-green-800',
+  sent: 'bg-purple-100 text-purple-800',
 }
 
 export default async function HomePage() {
-  const {data: campaigns} = await sanityFetch({query: allCampaignsQuery})
+  const {data: emails} = await sanityFetch({query: allEmailsQuery})
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold mb-2">Campaigns</h1>
+      <h1 className="text-3xl font-bold mb-2">Emails</h1>
       <p className="text-gray-500 mb-8">Manage your email marketing campaigns</p>
 
-      {campaigns.length === 0 ? (
-        <p className="text-gray-400">No campaigns yet. Create one in the Studio.</p>
+      {emails.length === 0 ? (
+        <p className="text-gray-400">No emails yet. Create one in the Studio.</p>
       ) : (
         <div className="grid gap-4">
-          {campaigns.map(
-            (campaign: {
+          {emails.map(
+            (email: {
               _id: string
               title: string
-              slug: string
+              subject?: string
               status?: string
-              description?: string
-              list?: {name: string}
-              emailCount: number
+              campaigns?: Array<{title: string}>
             }) => (
               <Link
-                key={campaign._id}
-                href={`/campaigns/${campaign.slug}`}
+                key={email._id}
+                href={`/emails/preview/${email._id}`}
                 className="block border border-gray-200 rounded-lg p-5 hover:border-gray-400 transition-colors"
-                data-sanity={`campaign;${campaign._id}`}
+                data-sanity={`emailMessage;${email._id}`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <h2 className="text-lg font-semibold truncate">{campaign.title}</h2>
-                    {campaign.description && (
-                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                        {campaign.description}
+                    <h2 className="text-lg font-semibold truncate">{email.title}</h2>
+                    {email.subject && (
+                      <p className="text-sm text-gray-500 mt-1 truncate">
+                        Subject: {email.subject}
                       </p>
                     )}
-                    <div className="flex items-center gap-3 mt-3 text-sm text-gray-500">
-                      {campaign.list?.name && <span>{campaign.list.name}</span>}
-                      <span>
-                        {campaign.emailCount} {campaign.emailCount === 1 ? 'email' : 'emails'}
-                      </span>
-                    </div>
+                    {email.campaigns && email.campaigns.length > 0 && (
+                      <p className="text-xs text-gray-400 mt-2">
+                        {email.campaigns.length === 1
+                          ? `Campaign: ${email.campaigns[0].title}`
+                          : `Campaigns: ${email.campaigns.map((c) => c.title).join(', ')}`}
+                      </p>
+                    )}
                   </div>
-                  {campaign.status && (
+                  {email.status && (
                     <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${statusColors[campaign.status] ?? 'bg-gray-100 text-gray-800'}`}
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${statusColors[email.status] ?? 'bg-gray-100 text-gray-800'}`}
                     >
-                      {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
+                      {email.status
+                        .split('-')
+                        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                        .join(' ')}
                     </span>
                   )}
                 </div>
