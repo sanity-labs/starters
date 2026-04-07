@@ -1,7 +1,7 @@
 import {defineArrayMember, defineField, defineType} from 'sanity'
 import {defineIncomingReferenceDecoration} from 'sanity/structure'
 import {EnvelopeIcon} from '@sanity/icons'
-import {GenerateEmailButton} from '../components/GenerateEmailButton'
+import {GenerateEmailButton, GenerateEmailField} from '../components/GenerateEmailButton'
 import {ErrorBanner} from '../components/ErrorBanner'
 
 export const emailHeader = defineType({
@@ -163,36 +163,24 @@ export const email = defineType({
       name: 'prompt',
       title: 'Creative Brief',
       type: 'object',
-      components: {input: GenerateEmailButton},
+      components: {
+        input: GenerateEmailButton,
+        field: GenerateEmailField,
+      },
       fields: [
         defineField({
-          name: 'goal',
-          title: 'Goal',
+          name: 'brief',
+          title: 'Brief',
           type: 'text',
-          rows: 2,
-          description: 'What this email aims to achieve',
+          rows: 4,
+          description:
+            'What should this email do and say? Include goals, key messages, and any special instructions.',
         }),
         defineField({
-          name: 'keyMessage',
-          title: 'Key Message',
-          type: 'text',
-          rows: 2,
-          description: 'The core offer or message',
-        }),
-        defineField({
-          name: 'tone',
-          title: 'Tone',
-          type: 'array',
-          of: [{type: 'string'}],
-          options: {layout: 'tags'},
-          description: 'Personality descriptors (e.g. "urgent", "friendly")',
-        }),
-        defineField({
-          name: 'additionalContext',
-          title: 'Additional Context',
-          type: 'text',
-          rows: 3,
-          description: 'Freeform notes — audience-specific tweaks, etc.',
+          name: 'useAudienceContext',
+          title: 'Use context from lists and segments',
+          type: 'boolean',
+          initialValue: true,
         }),
         defineField({
           name: 'generationCount',
@@ -302,6 +290,45 @@ export const email = defineType({
       type: 'datetime',
       readOnly: true,
       hidden: true,
+    }),
+    defineField({
+      name: 'sendLog',
+      title: 'Send Log',
+      type: 'array',
+      readOnly: true,
+      of: [
+        defineArrayMember({
+          type: 'object',
+          name: 'sendLogEntry',
+          fields: [
+            defineField({name: 'timestamp', title: 'Time', type: 'datetime'}),
+            defineField({
+              name: 'status',
+              title: 'Status',
+              type: 'string',
+              options: {list: ['sent', 'error']},
+            }),
+            defineField({name: 'campaignTitles', title: 'Campaigns', type: 'string'}),
+            defineField({name: 'errorMessage', title: 'Error', type: 'text', rows: 2}),
+          ],
+          preview: {
+            select: {
+              status: 'status',
+              timestamp: 'timestamp',
+              error: 'errorMessage',
+              campaigns: 'campaignTitles',
+            },
+            prepare: ({status, timestamp, error, campaigns}) => {
+              const date = timestamp ? new Date(timestamp).toLocaleString() : 'Unknown'
+              const icon = status === 'sent' ? '\u2705' : '\u274C'
+              return {
+                title: `${icon} ${status === 'sent' ? 'Sent' : 'Failed'} — ${date}`,
+                subtitle: status === 'error' ? error : campaigns,
+              }
+            },
+          },
+        }),
+      ],
     }),
   ],
   preview: {

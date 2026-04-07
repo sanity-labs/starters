@@ -58,6 +58,39 @@ export const handler = documentEventHandler(async ({context, event}) => {
       )
     }
 
+    // Remove lists and segments that no longer exist in Klaviyo
+    const klaviyoListIds = new Set(lists.map((l) => `klaviyo-list-${l.id}`))
+    const klaviyoSegmentIds = new Set(segments.map((s) => `klaviyo-segment-${s.id}`))
+
+    const existingLists: string[] = await client.fetch(
+      `*[_type == "list" && defined(externalId)]._id`,
+    )
+    const existingSegments: string[] = await client.fetch(
+      `*[_type == "segment" && defined(externalId)]._id`,
+    )
+
+    console.log(`[import-klaviyo] Existing lists: ${JSON.stringify(existingLists)}`)
+    console.log(`[import-klaviyo] Existing segments: ${JSON.stringify(existingSegments)}`)
+    console.log(`[import-klaviyo] Klaviyo list IDs: ${JSON.stringify([...klaviyoListIds])}`)
+    console.log(`[import-klaviyo] Klaviyo segment IDs: ${JSON.stringify([...klaviyoSegmentIds])}`)
+
+    const listsToDelete = existingLists.filter((id) => !klaviyoListIds.has(id))
+    const segmentsToDelete = existingSegments.filter((id) => !klaviyoSegmentIds.has(id))
+
+    console.log(
+      `[import-klaviyo] Deleting ${listsToDelete.length} lists: ${JSON.stringify(listsToDelete)}`,
+    )
+    console.log(
+      `[import-klaviyo] Deleting ${segmentsToDelete.length} segments: ${JSON.stringify(segmentsToDelete)}`,
+    )
+
+    for (const id of listsToDelete) {
+      tx.delete(id)
+    }
+    for (const id of segmentsToDelete) {
+      tx.delete(id)
+    }
+
     tx.patch(docId, (p) =>
       p.set({
         importState: 'imported',

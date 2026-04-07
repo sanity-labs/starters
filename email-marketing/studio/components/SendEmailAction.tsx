@@ -6,11 +6,36 @@ import {
   useClient,
   useDocumentOperation,
 } from 'sanity'
-import {PlayIcon} from '@sanity/icons'
+import {PlayIcon, ResetIcon} from '@sanity/icons'
 
 type ValidationResult = {
   valid: boolean
   message?: string
+}
+
+function waitForPublish(
+  client: ReturnType<typeof useClient>,
+  id: string,
+  timeout = 10000,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      sub.unsubscribe()
+      reject(new Error('Publish timed out'))
+    }, timeout)
+
+    const sub = client.listen(`*[_id == $id]`, {id}, {includeResult: false}).subscribe({
+      next: () => {
+        clearTimeout(timer)
+        sub.unsubscribe()
+        resolve()
+      },
+      error: (err) => {
+        clearTimeout(timer)
+        reject(err)
+      },
+    })
+  })
 }
 
 export function SendEmailAction(props: DocumentActionProps): DocumentActionDescription | null {
@@ -29,6 +54,13 @@ export function SendEmailAction(props: DocumentActionProps): DocumentActionDescr
 
   const validate = useCallback(async () => {
     try {
+      // Publish first so validation runs against persisted data
+      if (draft) {
+        const published$ = waitForPublish(client, id)
+        publish.execute()
+        await published$
+      }
+
       const settings = await client.fetch(`*[_type == "emailSettings"][0]{fromEmail, fromLabel}`)
       if (!settings?.fromEmail || !settings?.fromLabel) {
         setValidation({
@@ -40,9 +72,9 @@ export function SendEmailAction(props: DocumentActionProps): DocumentActionDescr
       }
 
       const emailDoc = await client.fetch(
-        `*[_id == $id || _id == $draftId][0]{
+        `*[_id == $id][0]{
           subject,
-          "campaigns": *[_type == "campaign" && email._ref == ^._id]{
+          "campaigns": *[_type == "campaign" && email._ref == $id]{
             _id,
             title,
             "lists": lists[]->{_id, externalId, name},
@@ -50,7 +82,7 @@ export function SendEmailAction(props: DocumentActionProps): DocumentActionDescr
             "excludedSegments": excludedSegments[]->{_id, externalId, name},
           },
         }`,
-        {id, draftId: `drafts.${id}`},
+        {id},
       )
 
       if (!emailDoc?.campaigns || emailDoc.campaigns.length === 0) {
@@ -115,7 +147,7 @@ export function SendEmailAction(props: DocumentActionProps): DocumentActionDescr
         message: 'Failed to validate prerequisites.',
       })
     }
-  }, [client, id])
+  }, [client, id, draft, publish])
 
   useEffect(() => {
     if (!dialogOpen) return
@@ -125,11 +157,11 @@ export function SendEmailAction(props: DocumentActionProps): DocumentActionDescr
   const handleSend = useCallback(async () => {
     setDialogOpen(false)
     const draftId = `drafts.${id}`
-    if (!draft) {
-      await client.createIfNotExists({...published, _id: draftId} as any)
-    }
+    await client.createIfNotExists({...(draft || published), _id: draftId} as any)
     await client.patch(draftId).set({sendState: 'requested'}).commit()
+    const published$ = waitForPublish(client, id)
     publish.execute()
+    await published$
   }, [client, draft, published, id, publish])
 
   const needsApproval = status !== 'approved' && status !== 'sent' && !isError && !isSent
@@ -158,6 +190,49 @@ export function SendEmailAction(props: DocumentActionProps): DocumentActionDescr
           message: validation.message ?? 'Checking prerequisites\u2026',
           onCancel: () => setDialogOpen(false),
           onConfirm: validation.valid ? handleSend : () => setDialogOpen(false),
+        }
+      : null,
+  }
+}
+
+export function ResendEmailAction(props: DocumentActionProps): DocumentActionDescription | null {
+  const {id, type, published, draft} = props
+  const doc = draft || published
+  const client = useClient({apiVersion: '2025-05-08'})
+  const {publish} = useDocumentOperation(id, type)
+  const [dialogOpen, setDialogOpen] = useState(false)
+
+  const sendState = doc?.sendState as string | undefined
+  const canResend = sendState === 'sent' || sendState === 'error'
+
+  const handleResend = useCallback(async () => {
+    setDialogOpen(false)
+    const draftId = `drafts.${id}`
+    await client.createIfNotExists({...(draft || published), _id: draftId} as any)
+    await client.patch(draftId).set({sendState: 'requested', sendErrorMessage: ''}).commit()
+    const published$ = waitForPublish(client, id)
+    publish.execute()
+    await published$
+  }, [client, draft, published, id, publish])
+
+  if (!canResend) return null
+
+  return {
+    label: sendState === 'error' ? 'Retry Send' : 'Resend Email',
+    icon: ResetIcon,
+    tone: 'default',
+    onHandle: () => {
+      setDialogOpen(true)
+    },
+    dialog: dialogOpen
+      ? {
+          type: 'confirm' as const,
+          message:
+            sendState === 'error'
+              ? 'Retry sending this email to all associated campaigns?'
+              : 'Resend this email to all associated campaigns? Recipients who already received it may get a duplicate.',
+          onCancel: () => setDialogOpen(false),
+          onConfirm: handleResend,
         }
       : null,
   }

@@ -35,7 +35,7 @@ export function KlaviyoDocumentDescription() {
           )}
           <Button
             icon={SyncIcon}
-            text="Refresh from Klaviyo"
+            text="Sync with Klaviyo"
             mode="ghost"
             tone="primary"
             fontSize={2}

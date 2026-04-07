@@ -1,11 +1,5 @@
-import {useCallback, useEffect, useMemo, useState} from 'react'
-import {
-  type FieldMember,
-  type ObjectInputProps,
-  type ObjectMember,
-  useClient,
-  useFormValue,
-} from 'sanity'
+import {useCallback, useEffect, useState} from 'react'
+import {type ObjectFieldProps, type ObjectInputProps, useClient, useFormValue, set} from 'sanity'
 import {IntentLink} from 'sanity/router'
 import {Button, Card, Flex, Stack, Switch, Text} from '@sanity/ui'
 import {SparklesIcon} from '@sanity/icons'
@@ -16,14 +10,16 @@ import {
   hasBrandVoice as checkHasBrandVoice,
 } from './generateEmailUtils'
 
+interface AudienceItem {
+  name?: string
+  description?: string
+  audienceNotes?: string
+  behaviorNotes?: string
+}
+
 function assembleInstruction(
-  prompt: {
-    goal?: string
-    keyMessage?: string
-    tone?: string[]
-    additionalContext?: string
-  },
-  audienceContext?: {name?: string; behaviorNotes?: string},
+  brief: string | undefined,
+  audienceContext?: {lists: AudienceItem[]; segments: AudienceItem[]},
   brandVoice?: BrandVoiceSettings,
 ): string {
   const parts = [
@@ -35,20 +31,42 @@ function assembleInstruction(
     parts.push(...assembleBrandVoiceSection(brandVoice))
   }
 
-  if (prompt.goal) parts.push(`Goal: ${prompt.goal}`)
-  if (prompt.keyMessage) parts.push(`Key Message: ${prompt.keyMessage}`)
-  if (prompt.tone?.length) parts.push(`Additional Tone: ${prompt.tone.join(', ')}`)
-  if (prompt.additionalContext) parts.push(`Additional Context: ${prompt.additionalContext}`)
+  if (brief) parts.push(brief)
+  parts.push('')
 
-  if (audienceContext?.name) {
-    const audience = [audienceContext.name, audienceContext.behaviorNotes]
-      .filter(Boolean)
-      .join(' - ')
-    parts.push(`\nTarget Audience: ${audience}`)
+  if (audienceContext) {
+    const hasLists = audienceContext.lists.length > 0
+    const hasSegments = audienceContext.segments.length > 0
+
+    if (hasLists || hasSegments) {
+      parts.push('## Target Audience')
+      parts.push(
+        'This campaign targets the following subscriber lists and segments.',
+        'Intelligently combine the audience context to understand who you are writing for.',
+        '',
+      )
+
+      if (hasLists) {
+        parts.push('Lists:')
+        for (const list of audienceContext.lists) {
+          const detail = [list.description, list.audienceNotes].filter(Boolean).join(' — Tone: ')
+          parts.push(`- ${list.name}${detail ? `: ${detail}` : ''}`)
+        }
+        parts.push('')
+      }
+
+      if (hasSegments) {
+        parts.push('Segments:')
+        for (const seg of audienceContext.segments) {
+          const detail = [seg.description, seg.behaviorNotes].filter(Boolean).join(' — Tone: ')
+          parts.push(`- ${seg.name}${detail ? `: ${detail}` : ''}`)
+        }
+        parts.push('')
+      }
+    }
   }
 
   parts.push(
-    '',
     'Generate a complete email with:',
     '- A compelling subject line (under 60 characters)',
     '- A preheader text (under 90 characters)',
@@ -58,23 +76,15 @@ function assembleInstruction(
   return parts.join('\n')
 }
 
-const HIDDEN_FIELDS = new Set(['generationCount', 'lastGeneratedAt'])
-const BEFORE_TOGGLE = new Set(['goal', 'keyMessage'])
+const HIDDEN_FIELDS = new Set(['useAudienceContext', 'generationCount', 'lastGeneratedAt'])
+const BEFORE_TOGGLE = new Set(['brief'])
 
-function patchFieldTitle(member: ObjectMember, title: string, description: string): ObjectMember {
-  if (member.kind !== 'field') return member
-  const field = member as FieldMember
-  return {
-    ...field,
-    field: {
-      ...field.field,
-      schemaType: {
-        ...field.field.schemaType,
-        title,
-        description,
-      },
-    },
-  }
+export function GenerateEmailField(props: ObjectFieldProps) {
+  return (
+    <Card padding={4} radius={2} border tone="primary">
+      {props.renderDefault(props)}
+    </Card>
+  )
 }
 
 export function GenerateEmailButton(props: ObjectInputProps) {
@@ -86,14 +96,12 @@ export function GenerateEmailButton(props: ObjectInputProps) {
   const [brandVoiceLoaded, setBrandVoiceLoaded] = useState(false)
 
   const documentId = useFormValue(['_id']) as string | undefined
-  const goal = useFormValue(['prompt', 'goal']) as string | undefined
-  const keyMessage = useFormValue(['prompt', 'keyMessage']) as string | undefined
-  const tone = useFormValue(['prompt', 'tone']) as string[] | undefined
-  const additionalContext = useFormValue(['prompt', 'additionalContext']) as string | undefined
+  const brief = useFormValue(['prompt', 'brief']) as string | undefined
+  const useAudienceContext = useFormValue(['prompt', 'useAudienceContext']) as boolean | undefined
   const generationCount = (useFormValue(['prompt', 'generationCount']) as number | undefined) ?? 0
   const lastGeneratedAt = useFormValue(['prompt', 'lastGeneratedAt']) as string | undefined
 
-  const hasPrompt = Boolean(goal || keyMessage)
+  const hasPrompt = Boolean(brief)
   const hasGenerated = generationCount > 0
 
   useEffect(() => {
@@ -116,18 +124,32 @@ export function GenerateEmailButton(props: ObjectInputProps) {
     setError(null)
 
     try {
-      let audienceContext: {name?: string; behaviorNotes?: string} | undefined
-      if (documentId) {
+      let audienceContext: {lists: AudienceItem[]; segments: AudienceItem[]} | undefined
+
+      if (useAudienceContext !== false) {
         const docId = documentId.replace(/^drafts\./, '')
-        audienceContext = await client.fetch(
-          `*[_type == "campaign" && email._ref == $id][0].includedSegments[0]->{name, behaviorNotes}`,
+        const campaign = await client.fetch<{
+          lists: AudienceItem[] | null
+          segments: AudienceItem[] | null
+        } | null>(
+          `*[_type == "campaign" && email._ref == $id][0]{
+            "lists": lists[]->{name, description, audienceNotes},
+            "segments": includedSegments[]->{name, description, behaviorNotes}
+          }`,
           {id: docId},
         )
+
+        if (campaign) {
+          audienceContext = {
+            lists: campaign.lists ?? [],
+            segments: campaign.segments ?? [],
+          }
+        }
       }
 
       const instruction = assembleInstruction(
-        {goal, keyMessage, tone, additionalContext},
-        audienceContext ?? undefined,
+        brief,
+        audienceContext,
         useBrandVoice && hasBrandVoice ? (brandVoiceSettings ?? undefined) : undefined,
       )
 
@@ -164,10 +186,8 @@ export function GenerateEmailButton(props: ObjectInputProps) {
   }, [
     client,
     documentId,
-    goal,
-    keyMessage,
-    tone,
-    additionalContext,
+    brief,
+    useAudienceContext,
     generationCount,
     useBrandVoice,
     hasBrandVoice,
@@ -180,8 +200,6 @@ export function GenerateEmailButton(props: ObjectInputProps) {
       ? 'Regenerate Email'
       : 'Generate Email from Prompt'
 
-  const brandVoiceActive = useBrandVoice && hasBrandVoice
-
   const visibleMembers = props.members.filter(
     (m) => m.kind !== 'field' || !HIDDEN_FIELDS.has(m.name),
   )
@@ -190,33 +208,51 @@ export function GenerateEmailButton(props: ObjectInputProps) {
     (m) => m.kind === 'field' && BEFORE_TOGGLE.has(m.name),
   )
 
-  const afterToggleMembers = useMemo(() => {
-    const members = visibleMembers.filter((m) => m.kind !== 'field' || !BEFORE_TOGGLE.has(m.name))
-    if (!brandVoiceActive) return members
-    return members.map((m) => {
-      if (m.kind !== 'field') return m
-      if (m.name === 'tone')
-        return patchFieldTitle(
-          m,
-          'Additional Tone',
-          'Extra tone descriptors for this email, on top of the global brand voice',
-        )
-      if (m.name === 'additionalContext')
-        return patchFieldTitle(
-          m,
-          'Additional Context',
-          'Extra notes for this email — audience-specific tweaks, overrides, etc.',
-        )
-      return m
-    })
-  }, [visibleMembers, brandVoiceActive])
+  const afterToggleMembers = visibleMembers.filter(
+    (m) => m.kind !== 'field' || !BEFORE_TOGGLE.has(m.name),
+  )
 
   return (
     <Stack space={4}>
+      <Text size={1} muted>
+        Describe your email goals and context below. AI will use this along with your audience data
+        and brand voice to generate a complete email.
+      </Text>
+
       {props.renderDefault({...props, members: beforeToggleMembers})}
 
+      {/* Audience context toggle */}
+      <Card
+        padding={3}
+        radius={2}
+        border
+        tone={useAudienceContext !== false ? 'primary' : 'default'}
+      >
+        <Flex align="center" gap={3}>
+          <Switch
+            checked={useAudienceContext !== false}
+            onChange={() => {
+              props.onChange(set(useAudienceContext === false, ['useAudienceContext']))
+            }}
+          />
+          <Stack space={2}>
+            <Text size={1} weight="medium">
+              Use context from lists and segments
+            </Text>
+            <Text size={1} muted>
+              Include audience descriptions and tone guidance from the linked campaign
+            </Text>
+          </Stack>
+        </Flex>
+      </Card>
+
       {brandVoiceLoaded && (
-        <Card padding={3} radius={2} border tone={brandVoiceActive ? 'primary' : 'default'}>
+        <Card
+          padding={3}
+          radius={2}
+          border
+          tone={useBrandVoice && hasBrandVoice ? 'primary' : 'default'}
+        >
           <Flex align="center" gap={3}>
             <Switch
               checked={useBrandVoice}
@@ -274,7 +310,7 @@ export function GenerateEmailButton(props: ObjectInputProps) {
         </Flex>
         {!hasPrompt && (
           <Text size={1} muted>
-            Fill in a Goal or Key Message to enable AI generation.
+            Write a brief to enable AI generation.
           </Text>
         )}
         {hasPrompt && (
