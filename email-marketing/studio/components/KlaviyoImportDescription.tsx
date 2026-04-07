@@ -9,9 +9,9 @@ export function KlaviyoImportDescription() {
           Sync lists and segments from Klaviyo
         </Text>
         <Text size={1} muted>
-          Lists and segments are managed in Klaviyo. Use the &ldquo;Refresh from Klaviyo&rdquo;
-          button below to pull the latest lists and segments into the Studio. You can then reference
-          them when setting up campaign targeting.
+          Lists and segments are managed in Klaviyo. Use the &ldquo;Sync with Klaviyo&rdquo; button
+          below to pull the latest lists and segments into the Studio. You can then reference them
+          when setting up campaign targeting.
         </Text>
         <Text size={1} muted>
           To create new lists or segments, open your Klaviyo dashboard, then refresh here to import
