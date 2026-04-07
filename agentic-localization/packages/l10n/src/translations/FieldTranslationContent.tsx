@@ -543,6 +543,7 @@ function CellStatus({
   localeId,
   cellState,
   isSource,
+  hasSource,
   inFlight,
   currentSourceValue,
   onTranslate,
@@ -553,6 +554,7 @@ function CellStatus({
   localeId: string
   cellState: FieldCellState
   isSource: boolean
+  hasSource: boolean
   inFlight?: CellInFlightState
   currentSourceValue?: string
   onTranslate: (fieldPath: string, localeId: string) => void
@@ -709,6 +711,36 @@ function CellStatus({
     )
   }
 
+  // Missing — no source content, non-interactive
+  if (cellState.status === 'missing' && !hasSource) {
+    return (
+      <td style={{padding: '8px', textAlign: 'center'}}>
+        <Tooltip
+          content={
+            <Box padding={2}>
+              <Text size={1}>{t('field-translations.cell.no-source')}</Text>
+            </Box>
+          }
+          animate
+          placement="bottom"
+          portal
+        >
+          <Flex justify="center">
+            <Box
+              style={{
+                border: '2px dashed var(--card-border-color)',
+                borderRadius: '50%',
+                height: 10,
+                width: 10,
+                opacity: 0.4,
+              }}
+            />
+          </Flex>
+        </Tooltip>
+      </td>
+    )
+  }
+
   // Missing — click to translate
   if (cellState.status === 'missing') {
     return (
@@ -846,6 +878,7 @@ function FieldGroup({
                   localeId={locale.id}
                   cellState={cellState}
                   isSource={isSource}
+                  hasSource={!!sourceLocale}
                   inFlight={inFlight}
                   currentSourceValue={currentSourceValues[field.displayPath]}
                   onTranslate={onTranslateCell}

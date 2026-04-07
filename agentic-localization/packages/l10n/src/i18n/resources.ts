@@ -79,6 +79,7 @@ export default {
   'field-translations.cell.click-approve': '{{tooltip}} — click to approve',
   'field-translations.cell.click-review': '{{tooltip}} — click to review',
   'field-translations.cell.click-translate': 'Click to translate',
+  'field-translations.cell.no-source': 'No source content — add content in the source language first',
   'field-translations.cell.translate-field': 'Translate all empty for this field',
   'field-translations.action.translate-missing': 'Translate {{count}} missing',
   'field-translations.action.translate-locale': 'Translate {{count}} fields to {{locale}}',
