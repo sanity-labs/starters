@@ -9,12 +9,12 @@ import {
 import {IntentLink} from 'sanity/router'
 import {Button, Card, Flex, Stack, Switch, Text} from '@sanity/ui'
 import {SparklesIcon} from '@sanity/icons'
-
-interface BrandVoiceSettings {
-  brandVoice?: string
-  brandToneKeywords?: string[]
-  brandGuidelines?: string
-}
+import {
+  type BrandVoiceSettings,
+  assembleBrandVoiceSection,
+  formatRelativeTime,
+  hasBrandVoice as checkHasBrandVoice,
+} from './generateEmailUtils'
 
 function assembleInstruction(
   prompt: {
@@ -31,17 +31,8 @@ function assembleInstruction(
     '',
   ]
 
-  if (
-    brandVoice?.brandVoice ||
-    brandVoice?.brandToneKeywords?.length ||
-    brandVoice?.brandGuidelines
-  ) {
-    parts.push('## Brand Tone of Voice')
-    if (brandVoice.brandVoice) parts.push(`Voice: ${brandVoice.brandVoice}`)
-    if (brandVoice.brandToneKeywords?.length)
-      parts.push(`Tone: ${brandVoice.brandToneKeywords.join(', ')}`)
-    if (brandVoice.brandGuidelines) parts.push(`Guidelines: ${brandVoice.brandGuidelines}`)
-    parts.push('')
+  if (brandVoice && checkHasBrandVoice(brandVoice)) {
+    parts.push(...assembleBrandVoiceSection(brandVoice))
   }
 
   if (prompt.goal) parts.push(`Goal: ${prompt.goal}`)
@@ -65,20 +56,6 @@ function assembleInstruction(
   )
 
   return parts.join('\n')
-}
-
-function formatRelativeTime(dateString: string): string {
-  const now = new Date()
-  const date = new Date(dateString)
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
-
-  if (diffMins < 1) return 'just now'
-  if (diffMins < 60) return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  return `${diffDays}d ago`
 }
 
 const HIDDEN_FIELDS = new Set(['generationCount', 'lastGeneratedAt'])
@@ -130,11 +107,7 @@ export function GenerateEmailButton(props: ObjectInputProps) {
       })
   }, [client])
 
-  const hasBrandVoice = Boolean(
-    brandVoiceSettings?.brandVoice ||
-    brandVoiceSettings?.brandToneKeywords?.length ||
-    brandVoiceSettings?.brandGuidelines,
-  )
+  const hasBrandVoice = checkHasBrandVoice(brandVoiceSettings)
 
   const handleGenerate = useCallback(async () => {
     if (!documentId) return
