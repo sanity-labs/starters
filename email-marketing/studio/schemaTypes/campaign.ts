@@ -1,5 +1,6 @@
 import {defineField, defineType} from 'sanity'
 import {RocketIcon} from '@sanity/icons'
+import {GenerateCampaignEmailButton} from '../components/GenerateCampaignEmailButton'
 
 export const campaign = defineType({
   name: 'campaign',
@@ -27,6 +28,56 @@ export const campaign = defineType({
       title: 'Description',
       type: 'text',
       rows: 3,
+    }),
+    defineField({
+      name: 'creativeBrief',
+      title: 'Creative Brief',
+      type: 'object',
+      components: {input: GenerateCampaignEmailButton},
+      fields: [
+        defineField({
+          name: 'goal',
+          title: 'Goal',
+          type: 'text',
+          rows: 2,
+          description: 'What this email campaign aims to achieve',
+        }),
+        defineField({
+          name: 'keyMessage',
+          title: 'Key Message',
+          type: 'text',
+          rows: 2,
+          description: 'The core offer or message',
+        }),
+        defineField({
+          name: 'useAudienceContext',
+          title: 'Use context from lists and segments',
+          type: 'boolean',
+          initialValue: true,
+        }),
+        defineField({
+          name: 'additionalContext',
+          title: 'Additional Context',
+          type: 'text',
+          rows: 3,
+          description: 'Tone of voice overrides, audience-specific tweaks, freeform notes',
+        }),
+        defineField({
+          name: 'generationCount',
+          title: 'Times Generated',
+          type: 'number',
+          readOnly: true,
+          hidden: true,
+          initialValue: 0,
+        }),
+        defineField({
+          name: 'lastGeneratedAt',
+          title: 'Last Generated At',
+          type: 'datetime',
+          readOnly: true,
+          hidden: true,
+        }),
+      ],
     }),
     defineField({
       name: 'status',
