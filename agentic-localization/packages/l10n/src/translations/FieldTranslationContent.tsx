@@ -11,9 +11,11 @@
  */
 
 import {CheckmarkCircleIcon, CloseIcon, SparklesIcon, TranslateIcon} from '@sanity/icons'
-import {Badge, Box, Button, Card, Flex, Spinner, Stack, Text, Tooltip} from '@sanity/ui'
+import {Badge, Box, Button, Card, Flex, Stack, Text, Tooltip} from '@sanity/ui'
 import {useMemo} from 'react'
 import {useTranslation} from 'sanity'
+
+import styles from './WorkflowDot.module.css'
 
 import {
   useInternationalizedFields,
@@ -521,18 +523,29 @@ const STATUS_COLORS: Record<FieldCellState['status'], {bg: string; border: strin
   },
 }
 
-function WorkflowDot({status}: {status: FieldCellState['status']}) {
+function WorkflowDot({
+  status,
+  animate: animateStyle,
+}: {
+  status: FieldCellState['status']
+  /** 'pulse' = infinite (translating), 'pop' = one-shot on mount (state transition) */
+  animate?: 'pulse' | 'pop'
+}) {
   const colors = STATUS_COLORS[status]
+  const className = [
+    styles.dot,
+    animateStyle === 'pulse' ? styles.pulse : undefined,
+    animateStyle === 'pop' ? styles.pop : undefined,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <Box
+    <div
+      className={className}
       style={{
         background: colors.bg,
         border: `2px solid ${colors.border}`,
-        borderRadius: '50%',
-        height: 10,
-        width: 10,
-        flexShrink: 0,
-        opacity: 1,
       }}
     />
   )
@@ -577,7 +590,7 @@ function CellStatus({
           portal
         >
           <Flex justify="center">
-            <Spinner muted />
+            <WorkflowDot status="stale" animate="pulse" />
           </Flex>
         </Tooltip>
       </td>
@@ -673,7 +686,7 @@ function CellStatus({
               portal
             >
               <Box style={{cursor: 'pointer'}}>
-                <WorkflowDot status="stale" />
+                <WorkflowDot key={cellState.status} status="stale" animate="pop" />
               </Box>
             </Tooltip>
           </Flex>
@@ -704,7 +717,7 @@ function CellStatus({
           portal
         >
           <Flex justify="center">
-            <WorkflowDot status="needsReview" />
+            <WorkflowDot key={cellState.status} status="needsReview" animate="pop" />
           </Flex>
         </Tooltip>
       </td>
@@ -780,7 +793,7 @@ function CellStatus({
         portal
       >
         <Flex justify="center">
-          <WorkflowDot status="approved" />
+          <WorkflowDot key={cellState.status} status="approved" animate="pop" />
         </Flex>
       </Tooltip>
     </td>
