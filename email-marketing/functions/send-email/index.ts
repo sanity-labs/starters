@@ -48,6 +48,10 @@ export const handler = documentEventHandler(async ({context, event}) => {
     return
   }
 
+  console.log(`[send-email] Starting send for "${email.title}" (${docId})`)
+  console.log(`[send-email] Subject: "${email.subject}"`)
+  console.log(`[send-email] Campaigns: ${(email.campaigns ?? []).length}`)
+
   await client.patch(docId).set({sendState: 'sending'}).commit()
 
   try {
@@ -74,8 +78,13 @@ export const handler = documentEventHandler(async ({context, event}) => {
       throw new Error('Email must have body content')
     }
 
+    console.log(
+      `[send-email] Settings: from="${settings.fromLabel}" <${settings.fromEmail}>, reply-to=${settings.replyToEmail ?? settings.fromEmail}`,
+    )
+
     // Render email HTML
     const html = renderEmailHtml(email as EmailDocument)
+    console.log(`[send-email] Rendered HTML (${html.length} chars)`)
 
     // Create Klaviyo template
     const templateResult = await klaviyoFetch('/templates/', {
@@ -92,6 +101,7 @@ export const handler = documentEventHandler(async ({context, event}) => {
       },
     })
     const templateId = templateResult.data.id
+    console.log(`[send-email] Created Klaviyo template: ${templateId}`)
     await client.patch(docId).set({externalTemplateId: templateId}).commit()
 
     // Send to each campaign's audience
@@ -124,6 +134,20 @@ export const handler = documentEventHandler(async ({context, event}) => {
       const includedSegmentIds = includedSegments.map((s: any) => s.externalId)
       const includedIds = [...listIds, ...includedSegmentIds]
       const excludedIds = excludedSegments.map((s: any) => s.externalId).filter(Boolean)
+
+      const listNames = lists.map((l: any) => `${l.name} (${l.externalId})`).join(', ')
+      console.log(`[send-email] Campaign "${campaign.title}" — Lists: ${listNames}`)
+      if (includedSegments.length > 0) {
+        const segNames = includedSegments.map((s: any) => `${s.name} (${s.externalId})`).join(', ')
+        console.log(`[send-email] Campaign "${campaign.title}" — Included segments: ${segNames}`)
+      }
+      if (excludedSegments.length > 0) {
+        const segNames = excludedSegments.map((s: any) => `${s.name} (${s.externalId})`).join(', ')
+        console.log(`[send-email] Campaign "${campaign.title}" — Excluded segments: ${segNames}`)
+      }
+      console.log(
+        `[send-email] Campaign "${campaign.title}" — Audience IDs: included=[${includedIds.join(', ')}]${excludedIds.length > 0 ? `, excluded=[${excludedIds.join(', ')}]` : ''}`,
+      )
 
       // Create Klaviyo campaign with inline message definition
       const campaignResult = await klaviyoFetch('/campaigns/', {
@@ -163,6 +187,9 @@ export const handler = documentEventHandler(async ({context, event}) => {
         },
       })
       const klaviyoCampaignId = campaignResult.data.id
+      console.log(
+        `[send-email] Campaign "${campaign.title}" — Created Klaviyo campaign: ${klaviyoCampaignId}`,
+      )
 
       // Get the message ID from the campaign response and assign the template
       const messageId = campaignResult.data.relationships?.['campaign-messages']?.data?.[0]?.id
@@ -172,6 +199,9 @@ export const handler = documentEventHandler(async ({context, event}) => {
         )
       }
 
+      console.log(
+        `[send-email] Campaign "${campaign.title}" — Assigning template ${templateId} to message ${messageId}`,
+      )
       // Assign template to campaign message
       await klaviyoFetch('/campaign-message-assign-template', {
         method: 'POST',
@@ -187,6 +217,7 @@ export const handler = documentEventHandler(async ({context, event}) => {
       })
 
       // Trigger the send
+      console.log(`[send-email] Campaign "${campaign.title}" — Triggering send job...`)
       await klaviyoFetch('/campaign-send-jobs/', {
         method: 'POST',
         body: {
@@ -197,7 +228,7 @@ export const handler = documentEventHandler(async ({context, event}) => {
         },
       })
 
-      console.log(`[send-email] Sent "${email.title}" via campaign "${campaign.title}"`)
+      console.log(`[send-email] Campaign "${campaign.title}" — Send job triggered successfully`)
     }
 
     // Store the last campaign ID (for reference)
@@ -207,14 +238,25 @@ export const handler = documentEventHandler(async ({context, event}) => {
       .commit()
 
     // Success
+    const now = new Date().toISOString()
+    const campaignTitles = campaigns.map((c: any) => c.title).join(', ')
     await client
       .patch(docId)
       .set({
         sendState: 'sent',
         sendErrorMessage: '',
-        lastSentAt: new Date().toISOString(),
+        lastSentAt: now,
         status: 'sent',
       })
+      .append('sendLog', [
+        {
+          _type: 'sendLogEntry',
+          _key: `send-${Date.now()}`,
+          timestamp: now,
+          status: 'sent',
+          campaignTitles,
+        },
+      ])
       .commit()
 
     console.log(
@@ -222,9 +264,20 @@ export const handler = documentEventHandler(async ({context, event}) => {
     )
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
+    const campaignTitles = (email.campaigns ?? []).map((c: any) => c.title).join(', ')
     await client
       .patch(docId)
       .set({sendState: 'error', sendErrorMessage: message.slice(0, 500)})
+      .append('sendLog', [
+        {
+          _type: 'sendLogEntry',
+          _key: `send-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          status: 'error',
+          campaignTitles,
+          errorMessage: message.slice(0, 500),
+        },
+      ])
       .commit()
     console.error(`[send-email] Failed to send "${email.title}": ${message}`)
   }

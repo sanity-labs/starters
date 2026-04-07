@@ -27,7 +27,6 @@ export const list = defineType({
       title: 'Klaviyo ID',
       type: 'string',
       readOnly: true,
-      hidden: true,
     }),
     defineField({
       name: 'description',
@@ -47,6 +46,6 @@ export const list = defineType({
     }),
   ],
   preview: {
-    select: {title: 'name'},
+    select: {title: 'name', subtitle: 'externalId'},
   },
 })

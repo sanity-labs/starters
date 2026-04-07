@@ -5,7 +5,7 @@ import {presentationTool, defineDocuments, defineLocations} from 'sanity/present
 import {schemaTypes} from './schemaTypes'
 import {structure} from './structure'
 import {ImportFromKlaviyoAction} from './components/ImportFromKlaviyoAction'
-import {SendEmailAction} from './components/SendEmailAction'
+import {SendEmailAction, ResendEmailAction} from './components/SendEmailAction'
 import {SendStatusBadge} from './components/SyncStatusBadge'
 import {OpenKlaviyoAction} from './components/OpenKlaviyoAction'
 
@@ -60,7 +60,7 @@ export default defineConfig({
         return [ImportFromKlaviyoAction, OpenKlaviyoAction, ...prev]
       }
       if (schemaType === 'emailMessage') {
-        return [SendEmailAction, ...prev]
+        return [SendEmailAction, ResendEmailAction, ...prev]
       }
       if (schemaType === 'list' || schemaType === 'segment') {
         return prev.filter(({action}) => action !== 'delete' && action !== 'duplicate')

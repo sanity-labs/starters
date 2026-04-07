@@ -32,7 +32,7 @@ export function ImportFromKlaviyoAction(
   const isImporting = importState === 'requested' || importState === 'importing'
   const isError = importState === 'error'
 
-  const label = isImporting ? 'Importing\u2026' : isError ? 'Retry Import' : 'Refresh from Klaviyo'
+  const label = isImporting ? 'Syncing\u2026' : isError ? 'Retry Sync' : 'Sync with Klaviyo'
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -50,7 +50,7 @@ export function ImportFromKlaviyoAction(
 
   const handleImport = useCallback(async () => {
     setDialogOpen(false)
-    setStatusMessage('Starting import\u2026')
+    setStatusMessage('Starting sync\u2026')
     setPolling(true)
 
     const draftId = `drafts.${id}`
@@ -66,7 +66,7 @@ export function ImportFromKlaviyoAction(
       elapsed += interval
       if (elapsed > maxWait) {
         stopPolling()
-        setStatusMessage('Import timed out. Check the function logs.')
+        setStatusMessage('Sync timed out. Check the function logs.')
         return
       }
 
@@ -79,7 +79,7 @@ export function ImportFromKlaviyoAction(
         if (!result) return
 
         if (result.importState === 'importing') {
-          setStatusMessage('Importing from Klaviyo\u2026')
+          setStatusMessage('Syncing with Klaviyo\u2026')
         } else if (result.importState === 'imported') {
           stopPolling()
           const lists = result.importedLists ?? 0
@@ -87,7 +87,7 @@ export function ImportFromKlaviyoAction(
           setStatusMessage(`Imported ${lists} lists, ${segments} segments`)
         } else if (result.importState === 'error') {
           stopPolling()
-          setStatusMessage(result.importErrorMessage || 'Import failed')
+          setStatusMessage(result.importErrorMessage || 'Sync failed')
         }
       } catch {
         // Ignore transient fetch errors during polling
@@ -106,14 +106,14 @@ export function ImportFromKlaviyoAction(
     dialog: dialogOpen
       ? {
           type: 'confirm' as const,
-          message: 'Import lists and segments from Klaviyo?',
+          message: 'Sync lists and segments from Klaviyo?',
           onCancel: () => setDialogOpen(false),
           onConfirm: handleImport,
         }
       : polling || statusMessage
         ? {
             type: 'dialog' as const,
-            header: 'Klaviyo Import',
+            header: 'Klaviyo Sync',
             content: statusMessage,
             onClose: () => {
               stopPolling()
