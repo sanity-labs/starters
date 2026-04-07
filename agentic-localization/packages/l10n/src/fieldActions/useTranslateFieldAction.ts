@@ -69,7 +69,8 @@ export function useTranslateFieldAction(
           onAction: async () => {
             const sourceDoc = getDocumentValue() as Record<string, unknown>
 
-            const entries = (getValueAtPath(sourceDoc, pathSegments) ?? []) as InternationalizedArrayItem[]
+            const entries = (getValueAtPath(sourceDoc, pathSegments) ??
+              []) as InternationalizedArrayItem[]
             const baseEntry = entries.find((e) => e.value != null && e.value !== '')
             if (!baseEntry?.value || !baseEntry._key) return
             const fromLanguage = baseEntry.language ?? 'en-US'

@@ -118,23 +118,10 @@ export function FieldTranslationContent({
   const progressPercent = totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0
 
   // Per-locale stats — drives per-column translate buttons
-  const localeStats = useMemo(() => {
-    const missing = new Map<string, number>()
-    const translatable = new Map<string, number>()
-    for (const [fieldPath, localeStates] of Object.entries(cellStates)) {
-      const sourceLocale = snapshot.sourceLanguages[fieldPath]
-      if (!sourceLocale) continue
-      for (const [localeId, state] of Object.entries(localeStates)) {
-        if (localeId === sourceLocale) continue
-        // Count fields that have source content (translatable regardless of current state)
-        translatable.set(localeId, (translatable.get(localeId) ?? 0) + 1)
-        if (state.status === 'missing') {
-          missing.set(localeId, (missing.get(localeId) ?? 0) + 1)
-        }
-      }
-    }
-    return {missing, translatable}
-  }, [cellStates, snapshot.sourceLanguages])
+  const {localeMissing, localeTranslatable} = deriveLocaleStats(
+    cellStates,
+    snapshot.sourceLanguages,
+  )
 
   // Group fields by parent for nested display
   const fieldGroups = useMemo(() => {
@@ -352,8 +339,8 @@ export function FieldTranslationContent({
                         </Text>
                       </th>
                       {locales.map((locale) => {
-                        const localeMissing = localeStats.missing.get(locale.id) ?? 0
-                        const localeTranslatable = localeStats.translatable.get(locale.id) ?? 0
+                        const missingForLocale = localeMissing.get(locale.id) ?? 0
+                        const translatableForLocale = localeTranslatable.get(locale.id) ?? 0
                         return (
                           <th
                             key={locale.id}
@@ -369,18 +356,18 @@ export function FieldTranslationContent({
                               <Text
                                 size={1}
                                 weight="medium"
-                                muted={localeTranslatable === 0}
+                                muted={translatableForLocale === 0}
                                 style={{cursor: 'default'}}
                               >
                                 {locale.id}
                               </Text>
-                              {localeMissing > 0 && localeTranslatable > 0 && (
+                              {missingForLocale > 0 && translatableForLocale > 0 && (
                                 <Tooltip
                                   content={
                                     <Box padding={2}>
                                       <Text size={1}>
                                         {t('field-translations.action.translate-locale', {
-                                          count: localeMissing,
+                                          count: missingForLocale,
                                           locale: locale.title,
                                         })}
                                       </Text>
@@ -498,6 +485,30 @@ export function FieldTranslationContent({
       </Flex>
     </ErrorBoundary>
   )
+}
+
+// ---------------------------------------------------------------------------
+// Pure helpers
+// ---------------------------------------------------------------------------
+
+function deriveLocaleStats(
+  cellStates: Record<string, Record<string, FieldCellState>>,
+  sourceLanguages: Record<string, string>,
+) {
+  const localeMissing = new Map<string, number>()
+  const localeTranslatable = new Map<string, number>()
+  for (const [fieldPath, localeStates] of Object.entries(cellStates)) {
+    const sourceLocale = sourceLanguages[fieldPath]
+    if (!sourceLocale) continue
+    for (const [localeId, state] of Object.entries(localeStates)) {
+      if (localeId === sourceLocale) continue
+      localeTranslatable.set(localeId, (localeTranslatable.get(localeId) ?? 0) + 1)
+      if (state.status === 'missing') {
+        localeMissing.set(localeId, (localeMissing.get(localeId) ?? 0) + 1)
+      }
+    }
+  }
+  return {localeMissing, localeTranslatable}
 }
 
 // ---------------------------------------------------------------------------

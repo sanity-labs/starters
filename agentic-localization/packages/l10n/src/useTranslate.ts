@@ -9,7 +9,6 @@
  * the translate call and context assembly.
  */
 
-import {useCallback} from 'react'
 import {DEFAULT_STUDIO_CLIENT_OPTIONS, useClient} from 'sanity'
 import type {TranslateDocument} from '@sanity/client'
 
@@ -27,17 +26,10 @@ type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : nev
  */
 export type TranslateParams = DistributiveOmit<TranslateDocument, 'styleGuide' | 'protectedPhrases'>
 
-/**
- * Generic translate function — callers narrow the return document shape via `T`.
- *
- * @typeParam T - The expected shape of the translated document (defaults to `Record<string, unknown>`).
- */
-export interface TranslateFn {
-  <T extends Record<string, unknown> = Record<string, unknown>>(
-    params: TranslateParams,
-    sourceDocument?: Record<string, unknown>,
-  ): Promise<T | null>
-}
+export type TranslateFn = (
+  params: TranslateParams,
+  sourceDocument?: Record<string, unknown>,
+) => Promise<Record<string, unknown> | null>
 
 // ---------------------------------------------------------------------------
 // Batch translate types (fieldLanguageMap)
@@ -62,12 +54,10 @@ export interface TranslateBatchParams {
   fieldLanguageMap: FieldLanguageMapEntry[]
 }
 
-export interface TranslateBatchFn {
-  <T extends Record<string, unknown> = Record<string, unknown>>(
-    params: TranslateBatchParams,
-    sourceDocument?: Record<string, unknown>,
-  ): Promise<T | null>
-}
+export type TranslateBatchFn = (
+  params: TranslateBatchParams,
+  sourceDocument?: Record<string, unknown>,
+) => Promise<Record<string, unknown> | null>
 
 /**
  * Hook providing a context-aware `translate()` function.
@@ -86,21 +76,18 @@ export function useTranslate(): {translate: TranslateFn; translateBatch: Transla
   const agentClient = useClient({...DEFAULT_STUDIO_CLIENT_OPTIONS, apiVersion: AGENT_API_VERSION})
   const {getContextForLocale} = useTranslationContext()
 
-  const translate: TranslateFn = useCallback(
-    async (params: TranslateParams, sourceDocument?: Record<string, unknown>) => {
-      const context = await getContextForLocale(params.toLanguage.id, sourceDocument)
+  const translate: TranslateFn = async (params, sourceDocument) => {
+    const context = await getContextForLocale(params.toLanguage.id, sourceDocument)
 
-      return agentClient.agent.action.translate({
-        ...params,
-        conditionalPaths: {defaultHidden: false},
-        ...(context.styleGuide && {styleGuide: context.styleGuide}),
-        ...(context.protectedPhrases.length > 0 && {
-          protectedPhrases: context.protectedPhrases,
-        }),
-      } as TranslateDocument)
-    },
-    [agentClient, getContextForLocale],
-  ) as TranslateFn
+    return agentClient.agent.action.translate({
+      ...params,
+      conditionalPaths: {defaultHidden: false},
+      ...(context.styleGuide && {styleGuide: context.styleGuide}),
+      ...(context.protectedPhrases.length > 0 && {
+        protectedPhrases: context.protectedPhrases,
+      }),
+    } as TranslateDocument)
+  }
 
   /**
    * Batch translate multiple fields in a single API call via `fieldLanguageMap`.
@@ -111,26 +98,27 @@ export function useTranslate(): {translate: TranslateFn; translateBatch: Transla
    *
    * 1 API call = 1 AI credit regardless of the number of fields.
    */
-  const translateBatch: TranslateBatchFn = useCallback(
-    async (params: TranslateBatchParams, sourceDocument?: Record<string, unknown>) => {
-      const context = await getContextForLocale(params.toLanguage.id, sourceDocument)
-      const {dataset} = agentClient.config()
+  const translateBatch: TranslateBatchFn = async (params, sourceDocument) => {
+    const context = await getContextForLocale(params.toLanguage.id, sourceDocument)
+    const {dataset} = agentClient.config()
 
-      return agentClient.request<Record<string, unknown>>({
-        method: 'POST',
-        uri: `/agent/action/translate/${dataset}`,
-        body: {
-          ...params,
-          conditionalPaths: {defaultHidden: false},
-          ...(context.styleGuide && {styleGuide: context.styleGuide}),
-          ...(context.protectedPhrases.length > 0 && {
-            protectedPhrases: context.protectedPhrases,
-          }),
-        },
-      })
-    },
-    [agentClient, getContextForLocale],
-  ) as TranslateBatchFn
+    if (!dataset) {
+      throw new Error('Sanity client is not configured with a dataset')
+    }
+
+    return agentClient.request({
+      method: 'POST',
+      uri: `/agent/action/translate/${dataset}`,
+      body: {
+        ...params,
+        conditionalPaths: {defaultHidden: false},
+        ...(context.styleGuide && {styleGuide: context.styleGuide}),
+        ...(context.protectedPhrases.length > 0 && {
+          protectedPhrases: context.protectedPhrases,
+        }),
+      },
+    })
+  }
 
   return {translate, translateBatch}
 }
