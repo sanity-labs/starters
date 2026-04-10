@@ -34,7 +34,7 @@ starter-agentic-i18n/
 │   │   ├── contexts/             Shared context providers (layout-level)
 │   │   │   ├── LocalesContext.tsx          Single listenQuery for locales
 │   │   │   ├── GlossariesContext.tsx       Single listenQuery for glossaries
-│   │   │   └── L10nLayout.tsx             Composes providers at studio layout
+│   │   │   └── L10nProvider.tsx            Composes providers at studio layout
 │   │   ├── fieldActions/         AI Assist field action integration
 │   │   │   ├── useInternationalizedFields.ts  Schema walk: discover i18n fields
 │   │   │   └── useTranslateFieldAction.ts     Per-locale translate sub-actions

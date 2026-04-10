@@ -15,7 +15,7 @@ import {of} from 'rxjs'
 import type {InternationalizedArrayItem} from 'sanity-plugin-internationalized-array'
 
 import type {InternationalizedFieldDescriptor} from '../fieldActions/useInternationalizedFields'
-import type {Language} from './useLocales'
+import type {Language} from '../L10nProvider'
 
 export type FieldLocaleStatus = 'filled' | 'empty'
 

@@ -7,7 +7,7 @@ import {glossaryTypeName, localeTypeName, styleGuideTypeName} from './types'
  * Returns: {id: string, title: string}[]
  */
 export const SUPPORTED_LANGUAGES_QUERY = defineQuery(
-  `*[_type == "${localeTypeName}"] | order(title asc) { "id": code, title }`,
+  `*[_type == "${localeTypeName}"] | order(title asc) { "id": code, title, "fallbackLocale": fallback->code }`,
 )
 
 /**

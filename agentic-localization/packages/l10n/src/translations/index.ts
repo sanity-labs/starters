@@ -27,7 +27,7 @@ export {
   type StaleAIAnalysisProps,
   type StaleAIAnalysisStickyBarProps,
 } from './StaleAIAnalysis'
-export {useLocales, type Language} from './useLocales'
+export {useLocales, type Language, type Locale} from '../L10nProvider'
 export {
   useFieldTranslationData,
   type FieldLocaleStatus,

@@ -90,7 +90,7 @@ export {
   useInternationalizedFields,
   type InternationalizedFieldDescriptor,
 } from './fieldActions/useInternationalizedFields'
-export {useLocales, type Language} from './translations/useLocales'
+export {useLocales, type Language, type Locale} from './L10nProvider'
 export {
   useFieldTranslationData,
   type FieldLocaleStatus,

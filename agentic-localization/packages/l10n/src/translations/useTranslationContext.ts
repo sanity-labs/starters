@@ -15,7 +15,7 @@ import {
   extractProtectedPhrases,
 } from '../promptAssembly'
 import {STYLE_GUIDE_FOR_LOCALE_QUERY} from '../queries'
-import {useGlossariesContext} from '../contexts/GlossariesContext'
+import {useGlossaries} from '../L10nProvider'
 
 export interface TranslationContext {
   styleGuide: string
@@ -26,7 +26,7 @@ export function useTranslationContext() {
   const client = useClient(DEFAULT_STUDIO_CLIENT_OPTIONS)
   const {perspectiveStack} = usePerspective()
 
-  const glossaries = useGlossariesContext()
+  const glossaries = useGlossaries()
 
   const getContextForLocale = useCallback(
     async (

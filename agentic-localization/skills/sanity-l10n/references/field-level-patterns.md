@@ -157,7 +157,7 @@ automatically — no manual invocation.
 
 **Pattern**: Thin wrapper over `useLocalesContext()` from `contexts/LocalesContext.tsx`.
 The actual `listenQuery(SUPPORTED_LANGUAGES_QUERY)` subscription lives in `LocalesProvider`,
-mounted once at the plugin's `studio.components.layout` level via `L10nLayout`.
+mounted once at the plugin's `studio.components.layout` level via `L10nProvider`.
 All consumers share a single EventSource connection. Returns `Language[] | undefined`
 (`undefined` while loading).
 

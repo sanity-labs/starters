@@ -13,7 +13,7 @@ import {SUPPORTED_LANGUAGES_QUERY} from './queries'
 import {languageFieldName} from './types'
 import {injectLanguageField} from './languageField'
 import {LocaleNavbar} from './components/LocaleNavbar'
-import {L10nLayout} from './contexts/L10nLayout'
+import {L10nProvider} from './L10nProvider'
 import {LocaleBadge} from './components/LocaleBadge'
 import {createTranslationInspector} from './translations/createTranslationPanePlugin'
 import {createFieldTranslationPublishGate} from './translations/useFieldTranslationPublishGate'
@@ -39,7 +39,7 @@ export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L1
       studio: {
         components: {
           navbar: LocaleNavbar,
-          layout: L10nLayout,
+          layout: L10nProvider,
         },
       },
       schema: {

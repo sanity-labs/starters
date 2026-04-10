@@ -3,7 +3,7 @@ import {Autocomplete, Card, Flex, Spinner, Stack, Text} from '@sanity/ui'
 import {EarthGlobeIcon} from '@sanity/icons'
 import {set, useTranslation, type StringInputProps} from 'sanity'
 import {useOpenTranslationsInspector} from '../translations/useOpenTranslationsInspector'
-import {useLocales} from '../translations/useLocales'
+import {useLocales} from '../L10nProvider'
 import {l10nLocaleNamespace} from '../i18n'
 import {getFlagFromCode} from '../utils'
 
@@ -50,10 +50,10 @@ export function LanguageInput(props: StringInputProps) {
 
   const options: LocaleOption[] = useMemo(
     () =>
-      (languages ?? []).map((lang: {id: string; title: string}) => ({
+      (languages ?? []).map((lang) => ({
         value: lang.id,
         title: lang.title,
-        flag: getFlagFromCode(lang.id),
+        flag: lang.flag,
       })),
     [languages],
   )

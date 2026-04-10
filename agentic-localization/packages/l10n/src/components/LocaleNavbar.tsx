@@ -6,8 +6,7 @@ import {useTranslation, type NavbarProps} from 'sanity'
 import {l10nLocaleNamespace} from '../i18n'
 import {globalLocaleFilter$} from '../localeFilterState'
 import {useLocaleFilter} from '../useLocaleFilter'
-import {useLocales} from '../translations/useLocales'
-import {getFlagFromCode} from '../utils'
+import {useLocales} from '../L10nProvider'
 
 /** Calls `handler` on Enter or Space, preventing default. Used for `role="option"` activation. */
 function activateOnKeyDown(handler: () => void) {
@@ -141,7 +140,7 @@ function LocaleDropdownContent({
   languages,
   selectedLocales,
 }: {
-  languages: {id: string; title: string}[]
+  languages: {id: string; title: string; flag: string}[]
   selectedLocales: string[]
 }) {
   const {t} = useTranslation(l10nLocaleNamespace)
@@ -292,13 +291,12 @@ function LocaleRow({
   onToggle,
   onOnly,
 }: {
-  lang: {id: string; title: string}
+  lang: {id: string; title: string; flag: string}
   checked: boolean
   onToggle: () => void
   onOnly: () => void
 }) {
   const {t} = useTranslation(l10nLocaleNamespace)
-  const flag = getFlagFromCode(lang.id)
 
   return (
     <DropdownRow
@@ -311,7 +309,7 @@ function LocaleRow({
       <Flex align="center" gap={3} padding={2} paddingRight={3}>
         <Box flex={1}>
           <Text size={1} weight="medium">
-            <span aria-hidden>{flag} </span>
+            <span aria-hidden>{lang.flag} </span>
             {lang.title}
           </Text>
         </Box>
