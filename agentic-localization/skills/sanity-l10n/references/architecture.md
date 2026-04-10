@@ -31,6 +31,10 @@ starter-agentic-i18n/
 │   │   │   ├── localeTranslation.ts        l10n.locale.translation (object)
 │   │   │   ├── metadataFields.ts           translation.metadata fields
 │   │   │   └── fieldTranslationMetadata.ts fieldTranslation.metadata (liveEdit, hidden)
+│   │   ├── contexts/             Shared context providers (layout-level)
+│   │   │   ├── LocalesContext.tsx          Single listenQuery for locales
+│   │   │   ├── GlossariesContext.tsx       Single listenQuery for glossaries
+│   │   │   └── L10nLayout.tsx             Composes providers at studio layout
 │   │   ├── fieldActions/         AI Assist field action integration
 │   │   │   ├── useInternationalizedFields.ts  Schema walk: discover i18n fields
 │   │   │   └── useTranslateFieldAction.ts     Per-locale translate sub-actions
@@ -42,7 +46,7 @@ starter-agentic-i18n/
 │   │       ├── useFieldWorkflowMetadata.ts     Metadata subscription
 │   │       ├── useFieldTranslationPublishGate.ts  Publish gate wrapper
 │   │       ├── useStaleSyncEffect.ts           Debounced stale persistence
-│   │       ├── useLocales.ts                   Shared locale subscription
+│   │       ├── useLocales.ts                   Thin wrapper over LocalesContext
 │   │       ├── createSemaphore.ts              Concurrency limiter
 │   │       ├── StaleDiffPopover.tsx             Stale cell diff UI
 │   │       └── ...                             (other doc-level translation files)
@@ -168,8 +172,8 @@ Agent Actions Translate API call
 
 | Export                         | Returns                                                | Used by                                |
 | ------------------------------ | ------------------------------------------------------ | -------------------------------------- |
-| `SUPPORTED_LANGUAGES_QUERY`    | `{id, title}[]` — all locales, ordered by title        | Language selectors                     |
-| `GLOSSARIES_QUERY`             | Glossaries with resolved entries + locale translations | Translation inspector, prompt assembly |
+| `SUPPORTED_LANGUAGES_QUERY`    | `{id, title}[]` — all locales, ordered by title        | `LocalesContext` (single subscription) |
+| `GLOSSARIES_QUERY`             | Glossaries with resolved entries + locale translations | `GlossariesContext` (single subscription) |
 | `STYLE_GUIDE_FOR_LOCALE_QUERY` | Style guide for a specific `$localeCode`, or null      | Translation inspector, prompt assembly |
 
 ## Data Flow: Field-Level Translation Workflow
