@@ -6,16 +6,16 @@
  * Style guide fetch is kept as a one-shot callback (correct for action-time).
  */
 
-import {useCallback, useMemo} from 'react'
-import {DEFAULT_STUDIO_CLIENT_OPTIONS, useClient, useDocumentStore, usePerspective} from 'sanity'
-import {useObservable} from 'react-rx'
-import type {Glossary, StyleGuide} from '../promptAssembly'
+import {useCallback} from 'react'
+import {DEFAULT_STUDIO_CLIENT_OPTIONS, useClient, usePerspective} from 'sanity'
+import type {StyleGuide} from '../promptAssembly'
 import {
   filterGlossaryByContent,
   assembleStyleGuide,
   extractProtectedPhrases,
 } from '../promptAssembly'
-import {GLOSSARIES_QUERY, STYLE_GUIDE_FOR_LOCALE_QUERY} from '../queries'
+import {STYLE_GUIDE_FOR_LOCALE_QUERY} from '../queries'
+import {useGlossariesContext} from '../contexts/GlossariesContext'
 
 export interface TranslationContext {
   styleGuide: string
@@ -24,23 +24,9 @@ export interface TranslationContext {
 
 export function useTranslationContext() {
   const client = useClient(DEFAULT_STUDIO_CLIENT_OPTIONS)
-  const documentStore = useDocumentStore()
   const {perspectiveStack} = usePerspective()
 
-  const glossaries$ = useMemo(
-    () =>
-      documentStore.listenQuery(
-        GLOSSARIES_QUERY,
-        {},
-        {
-          ...DEFAULT_STUDIO_CLIENT_OPTIONS,
-          perspective: perspectiveStack,
-        },
-      ),
-    [documentStore, perspectiveStack],
-  )
-
-  const glossaries = useObservable(glossaries$) as Glossary[] | undefined
+  const glossaries = useGlossariesContext()
 
   const getContextForLocale = useCallback(
     async (

@@ -1,40 +1,21 @@
 /**
- * Shared hook for fetching supported locales via `documentStore.listenQuery()`.
+ * Shared hook for fetching supported locales via a single context-level
+ * `documentStore.listenQuery()` subscription (see LocalesContext).
  *
- * Extracted from `useTranslationPaneData.ts` and `useTranslateFieldAction.ts`
- * to avoid duplicate subscriptions across surfaces.
+ * All consumers share one EventSource connection instead of each creating
+ * their own — prevents reconnection storms on documents with many fields.
  */
-
-import {useMemo} from 'react'
-import {DEFAULT_STUDIO_CLIENT_OPTIONS, useDocumentStore, usePerspective} from 'sanity'
-import {useObservable} from 'react-rx'
 
 import type {Language} from 'sanity-plugin-internationalized-array'
 
-import {SUPPORTED_LANGUAGES_QUERY} from '../queries'
+import {useLocalesContext} from '../contexts/LocalesContext'
 
 export type {Language}
 
 /**
  * Realtime subscription to supported languages (l10n.locale documents).
- * Returns an empty array while loading, then the deduplicated list of locales.
+ * Returns `undefined` while loading, then the list of locales.
  */
-export function useLocales(): Language[] {
-  const documentStore = useDocumentStore()
-  const {perspectiveStack} = usePerspective()
-
-  const languages$ = useMemo(
-    () =>
-      documentStore.listenQuery(
-        SUPPORTED_LANGUAGES_QUERY,
-        {},
-        {
-          ...DEFAULT_STUDIO_CLIENT_OPTIONS,
-          perspective: perspectiveStack,
-        },
-      ),
-    [documentStore, perspectiveStack],
-  )
-
-  return (useObservable(languages$) as Language[] | undefined) ?? []
+export function useLocales(): Language[] | undefined {
+  return useLocalesContext()
 }

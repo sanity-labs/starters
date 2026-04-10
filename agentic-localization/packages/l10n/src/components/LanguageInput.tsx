@@ -1,18 +1,10 @@
 import {useId, useMemo} from 'react'
 import {Autocomplete, Card, Flex, Spinner, Stack, Text} from '@sanity/ui'
 import {EarthGlobeIcon} from '@sanity/icons'
-import {
-  DEFAULT_STUDIO_CLIENT_OPTIONS,
-  set,
-  useDocumentStore,
-  usePerspective,
-  useTranslation,
-  type StringInputProps,
-} from 'sanity'
+import {set, useTranslation, type StringInputProps} from 'sanity'
 import {useOpenTranslationsInspector} from '../translations/useOpenTranslationsInspector'
-import {useObservable} from 'react-rx'
+import {useLocales} from '../translations/useLocales'
 import {l10nLocaleNamespace} from '../i18n'
-import {SUPPORTED_LANGUAGES_QUERY} from '../queries'
 import {getFlagFromCode} from '../utils'
 
 interface LocaleOption {
@@ -54,18 +46,7 @@ export function LanguageInput(props: StringInputProps) {
   const inputId = useId()
   const openTranslations = useOpenTranslationsInspector()
 
-  const documentStore = useDocumentStore()
-  const {perspectiveStack} = usePerspective()
-  const languages$ = useMemo(
-    () =>
-      documentStore.listenQuery(
-        SUPPORTED_LANGUAGES_QUERY,
-        {},
-        {...DEFAULT_STUDIO_CLIENT_OPTIONS, perspective: perspectiveStack},
-      ),
-    [documentStore, perspectiveStack],
-  )
-  const languages = useObservable(languages$)
+  const languages = useLocales()
 
   const options: LocaleOption[] = useMemo(
     () =>

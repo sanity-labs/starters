@@ -44,7 +44,7 @@ export function useTranslateFieldAction(
     actionType === 'field' && schemaType.name?.startsWith('internationalizedArray')
 
   const allLocales = useLocales()
-  const languages: Language[] = isInternationalizedArray ? allLocales : []
+  const languages: Language[] = isInternationalizedArray && allLocales ? allLocales : []
 
   return useMemo(() => {
     if (!isInternationalizedArray || languages.length === 0) return []

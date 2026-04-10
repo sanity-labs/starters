@@ -1,20 +1,13 @@
-import {useEffect, useMemo, useRef, useState, useTransition} from 'react'
+import {useEffect, useRef, useState, useTransition} from 'react'
 import styled from 'styled-components'
 import {Box, Button, Card, Flex, Popover, Stack, Text} from '@sanity/ui'
 import {CheckmarkIcon, ChevronDownIcon, EarthGlobeIcon} from '@sanity/icons'
-import {
-  DEFAULT_STUDIO_CLIENT_OPTIONS,
-  useDocumentStore,
-  useTranslation,
-  type NavbarProps,
-} from 'sanity'
-import {useObservable} from 'react-rx'
+import {useTranslation, type NavbarProps} from 'sanity'
 import {l10nLocaleNamespace} from '../i18n'
 import {globalLocaleFilter$} from '../localeFilterState'
 import {useLocaleFilter} from '../useLocaleFilter'
-import {SUPPORTED_LANGUAGES_QUERY} from '../queries'
+import {useLocales} from '../translations/useLocales'
 import {getFlagFromCode} from '../utils'
-import type {Observable} from 'rxjs'
 
 /** Calls `handler` on Enter or Space, preventing default. Used for `role="option"` activation. */
 function activateOnKeyDown(handler: () => void) {
@@ -39,17 +32,7 @@ export function LocaleNavbar(props: NavbarProps) {
 
 function LocaleSwitcherButton() {
   const {t} = useTranslation(l10nLocaleNamespace)
-  const documentStore = useDocumentStore()
-  const languages$ = useMemo(
-    () =>
-      documentStore.listenQuery(
-        SUPPORTED_LANGUAGES_QUERY,
-        {},
-        {...DEFAULT_STUDIO_CLIENT_OPTIONS, perspective: 'published'},
-      ),
-    [documentStore],
-  )
-  const languages = useObservable<Observable<{id: string; title: string}[]>>(languages$)
+  const languages = useLocales()
 
   const [selectedLocales] = useLocaleFilter()
   const hasFilter = selectedLocales.length > 0
