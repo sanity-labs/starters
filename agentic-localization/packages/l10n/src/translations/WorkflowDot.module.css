@@ -1,0 +1,39 @@
+.dot {
+  border-radius: 50%;
+  block-size: 10px;
+  inline-size: 10px;
+  flex-shrink: 0;
+}
+
+.pulse {
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.pop {
+  animation: pop 0.4s ease-out;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    scale: 1;
+  }
+  50% {
+    opacity: 0.4;
+    scale: 0.75;
+  }
+}
+
+@keyframes pop {
+  0% {
+    scale: 0.5;
+    opacity: 0.3;
+  }
+  60% {
+    scale: 1.3;
+  }
+  100% {
+    scale: 1;
+    opacity: 1;
+  }
+}

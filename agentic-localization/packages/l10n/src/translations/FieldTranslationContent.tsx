@@ -11,9 +11,11 @@
  */
 
 import {CheckmarkCircleIcon, CloseIcon, SparklesIcon, TranslateIcon} from '@sanity/icons'
-import {Badge, Box, Button, Card, Flex, Spinner, Stack, Text, Tooltip} from '@sanity/ui'
+import {Badge, Box, Button, Card, Flex, Stack, Text, Tooltip} from '@sanity/ui'
 import {useMemo} from 'react'
 import {useTranslation} from 'sanity'
+
+import styles from './WorkflowDot.module.css'
 
 import {
   useInternationalizedFields,
@@ -68,6 +70,7 @@ export function FieldTranslationContent({
   const {
     translateCell,
     translateField,
+    translateLocale,
     translateAllEmpty,
     approveCell,
     approveAll,
@@ -113,6 +116,12 @@ export function FieldTranslationContent({
   }, [cellStates, snapshot.sourceLanguages])
 
   const progressPercent = totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0
+
+  // Per-locale stats — drives per-column translate buttons
+  const {localeMissing, localeTranslatable} = deriveLocaleStats(
+    cellStates,
+    snapshot.sourceLanguages,
+  )
 
   // Group fields by parent for nested display
   const fieldGroups = useMemo(() => {
@@ -329,22 +338,60 @@ export function FieldTranslationContent({
                           {t('field-translations.header.field')}
                         </Text>
                       </th>
-                      {locales.map((locale) => (
-                        <th
-                          key={locale.id}
-                          style={{
-                            borderBottom: '1px solid var(--card-border-color)',
-                            fontWeight: 500,
-                            padding: '8px',
-                            textAlign: 'center',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          <Text size={1} weight="medium" style={{cursor: 'default'}}>
-                            {locale.id}
-                          </Text>
-                        </th>
-                      ))}
+                      {locales.map((locale) => {
+                        const missingForLocale = localeMissing.get(locale.id) ?? 0
+                        const translatableForLocale = localeTranslatable.get(locale.id) ?? 0
+                        return (
+                          <th
+                            key={locale.id}
+                            style={{
+                              borderBottom: '1px solid var(--card-border-color)',
+                              fontWeight: 500,
+                              padding: '8px',
+                              textAlign: 'center',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <Flex align="center" justify="center" gap={1}>
+                              <Text
+                                size={1}
+                                weight="medium"
+                                muted={translatableForLocale === 0}
+                                style={{cursor: 'default'}}
+                              >
+                                {locale.id}
+                              </Text>
+                              {missingForLocale > 0 && translatableForLocale > 0 && (
+                                <Tooltip
+                                  content={
+                                    <Box padding={2}>
+                                      <Text size={1}>
+                                        {t('field-translations.action.translate-locale', {
+                                          count: missingForLocale,
+                                          locale: locale.title,
+                                        })}
+                                      </Text>
+                                    </Box>
+                                  }
+                                  animate
+                                  placement="bottom"
+                                  portal
+                                >
+                                  <Button
+                                    icon={TranslateIcon}
+                                    mode="bleed"
+                                    tone="suggest"
+                                    fontSize={0}
+                                    padding={1}
+                                    onClick={() => translateLocale(locale.id)}
+                                    disabled={isTranslating}
+                                  />
+                                </Tooltip>
+                              )}
+                            </Flex>
+                          </th>
+                        )
+                      })}
                       <th
                         style={{
                           borderBottom: '1px solid var(--card-border-color)',
@@ -429,6 +476,7 @@ export function FieldTranslationContent({
                 icon={CheckmarkCircleIcon}
                 onClick={approveAll}
                 text={t('field-translations.action.approve', {count: needsReviewCount})}
+                disabled={isTranslating}
                 style={{width: '100%'}}
               />
             )}
@@ -437,6 +485,30 @@ export function FieldTranslationContent({
       </Flex>
     </ErrorBoundary>
   )
+}
+
+// ---------------------------------------------------------------------------
+// Pure helpers
+// ---------------------------------------------------------------------------
+
+function deriveLocaleStats(
+  cellStates: Record<string, Record<string, FieldCellState>>,
+  sourceLanguages: Record<string, string>,
+) {
+  const localeMissing = new Map<string, number>()
+  const localeTranslatable = new Map<string, number>()
+  for (const [fieldPath, localeStates] of Object.entries(cellStates)) {
+    const sourceLocale = sourceLanguages[fieldPath]
+    if (!sourceLocale) continue
+    for (const [localeId, state] of Object.entries(localeStates)) {
+      if (localeId === sourceLocale) continue
+      localeTranslatable.set(localeId, (localeTranslatable.get(localeId) ?? 0) + 1)
+      if (state.status === 'missing') {
+        localeMissing.set(localeId, (localeMissing.get(localeId) ?? 0) + 1)
+      }
+    }
+  }
+  return {localeMissing, localeTranslatable}
 }
 
 // ---------------------------------------------------------------------------
@@ -462,18 +534,29 @@ const STATUS_COLORS: Record<FieldCellState['status'], {bg: string; border: strin
   },
 }
 
-function WorkflowDot({status}: {status: FieldCellState['status']}) {
+function WorkflowDot({
+  status,
+  animate: animateStyle,
+}: {
+  status: FieldCellState['status']
+  /** 'pulse' = infinite (translating), 'pop' = one-shot on mount (state transition) */
+  animate?: 'pulse' | 'pop'
+}) {
   const colors = STATUS_COLORS[status]
+  const className = [
+    styles.dot,
+    animateStyle === 'pulse' ? styles.pulse : undefined,
+    animateStyle === 'pop' ? styles.pop : undefined,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <Box
+    <div
+      className={className}
       style={{
         background: colors.bg,
         border: `2px solid ${colors.border}`,
-        borderRadius: '50%',
-        height: 10,
-        width: 10,
-        flexShrink: 0,
-        opacity: 1,
       }}
     />
   )
@@ -484,6 +567,7 @@ function CellStatus({
   localeId,
   cellState,
   isSource,
+  hasSource,
   inFlight,
   currentSourceValue,
   onTranslate,
@@ -494,6 +578,7 @@ function CellStatus({
   localeId: string
   cellState: FieldCellState
   isSource: boolean
+  hasSource: boolean
   inFlight?: CellInFlightState
   currentSourceValue?: string
   onTranslate: (fieldPath: string, localeId: string) => void
@@ -516,7 +601,7 @@ function CellStatus({
           portal
         >
           <Flex justify="center">
-            <Spinner muted />
+            <WorkflowDot status="stale" animate="pulse" />
           </Flex>
         </Tooltip>
       </td>
@@ -612,7 +697,7 @@ function CellStatus({
               portal
             >
               <Box style={{cursor: 'pointer'}}>
-                <WorkflowDot status="stale" />
+                <WorkflowDot key={cellState.status} status="stale" animate="pop" />
               </Box>
             </Tooltip>
           </Flex>
@@ -643,7 +728,37 @@ function CellStatus({
           portal
         >
           <Flex justify="center">
-            <WorkflowDot status="needsReview" />
+            <WorkflowDot key={cellState.status} status="needsReview" animate="pop" />
+          </Flex>
+        </Tooltip>
+      </td>
+    )
+  }
+
+  // Missing — no source content, non-interactive
+  if (cellState.status === 'missing' && !hasSource) {
+    return (
+      <td style={{padding: '8px', textAlign: 'center'}}>
+        <Tooltip
+          content={
+            <Box padding={2}>
+              <Text size={1}>{t('field-translations.cell.no-source')}</Text>
+            </Box>
+          }
+          animate
+          placement="bottom"
+          portal
+        >
+          <Flex justify="center">
+            <Box
+              style={{
+                border: '2px dashed var(--card-border-color)',
+                borderRadius: '50%',
+                height: 10,
+                width: 10,
+                opacity: 0.4,
+              }}
+            />
           </Flex>
         </Tooltip>
       </td>
@@ -689,7 +804,7 @@ function CellStatus({
         portal
       >
         <Flex justify="center">
-          <WorkflowDot status="approved" />
+          <WorkflowDot key={cellState.status} status="approved" animate="pop" />
         </Flex>
       </Tooltip>
     </td>
@@ -787,6 +902,7 @@ function FieldGroup({
                   localeId={locale.id}
                   cellState={cellState}
                   isSource={isSource}
+                  hasSource={!!sourceLocale}
                   inFlight={inFlight}
                   currentSourceValue={currentSourceValues[field.displayPath]}
                   onTranslate={onTranslateCell}
