@@ -1,20 +1,12 @@
-import {useEffect, useMemo, useRef, useState, useTransition} from 'react'
+import {useEffect, useRef, useState, useTransition} from 'react'
 import styled from 'styled-components'
 import {Box, Button, Card, Flex, Popover, Stack, Text} from '@sanity/ui'
 import {CheckmarkIcon, ChevronDownIcon, EarthGlobeIcon} from '@sanity/icons'
-import {
-  DEFAULT_STUDIO_CLIENT_OPTIONS,
-  useDocumentStore,
-  useTranslation,
-  type NavbarProps,
-} from 'sanity'
-import {useObservable} from 'react-rx'
+import {useTranslation, type NavbarProps} from 'sanity'
 import {l10nLocaleNamespace} from '../i18n'
 import {globalLocaleFilter$} from '../localeFilterState'
 import {useLocaleFilter} from '../useLocaleFilter'
-import {SUPPORTED_LANGUAGES_QUERY} from '../queries'
-import {getFlagFromCode} from '../utils'
-import type {Observable} from 'rxjs'
+import {useLocales} from '../L10nProvider'
 
 /** Calls `handler` on Enter or Space, preventing default. Used for `role="option"` activation. */
 function activateOnKeyDown(handler: () => void) {
@@ -39,17 +31,7 @@ export function LocaleNavbar(props: NavbarProps) {
 
 function LocaleSwitcherButton() {
   const {t} = useTranslation(l10nLocaleNamespace)
-  const documentStore = useDocumentStore()
-  const languages$ = useMemo(
-    () =>
-      documentStore.listenQuery(
-        SUPPORTED_LANGUAGES_QUERY,
-        {},
-        {...DEFAULT_STUDIO_CLIENT_OPTIONS, perspective: 'published'},
-      ),
-    [documentStore],
-  )
-  const languages = useObservable<Observable<{id: string; title: string}[]>>(languages$)
+  const languages = useLocales()
 
   const [selectedLocales] = useLocaleFilter()
   const hasFilter = selectedLocales.length > 0
@@ -158,7 +140,7 @@ function LocaleDropdownContent({
   languages,
   selectedLocales,
 }: {
-  languages: {id: string; title: string}[]
+  languages: {id: string; title: string; flag: string}[]
   selectedLocales: string[]
 }) {
   const {t} = useTranslation(l10nLocaleNamespace)
@@ -309,13 +291,12 @@ function LocaleRow({
   onToggle,
   onOnly,
 }: {
-  lang: {id: string; title: string}
+  lang: {id: string; title: string; flag: string}
   checked: boolean
   onToggle: () => void
   onOnly: () => void
 }) {
   const {t} = useTranslation(l10nLocaleNamespace)
-  const flag = getFlagFromCode(lang.id)
 
   return (
     <DropdownRow
@@ -328,7 +309,7 @@ function LocaleRow({
       <Flex align="center" gap={3} padding={2} paddingRight={3}>
         <Box flex={1}>
           <Text size={1} weight="medium">
-            <span aria-hidden>{flag} </span>
+            <span aria-hidden>{lang.flag} </span>
             {lang.title}
           </Text>
         </Box>

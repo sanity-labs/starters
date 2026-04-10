@@ -21,7 +21,7 @@ import {
 } from '../fieldActions/useInternationalizedFields'
 import type {FieldCellState} from '../core/types'
 import {l10nLocaleNamespace} from '../i18n'
-import {useLocales, type Language} from './useLocales'
+import {useLocales, type Language} from '../L10nProvider'
 import {useFieldTranslationData, type FieldTranslationSnapshot} from './useFieldTranslationData'
 import {useFieldTranslateActions, type CellInFlightState} from './useFieldTranslateActions'
 import {useFieldWorkflowMetadata} from './useFieldWorkflowMetadata'
@@ -47,7 +47,7 @@ export function FieldTranslationContent({
   const {t} = useTranslation(l10nLocaleNamespace)
 
   const allFields = useInternationalizedFields(documentType)
-  const locales = useLocales()
+  const locales = useLocales() ?? []
   const snapshot = useFieldTranslationData(documentId, allFields, locales)
   const metadata = useFieldWorkflowMetadata(documentId)
 

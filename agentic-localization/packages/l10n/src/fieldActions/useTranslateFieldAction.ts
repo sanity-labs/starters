@@ -30,7 +30,7 @@ import {randomKey} from '@sanity/util/content'
 import type {InternationalizedArrayItem} from 'sanity-plugin-internationalized-array'
 
 import {useTranslate} from '../useTranslate'
-import {useLocales, type Language} from '../translations/useLocales'
+import {useLocales, type Language} from '../L10nProvider'
 
 export function useTranslateFieldAction(
   props: AssistFieldActionProps,
@@ -44,7 +44,7 @@ export function useTranslateFieldAction(
     actionType === 'field' && schemaType.name?.startsWith('internationalizedArray')
 
   const allLocales = useLocales()
-  const languages: Language[] = isInternationalizedArray ? allLocales : []
+  const languages: Language[] = isInternationalizedArray && allLocales ? allLocales : []
 
   return useMemo(() => {
     if (!isInternationalizedArray || languages.length === 0) return []

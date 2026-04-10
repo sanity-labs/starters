@@ -33,7 +33,7 @@ import {useTranslate} from '../useTranslate'
 import type {InternationalizedFieldDescriptor} from '../fieldActions/useInternationalizedFields'
 import type {FieldCellState} from '../core/types'
 import {getFieldTranslationMetadataId} from '../core/fieldMetadataIds'
-import type {Language} from './useLocales'
+import type {Language} from '../L10nProvider'
 import type {FieldTranslationSnapshot} from './useFieldTranslationData'
 import {createSemaphore} from './createSemaphore'
 

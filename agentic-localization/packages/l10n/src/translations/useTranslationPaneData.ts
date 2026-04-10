@@ -1,9 +1,10 @@
 /**
  * Data hook for the Translation Pane (Surface 2).
  *
- * Uses `documentStore.listenQuery()` for realtime locale and metadata
- * subscriptions. Complex status queries (candidate IDs, version refs)
- * are still fetched on-demand and wrapped in a Suspense-compatible promise.
+ * Locales come from the global `LocalesContext` (single shared subscription).
+ * Per-document metadata uses `documentStore.listenQuery()` for realtime updates.
+ * Complex status queries (candidate IDs, version refs) are fetched on-demand
+ * and wrapped in a Suspense-compatible promise.
  *
  * Status computation is done client-side using Set lookups
  * instead of per-translation GROQ sub-queries (see s2-c1 perf audit).
@@ -15,7 +16,6 @@ import {
   getDraftId,
   getPublishedId,
   isDraftId,
-  isVersionId,
   useClient,
   useDocumentStore,
 } from 'sanity'
@@ -24,6 +24,7 @@ import {useObservable} from 'react-rx'
 import {of} from 'rxjs'
 import {defineQuery} from 'groq'
 import type {TRANSLATION_METADATA_QUERY_RESULT} from '@starter/sanity-types'
+import {useLocales, type Locale} from '../L10nProvider'
 import type {
   DocumentState,
   LocaleTranslation,
@@ -34,23 +35,6 @@ import type {
 } from '../core/types'
 import {workflowStatesToMap} from '../core/types'
 import {getTranslationMetadataId} from '../core/ids'
-
-const ALL_LOCALES_QUERY = defineQuery(`*[_type == "l10n.locale"] | order(code asc) {
-  _id,
-  "id": code,
-  title,
-  flag,
-  "fallbackLocale": fallback->code,
-  "releaseId": select(
-    _id match "versions.*" => string::split(_id, ".")[1],
-    null
-  ),
-  "status": select(
-    _id match "versions.*" => "in_release",
-    _id match "drafts.*" => "draft",
-    "published"
-  )
-}`)
 
 const TRANSLATION_METADATA_QUERY = defineQuery(`*[
   _id == $metadataId || (
@@ -74,45 +58,6 @@ const BASE_DOC_REF_QUERY = defineQuery(`*[
   _type == "translation.metadata"
   && (references($documentId) || references($publishedId))
 ][0].translations[language == $defaultLanguage][0].value._ref`)
-
-// ---------------------------------------------------------------------------
-// Locale type
-// ---------------------------------------------------------------------------
-
-export type Locale = {
-  fallbackLocale?: null | string
-  flag: string
-  id: string
-  releaseId?: string
-  status?: 'draft' | 'in_release' | 'published'
-  title: string
-}
-
-// ---------------------------------------------------------------------------
-// Locale deduplication (replaces module-level cache)
-// ---------------------------------------------------------------------------
-
-function deduplicateLocales(allLocales: Array<Locale & {_id: string}>): Locale[] {
-  const localeMap = new Map<string, Locale>()
-
-  for (const locale of allLocales) {
-    const isDraft = isDraftId(locale._id)
-    const isInRelease = isVersionId(locale._id)
-    const existingLocale = localeMap.get(locale.id)
-
-    const shouldReplace =
-      !existingLocale ||
-      (isInRelease && existingLocale.status !== 'in_release') ||
-      (isDraft && existingLocale.status === 'published')
-
-    if (shouldReplace) {
-      const {_id, ...localeWithoutId} = locale
-      localeMap.set(locale.id, localeWithoutId)
-    }
-  }
-
-  return Array.from(localeMap.values())
-}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -296,9 +241,10 @@ async function computeTranslationSnapshot(
 /**
  * Hook that provides translation pane data via a Suspense-compatible promise.
  *
- * Uses `documentStore.listenQuery()` for realtime locale and metadata
- * subscriptions. When metadata changes (e.g., stale function patches),
- * status is automatically re-derived without manual listen+debounce.
+ * Locales come from the global `LocalesContext` (single shared subscription).
+ * Metadata uses `documentStore.listenQuery()` for realtime per-document updates.
+ * When metadata changes (e.g., stale function patches), status is automatically
+ * re-derived without manual listen+debounce.
  */
 export function useTranslationPaneData(
   documentId: string | undefined,
@@ -307,25 +253,10 @@ export function useTranslationPaneData(
   const client = useClient(DEFAULT_STUDIO_CLIENT_OPTIONS)
   const documentStore = useDocumentStore()
 
-  // 1. Locales from listenQuery (replaces module-level cache)
-  const allLocalesRaw$ = useMemo(
-    () =>
-      documentStore.listenQuery(
-        ALL_LOCALES_QUERY,
-        {},
-        {...DEFAULT_STUDIO_CLIENT_OPTIONS, perspective: 'raw'},
-      ),
-    [documentStore],
-  )
-  const allLocalesRaw = useObservable(allLocalesRaw$) as Array<Locale & {_id: string}> | undefined
+  // 1. Locales from global context (single shared EventSource subscription)
+  const allLocales = useLocales()
 
-  // 2. Deduplicate locales (derive during render)
-  const allLocales = useMemo(() => {
-    if (!allLocalesRaw) return undefined
-    return deduplicateLocales(allLocalesRaw)
-  }, [allLocalesRaw])
-
-  // 3. Metadata from listenQuery (replaces manual listen+debounce)
+  // 2. Metadata from listenQuery (replaces manual listen+debounce)
   const publishedId = documentId ? getPublishedId(documentId) : undefined
   const metadataId = publishedId ? getTranslationMetadataId(publishedId) : undefined
   const metadata$ = useMemo(
