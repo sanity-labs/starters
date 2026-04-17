@@ -7,16 +7,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  agentic-localization:
-    name: agentic-localization (Node ${{ matrix.node-version }})
+  build:
+    name: Build & Validate (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
-    environment: agentic-localization
+    environment: _scaffold
     strategy:
       matrix:
         node-version: [20, 22]
-    defaults:
-      run:
-        working-directory: agentic-localization
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -33,8 +30,6 @@ jobs:
         env:
           SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
           SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET }}
-      - name: Unit tests
-        run: pnpm run test
       - name: Validate template
         run: pnpm run validate
       - name: Manifest extract
@@ -59,46 +54,3 @@ jobs:
             fi
           done
           exit $failed
-
-  ai-shopping-assistant:
-    name: ai-shopping-assistant
-    runs-on: ubuntu-latest
-    environment: ai-shopping-assistant
-    defaults:
-      run:
-        working-directory: ai-shopping-assistant
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-      - run: pnpm install
-      - name: Lint app
-        run: pnpm --filter app run lint
-      - name: Typecheck app
-        run: pnpm --filter app run type-check
-      - name: Typecheck studio
-        run: cd studio && pnpm exec tsc --noEmit
-      - name: Validate template
-        run: pnpm dlx @sanity/template-validator
-
-  scaffold:
-    name: _scaffold
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: _scaffold
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-      - run: pnpm install
-      - name: Format check
-        run: pnpm run format:check
-      - name: Lint
-        run: pnpm run lint
-      - name: Validate template
-        run: pnpm run validate
