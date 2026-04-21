@@ -10,7 +10,7 @@ jobs:
   build:
     name: Build & Validate (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
-    environment: _scaffold
+    environment: email-marketing
     strategy:
       matrix:
         node-version: [20, 22]

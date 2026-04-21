@@ -11,19 +11,23 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "next": "^16.2.1",
-    "next-sanity": "^12.2.1",
+    "@starter/render-email": "workspace:*",
+    "klaviyo-api": "^22.0.0",
+    "next": "^16.2.4",
+    "next-sanity": "^12.3.0",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@sanity/codegen": "^6.0.2",
     "@starter/tsconfig": "workspace:*",
-    "@tailwindcss/postcss": "^4.2.2",
+    "@tailwindcss/postcss": "^4.2.3",
     "@tailwindcss/typography": "^0.5.19",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "postcss": "^8.5.8",
-    "tailwindcss": "^4.2.2",
+    "postcss": "^8.5.10",
+    "sanity-types": "workspace:*",
+    "tailwindcss": "^4.2.3",
     "typescript": "catalog:"
   }
 }

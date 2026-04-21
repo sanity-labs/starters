@@ -1,0 +1,30 @@
+{
+  "name": "@starter/render-email",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./streaming": "./src/streaming/index.ts",
+    "./stubs": "./src/stubs/index.ts",
+    "./sanitize": "./src/sanitize/index.ts",
+    "./types": "./src/types/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --project render-email"
+  },
+  "dependencies": {
+    "isomorphic-dompurify": "^3.9.0",
+    "mjml": "^5.0.1"
+  },
+  "devDependencies": {
+    "@starter/tsconfig": "workspace:*",
+    "@types/mjml": "^5.0.0",
+    "@types/node": "^22.19.17",
+    "typescript": "catalog:",
+    "vitest": "^4.1.4"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

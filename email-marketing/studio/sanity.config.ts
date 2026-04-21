@@ -2,12 +2,21 @@ import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
 import {visionTool} from '@sanity/vision'
 import {presentationTool, defineDocuments, defineLocations} from 'sanity/presentation'
+import {type DocumentBadgeComponent} from 'sanity'
 import {schemaTypes} from './schemaTypes'
 import {structure} from './structure'
+import {assist} from './plugins/assist'
 import {ImportFromKlaviyoAction} from './components/ImportFromKlaviyoAction'
-import {SendEmailAction, ResendEmailAction} from './components/SendEmailAction'
-import {SendStatusBadge} from './components/SyncStatusBadge'
 import {OpenKlaviyoAction} from './components/OpenKlaviyoAction'
+import {GenerateVariantsAction} from './plugins/campaign'
+import {
+  ApproveAction,
+  ResendAction,
+  RefinementInspector,
+  PreviewStatusInspector,
+  WorkflowStateBadge,
+  SegmentBadge,
+} from './plugins/promotion'
 
 const projectId = process.env.SANITY_STUDIO_PROJECT_ID!
 const dataset = process.env.SANITY_STUDIO_DATASET || 'production'
@@ -21,6 +30,7 @@ export default defineConfig({
   dataset,
 
   plugins: [
+    assist(),
     presentationTool({
       previewUrl: {
         origin: previewUrl,
@@ -31,19 +41,40 @@ export default defineConfig({
       resolve: {
         mainDocuments: defineDocuments([
           {
-            route: '/emails/preview/:id',
+            route: '/promotions/:id',
             resolve: (ctx) => ({
-              filter: '_type == "emailMessage" && _id == $id',
+              filter: '_type == "promotion" && _id == $id',
+              params: {id: ctx.params.id},
+            }),
+          },
+          {
+            route: '/campaigns/:id',
+            resolve: (ctx) => ({
+              filter: '_type == "campaign" && _id == $id',
               params: {id: ctx.params.id},
             }),
           },
         ]),
         locations: {
-          emailMessage: defineLocations({
-            select: {title: 'title', id: '_id'},
+          promotion: defineLocations({
+            select: {id: '_id', subjectLine: 'subjectLine'},
             resolve: (doc) => ({
               locations: [
-                {title: doc?.title || 'Untitled Email', href: `/emails/preview/${doc?.id}`},
+                {
+                  title: doc?.subjectLine ?? 'Preview',
+                  href: `/promotions/${doc?.id}`,
+                },
+              ],
+            }),
+          }),
+          campaign: defineLocations({
+            select: {id: '_id', title: 'title'},
+            resolve: (doc) => ({
+              locations: [
+                {
+                  title: doc?.title ?? 'Campaign',
+                  href: `/campaigns/${doc?.id}`,
+                },
               ],
             }),
           }),
@@ -55,21 +86,36 @@ export default defineConfig({
   ],
 
   document: {
+    productionUrl: async (prev, {document}) => {
+      if (document._type === 'promotion') {
+        return `${previewUrl}/api/preview/klaviyo/${document._id}`
+      }
+      return prev
+    },
     actions: (prev, {schemaType}) => {
       if (schemaType === 'klaviyoImport') {
         return [ImportFromKlaviyoAction, OpenKlaviyoAction, ...prev]
       }
-      if (schemaType === 'emailMessage') {
-        return [SendEmailAction, ResendEmailAction, ...prev]
+      if (schemaType === 'campaign') {
+        return [GenerateVariantsAction, ...prev]
       }
-      if (schemaType === 'list' || schemaType === 'segment') {
+      if (schemaType === 'promotion') {
+        return [ApproveAction, ResendAction, ...prev.filter(({action}) => action !== 'publish')]
+      }
+      if (schemaType === 'segment') {
         return prev.filter(({action}) => action !== 'delete' && action !== 'duplicate')
       }
       return prev
     },
-    badges: (prev, {schemaType}) => {
-      if (schemaType === 'emailMessage') {
-        return [...prev, SendStatusBadge]
+    badges: (prev, {schemaType}): DocumentBadgeComponent[] => {
+      if (schemaType === 'promotion') {
+        return [WorkflowStateBadge, SegmentBadge, ...prev]
+      }
+      return prev
+    },
+    inspectors: (prev, {documentType}) => {
+      if (documentType === 'promotion') {
+        return [...prev, PreviewStatusInspector, RefinementInspector]
       }
       return prev
     },
@@ -80,7 +126,7 @@ export default defineConfig({
     templates: (prev) =>
       prev.filter(
         (t) =>
-          !['list', 'segment', 'klaviyoImport'].includes(
+          !['segment', 'klaviyoImport', 'workflow.state'].includes(
             'schemaType' in t ? (t.schemaType as string) : '',
           ),
       ),

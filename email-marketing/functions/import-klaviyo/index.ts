@@ -1,49 +1,48 @@
 import {documentEventHandler} from '@sanity/functions'
 import {createClient} from '@sanity/client'
-import {klaviyoFetch} from '../lib/klaviyo'
+import {defineQuery} from 'groq'
+import {ApiKeySession, SegmentsApi} from 'klaviyo-api'
 
 type KlaviyoItem = {id: string; name: string}
 
-async function fetchAllPages(path: string): Promise<KlaviyoItem[]> {
-  const items: KlaviyoItem[] = []
-  let url: string | null = path
+function nextCursor(url: string | undefined): string | undefined {
+  if (!url) return undefined
+  try {
+    return new URL(url).searchParams.get('page[cursor]') ?? undefined
+  } catch {
+    return undefined
+  }
+}
 
-  while (url) {
-    const result = await klaviyoFetch(url)
-    for (const item of result.data ?? []) {
+async function fetchAllSegments(segmentsApi: SegmentsApi): Promise<KlaviyoItem[]> {
+  const items: KlaviyoItem[] = []
+  let pageCursor: string | undefined
+
+  do {
+    const result = await segmentsApi.getSegments({fieldsSegment: ['name'], pageCursor})
+    for (const item of result.body.data ?? []) {
       items.push({id: item.id, name: item.attributes?.name ?? 'Unnamed'})
     }
-    const nextLink = result.links?.next
-    if (nextLink) {
-      url = nextLink.replace('https://a.klaviyo.com/api', '')
-    } else {
-      url = null
-    }
-  }
+    pageCursor = nextCursor(result.body.links?.next)
+  } while (pageCursor)
 
   return items
 }
 
 export const handler = documentEventHandler(async ({context, event}) => {
-  const client = createClient({...context.clientOptions, apiVersion: '2025-05-08', useCdn: false})
+  const client = createClient({...context.clientOptions, apiVersion: '2026-04-08', useCdn: false})
   const docId = event.data._id
 
   await client.patch(docId).set({importState: 'importing'}).commit()
 
   try {
-    const [lists, segments] = await Promise.all([
-      fetchAllPages('/lists/'),
-      fetchAllPages('/segments/'),
-    ])
+    const apiKey = process.env.KLAVIYO_API_KEY
+    if (!apiKey)
+      throw new Error('KLAVIYO_API_KEY not set. Run: sanity functions env add KLAVIYO_API_KEY')
+    const session = new ApiKeySession(apiKey)
+    const segments = await fetchAllSegments(new SegmentsApi(session))
 
-    // Batch all upserts into a single transaction
     const tx = client.transaction()
-
-    for (const list of lists) {
-      const sanityId = `klaviyo-list-${list.id}`
-      tx.createIfNotExists({_id: sanityId, _type: 'list', name: list.name, externalId: list.id})
-      tx.patch(sanityId, (p) => p.set({_type: 'list', name: list.name, externalId: list.id}))
-    }
 
     for (const segment of segments) {
       const sanityId = `klaviyo-segment-${segment.id}`
@@ -58,35 +57,12 @@ export const handler = documentEventHandler(async ({context, event}) => {
       )
     }
 
-    // Remove lists and segments that no longer exist in Klaviyo
-    const klaviyoListIds = new Set(lists.map((l) => `klaviyo-list-${l.id}`))
+    const EXISTING_SEGMENTS_QUERY = defineQuery(`*[_type == "segment" && defined(externalId)]._id`)
+    const existingSegments = await client.fetch(EXISTING_SEGMENTS_QUERY)
+
     const klaviyoSegmentIds = new Set(segments.map((s) => `klaviyo-segment-${s.id}`))
+    const segmentsToDelete = existingSegments.filter((id: string) => !klaviyoSegmentIds.has(id))
 
-    const existingLists: string[] = await client.fetch(
-      `*[_type == "list" && defined(externalId)]._id`,
-    )
-    const existingSegments: string[] = await client.fetch(
-      `*[_type == "segment" && defined(externalId)]._id`,
-    )
-
-    console.log(`[import-klaviyo] Existing lists: ${JSON.stringify(existingLists)}`)
-    console.log(`[import-klaviyo] Existing segments: ${JSON.stringify(existingSegments)}`)
-    console.log(`[import-klaviyo] Klaviyo list IDs: ${JSON.stringify([...klaviyoListIds])}`)
-    console.log(`[import-klaviyo] Klaviyo segment IDs: ${JSON.stringify([...klaviyoSegmentIds])}`)
-
-    const listsToDelete = existingLists.filter((id) => !klaviyoListIds.has(id))
-    const segmentsToDelete = existingSegments.filter((id) => !klaviyoSegmentIds.has(id))
-
-    console.log(
-      `[import-klaviyo] Deleting ${listsToDelete.length} lists: ${JSON.stringify(listsToDelete)}`,
-    )
-    console.log(
-      `[import-klaviyo] Deleting ${segmentsToDelete.length} segments: ${JSON.stringify(segmentsToDelete)}`,
-    )
-
-    for (const id of listsToDelete) {
-      tx.delete(id)
-    }
     for (const id of segmentsToDelete) {
       tx.delete(id)
     }
@@ -96,14 +72,13 @@ export const handler = documentEventHandler(async ({context, event}) => {
         importState: 'imported',
         importErrorMessage: '',
         lastImportedAt: new Date().toISOString(),
-        listCount: lists.length,
         segmentCount: segments.length,
       }),
     )
 
     await tx.commit()
 
-    console.log(`[import-klaviyo] Imported ${lists.length} lists and ${segments.length} segments`)
+    console.log(`[import-klaviyo] Imported ${segments.length} segments`)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     await client
