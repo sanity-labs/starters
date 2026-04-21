@@ -1,0 +1,9 @@
+{
+  "extends": "@starter/tsconfig/base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "types": ["vite/client"]
+  },
+  "include": ["."]
+}

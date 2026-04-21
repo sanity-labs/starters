@@ -2,19 +2,20 @@ packages:
   - studio
   - frontend
   - functions
-  - packages/@starter/*
+  - e2e
+  - apps/*
+  - packages/*
 
 catalog:
-  sanity: '^5.18.0'
-  '@sanity/client': '^7.20.0'
+  sanity: '^5.21.0'
+  '@sanity/client': '^7.21.0'
   '@sanity/icons': '^3.7.4'
-  '@sanity/vision': '^5.18.0'
-  groq: '^5.18.0'
-  react: '^19.2.4'
-  react-dom: '^19.2.4'
+  '@sanity/vision': '^5.21.0'
+  groq: '^5.21.0'
+  react: '^19.2.5'
+  react-dom: '^19.2.5'
   '@types/react': '^19.2'
   '@types/react-dom': '^19.2.3'
-  styled-components: '^6.3.12'
-  typescript: '^5.9.3'
-  mjml: '^5.0.0-alpha.5'
-  '@types/mjml': '^4.7.4'
+  styled-components: '^6.4.0'
+  typescript: '^5'
+  mjml: '^5.0.1'

@@ -1,71 +1,97 @@
 import Link from 'next/link'
-
 import {sanityFetch} from '@/sanity/live'
-import {allEmailsQuery} from '@/sanity/queries'
+import {allCampaignsQuery} from '@/sanity/queries'
 
-const statusColors: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-600',
-  'ready-for-review': 'bg-blue-100 text-blue-800',
-  approved: 'bg-green-100 text-green-800',
-  sent: 'bg-purple-100 text-purple-800',
+const statusDot: Record<string, string> = {
+  draft: 'bg-gray-300',
+  'in-review': 'bg-yellow-400',
+  approved: 'bg-green-500',
+  sent: 'bg-blue-500',
+}
+
+const tierColors: Record<string, string> = {
+  low: 'bg-gray-100 text-gray-600',
+  mid: 'bg-blue-50 text-blue-700',
+  high: 'bg-purple-50 text-purple-700',
+  vip: 'bg-amber-50 text-amber-700',
+}
+
+function formatDate(d: string | null | undefined) {
+  if (!d) return null
+  return new Date(d).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})
 }
 
 export default async function HomePage() {
-  const {data: emails} = await sanityFetch({query: allEmailsQuery})
+  const {data: campaigns} = await sanityFetch({query: allCampaignsQuery})
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold mb-2">Emails</h1>
-      <p className="text-gray-500 mb-8">Manage your email marketing campaigns</p>
+    <main className="max-w-3xl mx-auto px-4 py-12">
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Each campaign generates segment-variant promotions for review and send.
+        </p>
+      </div>
 
-      {emails.length === 0 ? (
-        <p className="text-gray-400">No emails yet. Create one in the Studio.</p>
+      {campaigns.length === 0 ? (
+        <p className="text-gray-400 text-sm">
+          No campaigns yet. Create a Campaign brief in the Studio, then run Generate Variants.
+        </p>
       ) : (
-        <div className="grid gap-4">
-          {emails.map(
-            (email: {
-              _id: string
-              title: string
-              subject?: string
-              status?: string
-              campaigns?: Array<{title: string}>
-            }) => (
-              <Link
-                key={email._id}
-                href={`/emails/preview/${email._id}`}
-                className="block border border-gray-200 rounded-lg p-5 hover:border-gray-400 transition-colors"
-                data-sanity={`emailMessage;${email._id}`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <h2 className="text-lg font-semibold truncate">{email.title}</h2>
-                    {email.subject && (
-                      <p className="text-sm text-gray-500 mt-1 truncate">
-                        Subject: {email.subject}
-                      </p>
+        <div className="divide-y divide-gray-100">
+          {campaigns.map((campaign) => (
+            <div key={campaign._id} className="py-5">
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <div className="min-w-0">
+                  <h2 className="font-medium text-gray-900 truncate">{campaign.title}</h2>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                    {campaign.store?.title && <span>{campaign.store.title}</span>}
+                    {campaign.urgencyStage?.title && (
+                      <span className="border border-gray-200 rounded px-1.5 py-0.5">
+                        {campaign.urgencyStage.title}
+                      </span>
                     )}
-                    {email.campaigns && email.campaigns.length > 0 && (
-                      <p className="text-xs text-gray-400 mt-2">
-                        {email.campaigns.length === 1
-                          ? `Campaign: ${email.campaigns[0].title}`
-                          : `Campaigns: ${email.campaigns.map((c) => c.title).join(', ')}`}
-                      </p>
+                    {campaign.startDate && (
+                      <span>
+                        {formatDate(campaign.startDate)}
+                        {campaign.endDate && ` – ${formatDate(campaign.endDate)}`}
+                      </span>
                     )}
                   </div>
-                  {email.status && (
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${statusColors[email.status] ?? 'bg-gray-100 text-gray-800'}`}
-                    >
-                      {email.status
-                        .split('-')
-                        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                        .join(' ')}
-                    </span>
-                  )}
                 </div>
-              </Link>
-            ),
-          )}
+                <div className="text-right text-xs text-gray-500 shrink-0">
+                  <div>
+                    {campaign.approvedCount}/{campaign.promotionCount} approved
+                  </div>
+                </div>
+              </div>
+
+              {campaign.segments && campaign.segments.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {campaign.segments.map((seg) => (
+                    <Link
+                      key={seg._id}
+                      href={`/campaigns/${campaign._id}`}
+                      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${tierColors[seg.engagementTier ?? 'mid'] ?? tierColors['mid']}`}
+                    >
+                      {seg.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              {campaign.toneTraits && campaign.toneTraits.length > 0 && (
+                <div className="flex flex-wrap gap-1 text-xs text-gray-400">
+                  {campaign.emotionalGoal && (
+                    <span className="font-medium text-gray-500">{campaign.emotionalGoal}</span>
+                  )}
+                  {campaign.toneTraits.map((t, i) => (
+                    <span key={i}>{t}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </main>

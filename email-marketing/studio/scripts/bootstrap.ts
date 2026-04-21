@@ -2,10 +2,12 @@
  * Bootstrap the project after `sanity init --template`.
  *
  * Steps:
- *  1. Deploy blueprint
- *  2. Deploy schema to the Content Lake
- *  3. Run typegen (schema extract + type generation)
- *  4. Import seed data (ndjson)
+ *  1. Deploy schema to the Content Lake
+ *  2. Import seed data (ndjson)
+ *  3. Deploy blueprint (functions)
+ *  4. Run typegen (schema extract + type generation)
+ *  5. Prompt for Klaviyo API key (optional)
+ *  6. Trigger Klaviyo import (if key was provided)
  *
  * Usage:
  *   pnpm bootstrap          (from studio/)
@@ -19,7 +21,7 @@ import {getCliClient} from 'sanity/cli'
 const dir = import.meta.dirname!
 const rootDir = resolve(dir, '../..')
 
-const client = getCliClient({apiVersion: '2025-01-01'})
+const client = getCliClient({apiVersion: '2026-04-08'})
 const {projectId, dataset} = client.config()
 
 function run(cmd: string, args: string[], options?: {cwd?: string}) {
@@ -34,7 +36,30 @@ function heading(label: string) {
   console.log(`\n── ${label} ${'─'.repeat(60 - label.length)}`)
 }
 
-// ── 1. Deploy blueprint ──────────────────────────────────────────────────────
+function prompt(question: string): string {
+  process.stderr.write(question)
+  try {
+    return execFileSync('bash', ['-c', 'read -r val && echo "$val"'], {
+      stdio: ['inherit', 'pipe', 'inherit'],
+    })
+      .toString()
+      .trim()
+  } catch {
+    return ''
+  }
+}
+
+// ── 1. Deploy schema ─────────────────────────────────────────────────────────
+
+heading('Deploy schema')
+sanity('schema', 'deploy')
+
+// ── 2. Import seed data ──────────────────────────────────────────────────────
+
+heading('Import seed data')
+sanity('dataset', 'import', 'seed/data.ndjson', dataset!, '--missing')
+
+// ── 3. Deploy blueprint ──────────────────────────────────────────────────────
 // Init the stack (first run only), then deploy the blueprint.
 // Must run from the monorepo root where sanity.blueprint.ts lives.
 
@@ -82,20 +107,38 @@ if (!existsSync(blueprintConfig)) {
 
 run('pnpm', ['exec', 'sanity', 'blueprints', 'deploy'], {cwd: rootDir})
 
-// ── 2. Deploy schema ─────────────────────────────────────────────────────────
-
-heading('Deploy schema')
-sanity('schema', 'deploy')
-
-// ── 3. Run typegen ──────────────────────────────────────────────────────────
+// ── 4. Run typegen ──────────────────────────────────────────────────────────
 
 heading('Run typegen')
 sanity('schema', 'extract')
 sanity('typegen', 'generate')
 
-// ── 4. Import seed data ──────────────────────────────────────────────────────
+// ── 5. Klaviyo API key ──────────────────────────────────────────────────────
 
-heading('Import seed data')
-sanity('dataset', 'import', 'seed/data.ndjson', dataset!, '--missing')
+heading('Klaviyo API key')
+
+const klaviyoKey = prompt('Enter your Klaviyo API key (or press Enter to skip): ')
+
+if (klaviyoKey) {
+  const functions = ['import-klaviyo', 'on-promotion-approved']
+  for (const fn of functions) {
+    run('pnpm', ['exec', 'sanity', 'functions', 'env', 'add', fn, 'KLAVIYO_API_KEY', klaviyoKey], {
+      cwd: rootDir,
+    })
+  }
+  console.log('Set KLAVIYO_API_KEY on import-klaviyo and on-promotion-approved functions')
+
+  // ── 6. Import lists & segments from Klaviyo ─────────────────────────────────
+  // Trigger the import-klaviyo function by setting importState to "requested".
+
+  heading('Import lists & segments from Klaviyo')
+
+  await client.patch('klaviyoImport').set({importState: 'requested'}).commit()
+  console.log('Triggered Klaviyo import — lists and segments will sync in the background')
+} else {
+  console.log(
+    'No key entered — set it later with: npx sanity functions env add send-email KLAVIYO_API_KEY <key>',
+  )
+}
 
 console.log('\n✓ Bootstrap complete\n')

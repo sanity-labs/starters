@@ -11,8 +11,7 @@ type ImportState = 'idle' | 'requested' | 'importing' | 'imported' | 'error'
 
 interface ImportResult {
   importState: ImportState
-  importedLists?: number
-  importedSegments?: number
+  segmentCount?: number
   importErrorMessage?: string
 }
 
@@ -21,7 +20,7 @@ export function ImportFromKlaviyoAction(
 ): DocumentActionDescription | null {
   const {id, type, published, draft} = props
   const doc = draft || published
-  const client = useClient({apiVersion: '2025-05-08'})
+  const client = useClient({apiVersion: '2026-04-08'})
   const {publish} = useDocumentOperation(id, type)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
@@ -32,7 +31,7 @@ export function ImportFromKlaviyoAction(
   const isImporting = importState === 'requested' || importState === 'importing'
   const isError = importState === 'error'
 
-  const label = isImporting ? 'Syncing\u2026' : isError ? 'Retry Sync' : 'Sync with Klaviyo'
+  const label = isImporting ? 'Syncing...' : isError ? 'Retry Sync' : 'Sync with Klaviyo'
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -50,7 +49,7 @@ export function ImportFromKlaviyoAction(
 
   const handleImport = useCallback(async () => {
     setDialogOpen(false)
-    setStatusMessage('Starting sync\u2026')
+    setStatusMessage('Starting sync...')
     setPolling(true)
 
     const draftId = `drafts.${id}`
@@ -72,25 +71,23 @@ export function ImportFromKlaviyoAction(
 
       try {
         const result = await client.fetch<ImportResult | null>(
-          `*[_id == $id][0]{importState, importedLists, importedSegments, importErrorMessage}`,
+          `*[_id == $id][0]{importState, segmentCount, importErrorMessage}`,
           {id},
         )
 
         if (!result) return
 
         if (result.importState === 'importing') {
-          setStatusMessage('Syncing with Klaviyo\u2026')
+          setStatusMessage('Syncing with Klaviyo...')
         } else if (result.importState === 'imported') {
           stopPolling()
-          const lists = result.importedLists ?? 0
-          const segments = result.importedSegments ?? 0
-          setStatusMessage(`Imported ${lists} lists, ${segments} segments`)
+          setStatusMessage(`Synced ${result.segmentCount ?? 0} segments`)
         } else if (result.importState === 'error') {
           stopPolling()
           setStatusMessage(result.importErrorMessage || 'Sync failed')
         }
       } catch {
-        // Ignore transient fetch errors during polling
+        // transient fetch errors during polling are expected
       }
     }, interval)
   }, [client, id, type, publish, stopPolling])
@@ -106,7 +103,7 @@ export function ImportFromKlaviyoAction(
     dialog: dialogOpen
       ? {
           type: 'confirm' as const,
-          message: 'Sync lists and segments from Klaviyo?',
+          message: 'Sync segments from Klaviyo?',
           onCancel: () => setDialogOpen(false),
           onConfirm: handleImport,
         }
@@ -121,5 +118,6 @@ export function ImportFromKlaviyoAction(
             },
           }
         : null,
-  }
+    'data-testid': 'import-klaviyo-btn',
+  } as unknown as DocumentActionDescription
 }
