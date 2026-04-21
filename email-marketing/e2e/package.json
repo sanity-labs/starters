@@ -1,0 +1,21 @@
+{
+  "name": "e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@sanity/client": "catalog:",
+    "@starter/tsconfig": "workspace:*",
+    "@types/node": "^22.19.17",
+    "racejar": "^2.0.5",
+    "typescript": "catalog:"
+  }
+}

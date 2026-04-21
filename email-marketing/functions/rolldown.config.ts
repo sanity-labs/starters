@@ -13,9 +13,9 @@ export default [
     platform: 'node',
   }),
   defineConfig({
-    input: {index: 'send-email/index.ts'},
+    input: {index: 'on-promotion-approved/index.ts'},
     output: {
-      dir: 'dist/send-email',
+      dir: 'dist/on-promotion-approved',
       cleanDir: true,
       codeSplitting: false,
       minify: true,

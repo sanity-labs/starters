@@ -1,5 +1,6 @@
 import type {StructureResolver} from 'sanity/structure'
-import {RocketIcon, BasketIcon, UsersIcon, FilterIcon, SyncIcon, CogIcon} from '@sanity/icons'
+import {RocketIcon, BasketIcon, FilterIcon, SyncIcon, SquareIcon} from '@sanity/icons'
+import {CampaignGridView} from './plugins/campaign'
 
 export const structure: StructureResolver = (S) =>
   S.list()
@@ -8,7 +9,19 @@ export const structure: StructureResolver = (S) =>
       S.listItem()
         .title('Campaigns')
         .icon(RocketIcon)
-        .child(S.documentTypeList('campaign').title('Campaigns')),
+        .child(
+          S.documentTypeList('campaign')
+            .title('Campaigns')
+            .child((id) =>
+              S.document()
+                .documentId(id)
+                .schemaType('campaign')
+                .views([
+                  S.view.form().title('Brief'),
+                  S.view.component(CampaignGridView).title('Variants').icon(SquareIcon),
+                ]),
+            ),
+        ),
       S.divider(),
       S.listItem()
         .title('Products')
@@ -27,18 +40,9 @@ export const structure: StructureResolver = (S) =>
                 .icon(SyncIcon)
                 .child(S.document().documentId('klaviyoImport').schemaType('klaviyoImport')),
               S.listItem()
-                .title('Lists')
-                .icon(UsersIcon)
-                .child(S.documentTypeList('list').title('Lists').menuItems([])),
-              S.listItem()
                 .title('Segments')
                 .icon(FilterIcon)
                 .child(S.documentTypeList('segment').title('Segments').menuItems([])),
             ]),
         ),
-      S.divider(),
-      S.listItem()
-        .title('Email Settings')
-        .icon(CogIcon)
-        .child(S.document().documentId('emailSettings').schemaType('emailSettings')),
     ])

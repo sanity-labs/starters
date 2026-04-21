@@ -1,0 +1,49 @@
+import {useEffect, useState} from 'react'
+import {
+  DEFAULT_STUDIO_CLIENT_OPTIONS,
+  useClient,
+  type DocumentBadgeComponent,
+  type DocumentBadgeDescription,
+} from 'sanity'
+import {defineQuery} from 'groq'
+
+const SEGMENT_NAME_QUERY = defineQuery(`*[_type == "segment" && _id == $id][0].name`)
+
+export const SegmentBadge: DocumentBadgeComponent = (props) => {
+  const client = useClient(DEFAULT_STUDIO_CLIENT_OPTIONS)
+  const [segmentName, setSegmentName] = useState<string | null>(null)
+
+  const doc = props.draft ?? props.published
+  const segmentRef = doc?.segment
+
+  useEffect(() => {
+    if (!segmentRef || typeof segmentRef !== 'object' || !('_ref' in segmentRef)) return
+    let cancelled = false
+
+    client.fetch<string | null>(SEGMENT_NAME_QUERY, {id: segmentRef._ref}).then((name) => {
+      if (!cancelled && name) setSegmentName(name)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [client, segmentRef])
+
+  const isBase = Boolean(doc?.isBasePromotion)
+
+  if (isBase) {
+    return {
+      label: 'Base',
+      color: 'primary',
+      title: 'Base promotion variant',
+    } satisfies DocumentBadgeDescription
+  }
+
+  if (!segmentName) return null
+
+  return {
+    label: segmentName,
+    color: 'primary',
+    title: `Targeting segment: ${segmentName}`,
+  }
+}
