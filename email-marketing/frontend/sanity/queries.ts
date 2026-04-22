@@ -22,7 +22,6 @@ export const promotionsByCampaignQuery = defineQuery(`
     subjectLine,
     preheader,
     disruptor,
-    isBasePromotion,
     "segment": segment->{_id, name, engagementTier},
     "workflowStatus": *[_type == "workflow.state" && promotionId._ref == ^._id][0].status,
   }
@@ -34,7 +33,6 @@ export const promotionByIdQuery = defineQuery(`
     subjectLine,
     preheader,
     disruptor,
-    isBasePromotion,
     emailSlots[] {
       _key,
       position,

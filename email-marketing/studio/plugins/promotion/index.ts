@@ -1,8 +1,8 @@
 /**
  * Promotion plugin — artifact schema, emailSlot type, workflow integration, and refinement UI
  *
- * Promotions are the segment-variant artifacts. Base promotion + N segment-variant
- * promotions per campaign. Each references the brief and a segment.
+ * Promotions are segment-targeted artifacts — one per segment per campaign.
+ * Each references the campaign brief and a segment.
  */
 
 export {promotion} from './schemaTypes/promotion'

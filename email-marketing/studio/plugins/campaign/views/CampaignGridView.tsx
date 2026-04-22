@@ -11,12 +11,11 @@ type ViewProps = {
 }
 
 const PROMOTIONS_QUERY = defineQuery(`
-  *[_type == "promotion" && campaign._ref == $id] | order(isBasePromotion desc, _createdAt asc) {
+  *[_type == "promotion" && campaign._ref == $id] | order(_createdAt asc) {
     _id,
     subjectLine,
     preheader,
     disruptor,
-    isBasePromotion,
     "segment": segment->{name, engagementTier},
     "workflowStatus": *[_type == "workflow.state" && promotionId._ref == ^._id][0].status,
     "slotCount": count(emailSlots),
@@ -28,7 +27,6 @@ type Promotion = {
   subjectLine: string | null
   preheader: string | null
   disruptor: string | null
-  isBasePromotion: boolean | null
   segment: {name: string | null; engagementTier: string | null} | null
   workflowStatus: string | null
   slotCount: number | null
@@ -118,14 +116,14 @@ function PromotionTile({promotion: p}: {promotion: Promotion}) {
       <Stack space={3}>
         <Flex align="center" justify="space-between" gap={2}>
           <Text size={0} weight="semibold" muted>
-            {p.isBasePromotion ? 'Base' : (p.segment?.name ?? 'Unassigned')}
+            {p.segment?.name ?? 'Unassigned'}
           </Text>
           <Badge tone={statusTone} fontSize={0} padding={2} radius={2}>
             {status.replace('-', ' ')}
           </Badge>
         </Flex>
 
-        {p.segment?.engagementTier && !p.isBasePromotion && (
+        {p.segment?.engagementTier && (
           <Badge
             tone={TIER_TONE[p.segment.engagementTier] ?? 'primary'}
             fontSize={0}

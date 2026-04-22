@@ -40,7 +40,6 @@ export interface Promotion {
   segment?: {
     _ref: string
   }
-  isBasePromotion: boolean
   subjectLine: string
   preheader: string
   disruptor?: string

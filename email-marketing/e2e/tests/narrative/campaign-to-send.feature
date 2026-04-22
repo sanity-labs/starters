@@ -1,14 +1,13 @@
 Feature: Campaign to Send — Full Content Operations Narrative
-  The complete workflow: create campaign brief → generate variant promotions → refine → approve → send
+  The complete workflow: create campaign brief → generate promotions → refine → approve → send
 
-  Scenario: Generate variant promotions from a campaign brief
+  Scenario: Generate promotions from a campaign brief
     Given I am in the Studio
     When I open a campaign document
     And I fill in the primary message with "Summer collection launch for young women aged 18-30"
-    And I click "Generate Variants"
+    And I click "Generate Promotions"
     And the generation completes
-    Then I see the base promotion was created
-    And I see a segment variant promotion for each target segment
+    Then I see a promotion for each target segment
 
   Scenario: Approve a promotion and trigger send
     Given I am in the Studio
@@ -29,12 +28,11 @@ Feature: Campaign to Send — Full Content Operations Narrative
     Then the agent responds with a suggestion
     And the promotion draft is updated
 
-  Scenario: Campaign Grid view shows all variants side by side
+  Scenario: Campaign Grid view shows all promotions side by side
     Given I am in the Studio
     When I open a campaign document with existing promotions
-    And I switch to the "Variants" tab
-    Then I see the base promotion tile
-    And I see one tile per segment variant
+    And I switch to the "Promotions" tab
+    Then I see one tile per segment promotion
     And each tile shows the subject line and workflow status
 
   Scenario: Segment sync populates segments available for campaign targeting

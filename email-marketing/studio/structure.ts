@@ -4,7 +4,7 @@ import {
   BasketIcon,
   FilterIcon,
   SyncIcon,
-  SquareIcon,
+  EnvelopeIcon,
   CogIcon,
   BoltIcon,
   CommentIcon,
@@ -52,7 +52,7 @@ export const structure: StructureResolver = (S) =>
                         .schemaType('campaign')
                         .views([
                           S.view.form().title('Brief'),
-                          S.view.component(CampaignGridView).title('Promotions').icon(SquareIcon),
+                          S.view.component(CampaignGridView).title('Promotions').icon(EnvelopeIcon),
                         ]),
                     ),
                 ),

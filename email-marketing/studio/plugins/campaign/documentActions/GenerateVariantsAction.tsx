@@ -60,85 +60,42 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
 
       const segmentIds = campaignData?.segmentIds ?? []
 
-      setProgress('Generating base promotion...')
-
-      const basePromotionId = `promotion-${campaignId}-base`
-      const baseInstruction = buildInstruction(campaignBrief, brandVoice, null)
-
-      await agentClient.agent.action.generate({
-        targetDocument: {
-          operation: 'createOrReplace',
-          _id: basePromotionId,
-          _type: 'promotion',
-          initialValues: {
-            campaign: {_type: 'reference', _ref: campaignId},
-            isBasePromotion: true,
-          },
-        },
-        schemaId,
-        instruction: baseInstruction,
-        target: [{path: 'subjectLine'}, {path: 'preheader'}, {path: 'disruptor'}],
-      })
-
-      // Publish the generated draft so workflow state references resolve
-      await client.action({
-        actionType: 'sanity.action.document.publish',
-        draftId: `drafts.${basePromotionId}`,
-        publishedId: basePromotionId,
-      })
-
-      await client.createOrReplace({
-        _id: `wf-${basePromotionId}`,
-        _type: 'workflow.state',
-        promotionId: {_type: 'reference', _ref: basePromotionId},
-        status: 'draft',
-        history: [
-          {
-            _key: `h-${Date.now()}`,
-            _type: 'object',
-            status: 'draft',
-            timestamp: new Date().toISOString(),
-          },
-        ],
-      })
-
       for (let i = 0; i < segmentIds.length; i++) {
         const segmentId = segmentIds[i]
         const segment = await fetchSegmentContext(client, segmentId)
         const segmentName = segment?.name ?? `Segment ${i + 1}`
 
-        setProgress(`Generating variant ${i + 1} of ${segmentIds.length}: ${segmentName}...`)
+        setProgress(`Generating promotion ${i + 1} of ${segmentIds.length}: ${segmentName}...`)
 
-        const variantId = `promotion-${campaignId}-${segmentId}`
-        const variantInstruction = buildInstruction(campaignBrief, brandVoice, segment)
+        const promotionId = `promotion-${campaignId}-${segmentId}`
+        const instruction = buildInstruction(campaignBrief, brandVoice, segment)
 
         await agentClient.agent.action.generate({
           targetDocument: {
             operation: 'createOrReplace',
-            _id: variantId,
+            _id: promotionId,
             _type: 'promotion',
             initialValues: {
               campaign: {_type: 'reference', _ref: campaignId},
               segment: {_type: 'reference', _ref: segmentId},
-              isBasePromotion: false,
             },
           },
           schemaId,
-          instruction: variantInstruction,
+          instruction,
           target: [{path: 'subjectLine'}, {path: 'preheader'}, {path: 'disruptor'}],
         })
 
         // Publish the generated draft so workflow state references resolve
         await client.action({
           actionType: 'sanity.action.document.publish',
-          draftId: `drafts.${variantId}`,
-          publishedId: variantId,
+          draftId: `drafts.${promotionId}`,
+          publishedId: promotionId,
         })
 
         await client.createOrReplace({
-          _id: `wf-${variantId}`,
+          _id: `wf-${promotionId}`,
           _type: 'workflow.state',
-          promotionId: {_type: 'reference', _ref: variantId},
+          promotionId: {_type: 'reference', _ref: promotionId},
           status: 'draft',
           history: [
             {
@@ -151,9 +108,7 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
         })
       }
 
-      setProgress(
-        `Generated ${segmentIds.length + 1} promotion${segmentIds.length !== 0 ? 's' : ''} (1 base + ${segmentIds.length} variants)`,
-      )
+      setProgress(`Generated ${segmentIds.length} promotion${segmentIds.length !== 1 ? 's' : ''}`)
       setDone(true)
     } catch (err) {
       let message = err instanceof Error ? err.message : String(err)

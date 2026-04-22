@@ -23,9 +23,6 @@ export default async function CampaignPage({params}: {params: Promise<{id: strin
 
   if (!promotions) notFound()
 
-  const base = promotions.find((p) => p.isBasePromotion)
-  const variants = promotions.filter((p) => !p.isBasePromotion)
-
   return (
     <main className="max-w-3xl mx-auto px-4 py-12">
       <div className="mb-6">
@@ -36,12 +33,11 @@ export default async function CampaignPage({params}: {params: Promise<{id: strin
 
       {promotions.length === 0 ? (
         <p className="text-gray-400 text-sm">
-          No promotions yet. Open this campaign in Studio and run Generate Variants.
+          No promotions yet. Open this campaign in Studio and run Generate Promotions.
         </p>
       ) : (
         <div className="space-y-4">
-          {base && <PromotionCard promotion={base} label="Base" />}
-          {variants.map((p) => (
+          {promotions.map((p) => (
             <PromotionCard key={p._id} promotion={p} />
           ))}
         </div>
@@ -50,9 +46,9 @@ export default async function CampaignPage({params}: {params: Promise<{id: strin
   )
 }
 
-function PromotionCard({promotion, label}: {promotion: Promotion; label?: string}) {
+function PromotionCard({promotion}: {promotion: Promotion}) {
   const status = promotion.workflowStatus ?? 'draft'
-  const segmentLabel = label ?? promotion.segment?.name ?? 'Unassigned'
+  const segmentLabel = promotion.segment?.name ?? 'Unassigned'
 
   return (
     <Link
