@@ -51,6 +51,21 @@ export const segment = defineType({
       type: 'number',
       readOnly: true,
     }),
+    defineField({
+      name: 'isActive',
+      title: 'Active',
+      type: 'boolean',
+      readOnly: true,
+      description: 'Whether this segment is actively being evaluated in Klaviyo.',
+    }),
+    // TODO: remove isTest field once test segments are no longer needed
+    defineField({
+      name: 'isTest',
+      title: 'Test Segment',
+      type: 'boolean',
+      readOnly: true,
+      description: 'Test segments are excluded from Klaviyo sync cleanup.',
+    }),
     // Editable enrichment layer
     defineField({
       name: 'affinityDescription',
@@ -88,10 +103,17 @@ export const segment = defineType({
       title: 'name',
       type: 'type',
       count: 'memberCount',
+      isActive: 'isActive',
     },
-    prepare: ({title, type, count}) => ({
+    prepare: ({title, type, count, isActive}) => ({
       title: title ?? 'Untitled',
-      subtitle: [type, count ? `${count} members` : ''].filter(Boolean).join(' · '),
+      subtitle: [
+        isActive === false ? 'Inactive' : '',
+        type,
+        count != null ? `${count} members` : '',
+      ]
+        .filter(Boolean)
+        .join(' · '),
     }),
   },
 })
