@@ -9,7 +9,12 @@
  */
 
 import {useMemo} from 'react'
-import {DEFAULT_STUDIO_CLIENT_OPTIONS, getDraftId, getPublishedId, useDocumentStore} from 'sanity'
+import {
+  DEFAULT_STUDIO_CLIENT_OPTIONS,
+  getPublishedId,
+  useDocumentStore,
+  usePerspective,
+} from 'sanity'
 import {useObservable} from 'react-rx'
 import {of} from 'rxjs'
 import type {InternationalizedArrayItem} from 'sanity-plugin-internationalized-array'
@@ -55,36 +60,45 @@ export function useFieldTranslationData(
   locales: Language[],
 ): FieldTranslationSnapshot {
   const documentStore = useDocumentStore()
+  const {perspectiveStack} = usePerspective()
   const publishedId = getPublishedId(documentId)
-  const draftId = getDraftId(documentId)
 
-  const actionableFields = useMemo(() => fields.filter((f) => f.depth >= 0), [fields])
+  const actionableFields = useMemo(
+    () => fields.filter((f) => f.depth >= 0),
+    [fields],
+  )
 
-  // Fetch both draft and published docs with only the i18n fields projected.
-  // Client-side coalesce reduces from 2N to 2 index lookups in the query.
-  const query = useMemo(() => {
+  // Separate fetch/listen queries — required because `listenQuery` applies
+  // `perspective` only to the fetch, not to the listener filter. The listener
+  // evaluates raw mutation payloads, so `_id == $publishedId` would miss writes
+  // to `drafts.<publishedId>` or `versions.<releaseId>.<publishedId>` and the
+  // matrix would never refresh after a translate/edit. `sanity::versionOf()`
+  // matches all variants, so any write triggers a perspective-aware re-fetch.
+  const queryObject = useMemo(() => {
     if (actionableFields.length === 0) return null
-    const fields = actionableFields.map((f) => `"${f.displayPath}": ${f.path.join('.')}`).join(', ')
-    return `{ "draft": *[_id == $draftId][0]{ ${fields} }, "published": *[_id == $publishedId][0]{ ${fields} } }`
+    const projection = actionableFields
+      .map((f) => `"${f.displayPath}": ${f.path.join('.')}`)
+      .join(', ')
+    return {
+      fetch: `*[_id == $publishedId][0]{ ${projection} }`,
+      listen: `*[sanity::versionOf($publishedId)]`,
+    }
   }, [actionableFields])
 
   const doc$ = useMemo(
     () =>
-      query
+      queryObject
         ? documentStore.listenQuery(
-            query,
-            {draftId, publishedId},
-            {...DEFAULT_STUDIO_CLIENT_OPTIONS, perspective: 'raw'},
+            queryObject,
+            {publishedId},
+            {...DEFAULT_STUDIO_CLIENT_OPTIONS, perspective: perspectiveStack},
           )
         : of(null),
-    [documentStore, query, draftId, publishedId],
+    [documentStore, queryObject, publishedId, perspectiveStack],
   )
 
   const rawValue = useObservable(doc$) as
-    | {
-        draft?: Record<string, unknown> | null
-        published?: Record<string, unknown> | null
-      }
+    | Record<string, unknown>
     | null
     | undefined
 
@@ -92,27 +106,29 @@ export function useFieldTranslationData(
     const matrix: Record<string, Record<string, FieldLocaleStatus>> = {}
     const sourceLanguages: Record<string, string> = {}
     const currentSourceValues: Record<string, string> = {}
-    const draft = rawValue?.draft
-    const published = rawValue?.published
 
     for (const field of actionableFields) {
-      // Client-side coalesce: prefer draft over published
-      const current = draft?.[field.displayPath] ?? published?.[field.displayPath]
+      const current = rawValue?.[field.displayPath]
 
-      const entries = (Array.isArray(current) ? current : []) as InternationalizedArrayItem[]
+      const entries = (
+        Array.isArray(current) ? current : []
+      ) as InternationalizedArrayItem[]
 
       // Find source language — first entry with a non-empty value
       const sourceEntry = entries.find((e) => isNonEmpty(e.value))
       if (sourceEntry) {
         sourceLanguages[field.displayPath] = sourceEntry.language
-        currentSourceValues[field.displayPath] = JSON.stringify(sourceEntry.value)
+        currentSourceValues[field.displayPath] = JSON.stringify(
+          sourceEntry.value,
+        )
       }
 
       // Build per-locale status
       const localeStatuses: Record<string, FieldLocaleStatus> = {}
       for (const locale of locales) {
         const entry = entries.find((e) => e.language === locale.id)
-        localeStatuses[locale.id] = entry && isNonEmpty(entry.value) ? 'filled' : 'empty'
+        localeStatuses[locale.id] =
+          entry && isNonEmpty(entry.value) ? 'filled' : 'empty'
       }
       matrix[field.displayPath] = localeStatuses
     }
