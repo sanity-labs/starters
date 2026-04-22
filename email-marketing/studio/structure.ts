@@ -51,7 +51,7 @@ export const structure: StructureResolver = (S) =>
                         .documentId(id)
                         .schemaType('campaign')
                         .views([
-                          S.view.form().title('Brief'),
+                          S.view.form().title('Brief').icon(RocketIcon),
                           S.view.component(CampaignGridView).title('Promotions').icon(EnvelopeIcon),
                         ]),
                     ),

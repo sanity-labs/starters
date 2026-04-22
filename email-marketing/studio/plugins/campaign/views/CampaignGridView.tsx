@@ -40,11 +40,11 @@ const STATUS_TONE: Record<string, 'primary' | 'positive' | 'caution' | 'critical
   rejected: 'critical',
 }
 
-const TIER_TONE: Record<string, 'primary' | 'positive' | 'caution' | 'critical'> = {
-  low: 'primary',
-  mid: 'caution',
-  high: 'positive',
-  vip: 'positive',
+const TIER_LABEL: Record<string, string> = {
+  low: 'Low engagement',
+  mid: 'Mid engagement',
+  high: 'High engagement',
+  vip: 'VIP',
 }
 
 export function CampaignGridView({document}: ViewProps) {
@@ -98,7 +98,7 @@ export function CampaignGridView({document}: ViewProps) {
 
   return (
     <Box padding={4} overflow="auto">
-      <Grid columns={[1, 1, 2, 3]} gap={3}>
+      <Grid columns={[1, 1, 2]} gap={4}>
         {promotions.map((p) => (
           <PromotionTile key={p._id} promotion={p} />
         ))}
@@ -110,12 +110,16 @@ export function CampaignGridView({document}: ViewProps) {
 function PromotionTile({promotion: p}: {promotion: Promotion}) {
   const status = p.workflowStatus ?? 'draft'
   const statusTone = STATUS_TONE[status] ?? 'primary'
+  const tierLabel = p.segment?.engagementTier
+    ? (TIER_LABEL[p.segment.engagementTier] ?? p.segment.engagementTier)
+    : null
 
   return (
-    <Card border radius={2} padding={3} tone="default">
-      <Stack space={3}>
+    <Card border radius={3} padding={4} tone="default">
+      <Stack space={4}>
+        {/* Header: segment name + status */}
         <Flex align="center" justify="space-between" gap={2}>
-          <Text size={0} weight="semibold" muted>
+          <Text size={1} weight="bold">
             {p.segment?.name ?? 'Unassigned'}
           </Text>
           <Badge tone={statusTone} fontSize={0} padding={2} radius={2}>
@@ -123,53 +127,58 @@ function PromotionTile({promotion: p}: {promotion: Promotion}) {
           </Badge>
         </Flex>
 
-        {p.segment?.engagementTier && (
-          <Badge
-            tone={TIER_TONE[p.segment.engagementTier] ?? 'primary'}
-            fontSize={0}
-            padding={1}
-            radius={1}
-          >
-            {p.segment.engagementTier}
-          </Badge>
-        )}
-
-        {p.disruptor && (
-          <Text size={0} muted style={{textTransform: 'uppercase', letterSpacing: '0.08em'}}>
-            {p.disruptor}
+        {/* Tier badge */}
+        {tierLabel && (
+          <Text size={0} muted>
+            {tierLabel}
           </Text>
         )}
 
-        {p.subjectLine ? (
-          <Text size={1} weight="semibold">
-            {p.subjectLine}
-          </Text>
-        ) : (
-          <Text size={1} muted style={{fontStyle: 'italic'}}>
-            No subject line
-          </Text>
-        )}
+        {/* Email preview */}
+        <Card border radius={2} padding={3} tone="transparent">
+          <Stack space={3}>
+            {p.disruptor && (
+              <Text
+                size={0}
+                weight="bold"
+                style={{textTransform: 'uppercase', letterSpacing: '0.1em'}}
+              >
+                {p.disruptor}
+              </Text>
+            )}
+            {p.subjectLine ? (
+              <Text size={2} weight="semibold">
+                {p.subjectLine}
+              </Text>
+            ) : (
+              <Text size={2} muted style={{fontStyle: 'italic'}}>
+                No subject line
+              </Text>
+            )}
+            {p.preheader && (
+              <Text size={1} muted>
+                {p.preheader}
+              </Text>
+            )}
+          </Stack>
+        </Card>
 
-        {p.preheader && (
-          <Text
-            size={1}
-            muted
-            style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}
-          >
-            {p.preheader}
-          </Text>
-        )}
-
-        <Flex align="center" justify="space-between" gap={2} paddingTop={1}>
+        {/* Footer: slot count + open link */}
+        <Flex align="center" justify="space-between" gap={2}>
           <Text size={0} muted>
             {p.slotCount ?? 0} slot{p.slotCount !== 1 ? 's' : ''}
           </Text>
           <IntentLink
             intent="edit"
             params={{id: p._id, type: 'promotion'}}
-            style={{fontSize: '12px', color: 'var(--card-link-color, inherit)'}}
+            style={{
+              fontSize: '13px',
+              fontWeight: 500,
+              color: 'var(--card-link-color, inherit)',
+              textDecoration: 'none',
+            }}
           >
-            Open →
+            Edit promotion →
           </IntentLink>
         </Flex>
       </Stack>
