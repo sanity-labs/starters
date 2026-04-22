@@ -87,11 +87,11 @@ export function CampaignGridView({document}: ViewProps) {
       <Box padding={6}>
         <Stack space={3}>
           <Text size={2} weight="semibold">
-            No variants yet
+            No promotions yet
           </Text>
           <Text size={1} muted>
-            Use <strong>Generate Variants</strong> to create segment-variant promotions from this
-            campaign brief.
+            Use <strong>Generate Promotions</strong> to create segment promotions from this campaign
+            brief.
           </Text>
         </Stack>
       </Box>

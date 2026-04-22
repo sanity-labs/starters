@@ -45,7 +45,6 @@ export default async function HomePage() {
                 <div className="min-w-0">
                   <h2 className="font-medium text-gray-900 truncate">{campaign.title}</h2>
                   <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                    {campaign.store?.title && <span>{campaign.store.title}</span>}
                     {campaign.urgencyStage?.title && (
                       <span className="border border-gray-200 rounded px-1.5 py-0.5">
                         {campaign.urgencyStage.title}

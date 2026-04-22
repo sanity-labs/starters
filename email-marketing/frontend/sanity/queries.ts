@@ -9,7 +9,6 @@ export const allCampaignsQuery = defineQuery(`
     endDate,
     emotionalGoal,
     toneTraits,
-    "store": store->{title},
     "urgencyStage": urgencyStage->{title},
     "segments": segments[]->{_id, name, engagementTier},
     "promotionCount": count(*[_type == "promotion" && campaign._ref == ^._id]),

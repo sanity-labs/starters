@@ -11,7 +11,6 @@ const CAMPAIGN_CONTEXT_QUERY = defineQuery(`
     emotionalGoal,
     toneTraits,
     previewContext,
-    "storeName": store->.title,
     "urgencyTitle": urgencyStage->.title,
     "urgencyCopyTone": urgencyStage->.copyTone
   }
@@ -38,7 +37,6 @@ const SEGMENT_CONTEXT_QUERY = defineQuery(`
 
 export interface CampaignBrief {
   title?: string
-  storeName?: string
   primaryMessage?: string
   supportingMessage?: string
   valueProposition?: string
@@ -73,9 +71,7 @@ export function buildInstruction(
 ): string {
   const lines: string[] = []
 
-  lines.push(
-    `You are writing a promotional email${campaign?.storeName ? ` for ${campaign.storeName}` : ''}.`,
-  )
+  lines.push(`You are writing a promotional email.`)
 
   if (campaign?.primaryMessage) {
     lines.push(`\n## Campaign Brief\n${campaign.primaryMessage}`)

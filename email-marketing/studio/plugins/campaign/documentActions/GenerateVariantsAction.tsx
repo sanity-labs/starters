@@ -39,6 +39,16 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
     try {
       const campaignId = props.id
 
+      // Auto-publish the campaign if it only exists as a draft
+      if (props.draft && !props.published) {
+        setProgress('Publishing campaign...')
+        await client.action({
+          actionType: 'sanity.action.document.publish',
+          draftId: `drafts.${campaignId}`,
+          publishedId: campaignId,
+        })
+      }
+
       const [campaignData, campaignBrief, brandVoice] = await Promise.all([
         client.fetch<{segmentIds: string[]} | null>(CAMPAIGN_SEGMENTS_QUERY, {
           id: campaignId,
@@ -68,6 +78,13 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
         schemaId,
         instruction: baseInstruction,
         target: [{path: 'subjectLine'}, {path: 'preheader'}, {path: 'disruptor'}],
+      })
+
+      // Publish the generated draft so workflow state references resolve
+      await client.action({
+        actionType: 'sanity.action.document.publish',
+        draftId: `drafts.${basePromotionId}`,
+        publishedId: basePromotionId,
       })
 
       await client.createOrReplace({
@@ -111,6 +128,13 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
           target: [{path: 'subjectLine'}, {path: 'preheader'}, {path: 'disruptor'}],
         })
 
+        // Publish the generated draft so workflow state references resolve
+        await client.action({
+          actionType: 'sanity.action.document.publish',
+          draftId: `drafts.${variantId}`,
+          publishedId: variantId,
+        })
+
         await client.createOrReplace({
           _id: `wf-${variantId}`,
           _type: 'workflow.state',
@@ -132,8 +156,18 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
       )
       setDone(true)
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      setError(message)
+      let message = err instanceof Error ? err.message : String(err)
+      // Sanity API errors often duplicate info after a colon — keep only the first sentence
+      const colonIdx = message.indexOf(':\n')
+      if (colonIdx > 0) message = message.slice(0, colonIdx)
+
+      if (message.includes('Unknown document type')) {
+        setError(
+          `${message}\n\nThe AI agent validates against the deployed schema. Run "npx sanity schema deploy" from the studio/ directory, then try again.`,
+        )
+      } else {
+        setError(message)
+      }
     }
   }
 
@@ -141,7 +175,7 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
   const hasDraft = Boolean(props.draft)
 
   return {
-    label: 'Generate Variants',
+    label: 'Generate Promotions',
     icon: SparklesIcon,
     disabled: !hasPublished && !hasDraft,
     onHandle,
@@ -149,7 +183,7 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
       progress !== null
         ? {
             type: 'dialog' as const,
-            header: 'Generate Variants',
+            header: 'Generate Promotions',
             content: (
               <Box padding={4}>
                 <Stack space={4}>
@@ -167,9 +201,21 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
                     </Text>
                   )}
                   {error && (
-                    <Text size={2} style={{color: 'var(--card-critical-fg-color)'}}>
-                      Error: {error}
-                    </Text>
+                    <Stack space={3}>
+                      {error
+                        .split('\n')
+                        .filter(Boolean)
+                        .map((line, i) => (
+                          <Text
+                            key={i}
+                            size={2}
+                            style={{color: i === 0 ? 'var(--card-critical-fg-color)' : undefined}}
+                            muted={i > 0}
+                          >
+                            {i === 0 ? `Error: ${line}` : line}
+                          </Text>
+                        ))}
+                    </Stack>
                   )}
                 </Stack>
               </Box>
