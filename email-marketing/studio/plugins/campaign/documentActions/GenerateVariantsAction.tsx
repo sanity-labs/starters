@@ -39,6 +39,16 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
     try {
       const campaignId = props.id
 
+      // Auto-publish the campaign if it only exists as a draft
+      if (props.draft && !props.published) {
+        setProgress('Publishing campaign...')
+        await client.action({
+          actionType: 'sanity.action.document.publish',
+          draftId: `drafts.${campaignId}`,
+          publishedId: campaignId,
+        })
+      }
+
       const [campaignData, campaignBrief, brandVoice] = await Promise.all([
         client.fetch<{segmentIds: string[]} | null>(CAMPAIGN_SEGMENTS_QUERY, {
           id: campaignId,
@@ -50,71 +60,47 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
 
       const segmentIds = campaignData?.segmentIds ?? []
 
-      setProgress('Generating base promotion...')
-
-      const basePromotionId = `promotion-${campaignId}-base`
-      const baseInstruction = buildInstruction(campaignBrief, brandVoice, null)
-
-      await agentClient.agent.action.generate({
-        targetDocument: {
-          operation: 'createOrReplace',
-          _id: basePromotionId,
-          _type: 'promotion',
-          initialValues: {
-            campaign: {_type: 'reference', _ref: campaignId},
-            isBasePromotion: true,
-          },
-        },
-        schemaId,
-        instruction: baseInstruction,
-        target: [{path: 'subjectLine'}, {path: 'preheader'}, {path: 'disruptor'}],
-      })
-
-      await client.createOrReplace({
-        _id: `wf-${basePromotionId}`,
-        _type: 'workflow.state',
-        promotionId: {_type: 'reference', _ref: basePromotionId},
-        status: 'draft',
-        history: [
-          {
-            _key: `h-${Date.now()}`,
-            _type: 'object',
-            status: 'draft',
-            timestamp: new Date().toISOString(),
-          },
-        ],
-      })
-
       for (let i = 0; i < segmentIds.length; i++) {
         const segmentId = segmentIds[i]
         const segment = await fetchSegmentContext(client, segmentId)
         const segmentName = segment?.name ?? `Segment ${i + 1}`
 
-        setProgress(`Generating variant ${i + 1} of ${segmentIds.length}: ${segmentName}...`)
+        setProgress(`Generating promotion ${i + 1} of ${segmentIds.length}: ${segmentName}...`)
 
-        const variantId = `promotion-${campaignId}-${segmentId}`
-        const variantInstruction = buildInstruction(campaignBrief, brandVoice, segment)
+        const promotionId = `promotion-${campaignId}-${segmentId}`
+        const instruction = buildInstruction(campaignBrief, brandVoice, segment)
 
         await agentClient.agent.action.generate({
           targetDocument: {
             operation: 'createOrReplace',
-            _id: variantId,
+            _id: promotionId,
             _type: 'promotion',
             initialValues: {
               campaign: {_type: 'reference', _ref: campaignId},
               segment: {_type: 'reference', _ref: segmentId},
-              isBasePromotion: false,
             },
           },
           schemaId,
-          instruction: variantInstruction,
-          target: [{path: 'subjectLine'}, {path: 'preheader'}, {path: 'disruptor'}],
+          instruction,
+          target: [
+            {path: 'subjectLine'},
+            {path: 'preheader'},
+            {path: 'disruptor'},
+            {path: 'emailSlots'},
+          ],
+        })
+
+        // Publish the generated draft so workflow state references resolve
+        await client.action({
+          actionType: 'sanity.action.document.publish',
+          draftId: `drafts.${promotionId}`,
+          publishedId: promotionId,
         })
 
         await client.createOrReplace({
-          _id: `wf-${variantId}`,
+          _id: `wf-${promotionId}`,
           _type: 'workflow.state',
-          promotionId: {_type: 'reference', _ref: variantId},
+          promotionId: {_type: 'reference', _ref: promotionId},
           status: 'draft',
           history: [
             {
@@ -127,13 +113,21 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
         })
       }
 
-      setProgress(
-        `Generated ${segmentIds.length + 1} promotion${segmentIds.length !== 0 ? 's' : ''} (1 base + ${segmentIds.length} variants)`,
-      )
+      setProgress(`Generated ${segmentIds.length} promotion${segmentIds.length !== 1 ? 's' : ''}`)
       setDone(true)
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      setError(message)
+      let message = err instanceof Error ? err.message : String(err)
+      // Sanity API errors often duplicate info after a colon — keep only the first sentence
+      const colonIdx = message.indexOf(':\n')
+      if (colonIdx > 0) message = message.slice(0, colonIdx)
+
+      if (message.includes('Unknown document type')) {
+        setError(
+          `${message}\n\nThe AI agent validates against the deployed schema. Run "npx sanity schema deploy" from the studio/ directory, then try again.`,
+        )
+      } else {
+        setError(message)
+      }
     }
   }
 
@@ -141,7 +135,7 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
   const hasDraft = Boolean(props.draft)
 
   return {
-    label: 'Generate Variants',
+    label: 'Generate Promotions',
     icon: SparklesIcon,
     disabled: !hasPublished && !hasDraft,
     onHandle,
@@ -149,7 +143,7 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
       progress !== null
         ? {
             type: 'dialog' as const,
-            header: 'Generate Variants',
+            header: 'Generate Promotions',
             content: (
               <Box padding={4}>
                 <Stack space={4}>
@@ -167,9 +161,21 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
                     </Text>
                   )}
                   {error && (
-                    <Text size={2} style={{color: 'var(--card-critical-fg-color)'}}>
-                      Error: {error}
-                    </Text>
+                    <Stack space={3}>
+                      {error
+                        .split('\n')
+                        .filter(Boolean)
+                        .map((line, i) => (
+                          <Text
+                            key={i}
+                            size={2}
+                            style={{color: i === 0 ? 'var(--card-critical-fg-color)' : undefined}}
+                            muted={i > 0}
+                          >
+                            {i === 0 ? `Error: ${line}` : line}
+                          </Text>
+                        ))}
+                    </Stack>
                   )}
                 </Stack>
               </Box>

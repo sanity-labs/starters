@@ -10,11 +10,14 @@ const PROMOTION_QUERY = defineQuery(`
     preheader,
     disruptor,
     emailSlots[]{
-      position,
-      headline,
-      subheadline,
-      asset,
-      cta,
+      ...,
+      _type == "emailSection" => {
+        "imageUrl": image.asset->url,
+        products[]->{ _id, title, price, url, "imageUrl": image.asset->url },
+      },
+      _type == "emailHeader" => {
+        "logoImageUrl": logoUrl.asset->url,
+      },
     },
     "campaignTitle": campaign->.title,
     "segmentExternalId": segment->.externalId,
@@ -22,30 +25,88 @@ const PROMOTION_QUERY = defineQuery(`
   }
 `)
 
+type EmailBlock = {
+  _type?: string | null
+  brandName?: string | null
+  logoImageUrl?: string | null
+  headline?: string | null
+  body?: string | null
+  imageUrl?: string | null
+  products?: Array<{title?: string; price?: number; url?: string; imageUrl?: string}> | null
+  text?: string | null
+  url?: string | null
+  style?: string | null
+  spacing?: string | null
+  legalText?: string | null
+  unsubscribeText?: string | null
+}
+
+function renderBlockHtml(block: EmailBlock): string {
+  switch (block._type) {
+    case 'emailHeader': {
+      if (block.logoImageUrl) {
+        return `<div style="padding:16px 24px;text-align:center;"><img src="${block.logoImageUrl}" alt="${block.brandName ?? ''}" style="max-height:48px;" /></div>`
+      }
+      if (block.brandName) {
+        return `<div style="padding:16px 24px;text-align:center;font-size:18px;font-weight:bold;">${block.brandName}</div>`
+      }
+      return ''
+    }
+    case 'emailSection': {
+      const parts: string[] = []
+      if (block.imageUrl) {
+        parts.push(
+          `<img src="${block.imageUrl}" alt="" style="width:100%;max-width:600px;display:block;" />`,
+        )
+      }
+      if (block.headline) {
+        parts.push(`<h2 style="margin:16px 0 8px;font-size:22px;">${block.headline}</h2>`)
+      }
+      if (block.body) {
+        parts.push(`<p style="margin:0 0 16px;color:#555;font-size:15px;">${block.body}</p>`)
+      }
+      const products = block.products ?? []
+      if (products.length > 0) {
+        const cells = products
+          .map(
+            (p) =>
+              `<td style="padding:8px;vertical-align:top;width:50%;text-align:center;">${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.title ?? ''}" style="width:100%;max-width:250px;" />` : ''}${p.title ? `<p style="font-size:14px;font-weight:bold;margin:8px 0 4px;">${p.title}</p>` : ''}${p.price != null ? `<p style="font-size:13px;color:#555;margin:0;">$${p.price.toFixed(2)}</p>` : ''}${p.url ? `<a href="${p.url}" style="display:inline-block;margin-top:8px;padding:8px 16px;background:#111;color:#fff;text-decoration:none;border-radius:4px;font-size:12px;">View</a>` : ''}</td>`,
+          )
+          .join('')
+        parts.push(`<table style="width:100%;border-collapse:collapse;"><tr>${cells}</tr></table>`)
+      }
+      if (parts.length === 0) return ''
+      return `<div style="padding:24px;border-bottom:1px solid #eee;">${parts.join('')}</div>`
+    }
+    case 'emailCTA': {
+      if (!block.text || !block.url) return ''
+      const bg = block.style === 'secondary' ? '#fff' : '#111'
+      const fg = block.style === 'secondary' ? '#111' : '#fff'
+      const border = block.style === 'secondary' ? 'border:1px solid #111;' : ''
+      return `<div style="padding:16px 24px;text-align:center;"><a href="${block.url}" style="display:inline-block;padding:12px 24px;background:${bg};color:${fg};${border}text-decoration:none;border-radius:4px;font-size:14px;">${block.text}</a></div>`
+    }
+    case 'emailDivider': {
+      const py = block.spacing === 'small' ? '8px' : block.spacing === 'large' ? '32px' : '16px'
+      return `<hr style="border:none;border-top:1px solid #eee;margin:${py} 0;" />`
+    }
+    case 'emailFooter': {
+      const unsubText = block.unsubscribeText ?? 'Unsubscribe'
+      return `<div style="padding:24px;text-align:center;font-size:11px;color:#aaa;">${block.legalText ? `<p style="margin:0 0 8px;">${block.legalText}</p>` : ''}<a href="{{ unsubscribe_url }}" style="color:#aaa;">${unsubText}</a></div>`
+    }
+    default:
+      return ''
+  }
+}
+
 function buildHtml(promotion: {
   subjectLine?: string | null
   preheader?: string | null
   disruptor?: string | null
-  emailSlots?: Array<{
-    position?: string | null
-    headline?: string | null
-    subheadline?: string | null
-    asset?: {url?: string | null; altText?: string | null} | null
-    cta?: {text?: string | null; url?: string | null} | null
-  }> | null
+  emailSlots?: EmailBlock[] | null
 }): string {
-  const slots = promotion.emailSlots ?? []
-  const slotHtml = slots
-    .map(
-      (slot) => `
-    <div style="padding:24px;border-bottom:1px solid #eee;">
-      ${slot.asset?.url ? `<img src="${slot.asset.url}" alt="${slot.asset.altText ?? ''}" style="width:100%;max-width:600px;display:block;" />` : ''}
-      ${slot.headline ? `<h2 style="margin:16px 0 8px;font-size:22px;">${slot.headline}</h2>` : ''}
-      ${slot.subheadline ? `<p style="margin:0 0 16px;color:#555;font-size:15px;">${slot.subheadline}</p>` : ''}
-      ${slot.cta?.text && slot.cta.url ? `<a href="${slot.cta.url}" style="display:inline-block;padding:12px 24px;background:#111;color:#fff;text-decoration:none;border-radius:4px;font-size:14px;">${slot.cta.text}</a>` : ''}
-    </div>`,
-    )
-    .join('')
+  const blocks = promotion.emailSlots ?? []
+  const blockHtml = blocks.map(renderBlockHtml).filter(Boolean).join('')
+  const hasFooter = blocks.some((b) => b._type === 'emailFooter')
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -57,10 +118,8 @@ function buildHtml(promotion: {
 <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;">
   <div style="max-width:600px;margin:0 auto;background:#fff;">
     ${promotion.disruptor ? `<div style="background:#111;color:#fff;text-align:center;padding:8px;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;">${promotion.disruptor}</div>` : ''}
-    ${slotHtml}
-    <div style="padding:24px;text-align:center;font-size:11px;color:#aaa;">
-      <a href="{{ unsubscribe_url }}" style="color:#aaa;">Unsubscribe</a>
-    </div>
+    ${blockHtml}
+    ${!hasFooter ? `<div style="padding:24px;text-align:center;font-size:11px;color:#aaa;"><a href="{{ unsubscribe_url }}" style="color:#aaa;">Unsubscribe</a></div>` : ''}
   </div>
 </body>
 </html>`

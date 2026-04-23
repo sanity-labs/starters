@@ -11,7 +11,6 @@ const CAMPAIGN_CONTEXT_QUERY = defineQuery(`
     emotionalGoal,
     toneTraits,
     previewContext,
-    "storeName": store->.title,
     "urgencyTitle": urgencyStage->.title,
     "urgencyCopyTone": urgencyStage->.copyTone
   }
@@ -38,7 +37,6 @@ const SEGMENT_CONTEXT_QUERY = defineQuery(`
 
 export interface CampaignBrief {
   title?: string
-  storeName?: string
   primaryMessage?: string
   supportingMessage?: string
   valueProposition?: string
@@ -73,9 +71,18 @@ export function buildInstruction(
 ): string {
   const lines: string[] = []
 
+  lines.push(`You are writing a promotional email.`)
+
+  lines.push(`\n## Email Structure`)
+  lines.push(`Compose the emailSlots field using these block types in a logical order:`)
+  lines.push(`- **emailHeader**: brandName (string)`)
   lines.push(
-    `You are writing a promotional email${campaign?.storeName ? ` for ${campaign.storeName}` : ''}.`,
+    `- **emailSection**: headline (string), body (text) — the main content blocks. Use 1–3 sections.`,
   )
+  lines.push(`- **emailCTA**: text (string), url (url), style ("primary" or "secondary")`)
+  lines.push(`- **emailDivider**: spacing ("small", "medium", or "large")`)
+  lines.push(`- **emailFooter**: legalText (text), unsubscribeText (string)`)
+  lines.push(`A typical email: header → 1–3 sections with dividers between them → CTA → footer.`)
 
   if (campaign?.primaryMessage) {
     lines.push(`\n## Campaign Brief\n${campaign.primaryMessage}`)

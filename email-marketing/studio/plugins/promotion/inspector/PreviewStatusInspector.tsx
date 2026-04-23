@@ -15,7 +15,13 @@ const WORKFLOW_QUERY = defineQuery(`
 const PREVIEW_CONTEXT_QUERY = defineQuery(`
   *[_type == "promotion" && _id == $id][0]{
     "tokens": campaign->.previewContext.tokens[]{key, description},
-    emailSlots[]{headline, subheadline},
+    emailSlots[]{
+      _type,
+      _type == "emailSection" => { headline, body },
+      _type == "emailHeader" => { brandName },
+      _type == "emailCTA" => { text },
+      _type == "emailFooter" => { legalText, unsubscribeText },
+    },
   }
 `)
 
@@ -42,14 +48,28 @@ const STATUS_COLORS: Record<string, 'primary' | 'positive' | 'caution' | 'critic
 }
 
 function scanForTokens(
-  slots: Array<{headline?: string | null; subheadline?: string | null}> | null,
+  blocks: Array<{
+    headline?: string | null
+    body?: string | null
+    brandName?: string | null
+    text?: string | null
+    legalText?: string | null
+    unsubscribeText?: string | null
+  }> | null,
 ): Set<string> {
   const found = new Set<string>()
   const pattern = /\{\{\s*([\w.]+)\s*\}\}/g
-  for (const slot of slots ?? []) {
-    for (const text of [slot.headline, slot.subheadline]) {
-      if (!text) continue
-      for (const match of text.matchAll(pattern)) {
+  for (const block of blocks ?? []) {
+    for (const val of [
+      block.headline,
+      block.body,
+      block.brandName,
+      block.text,
+      block.legalText,
+      block.unsubscribeText,
+    ]) {
+      if (!val) continue
+      for (const match of val.matchAll(pattern)) {
         found.add(match[1])
       }
     }
@@ -70,26 +90,33 @@ function PreviewStatusInspectorComponent({documentId}: DocumentInspectorProps) {
       client.fetch<WorkflowState | null>(WORKFLOW_QUERY, {id: promotionId}),
       client.fetch<{
         tokens: Array<{key?: string | null; description?: string | null}> | null
-        emailSlots: Array<{headline?: string | null; subheadline?: string | null}> | null
+        emailSlots: Array<{
+          headline?: string | null
+          body?: string | null
+          brandName?: string | null
+          text?: string | null
+          legalText?: string | null
+          unsubscribeText?: string | null
+        }> | null
       } | null>(PREVIEW_CONTEXT_QUERY, {id: promotionId}),
     ]).then(([wf, preview]) => {
       if (cancelled) return
       setWorkflow(wf)
 
-      const usedInSlots = scanForTokens(preview?.emailSlots ?? [])
+      const usedInBlocks = scanForTokens(preview?.emailSlots ?? [])
       const previewContextKeys = new Set(
         (preview?.tokens ?? []).map((t) => t.key).filter(Boolean) as string[],
       )
 
       const entries: PreviewStatusEntry[] = []
-      for (const key of [...usedInSlots]) {
+      for (const key of [...usedInBlocks]) {
         entries.push({
           key,
           mode: previewContextKeys.has(key) ? 'sample' : 'send-time-only',
         })
       }
       for (const key of [...previewContextKeys]) {
-        if (!usedInSlots.has(key)) {
+        if (!usedInBlocks.has(key)) {
           entries.push({key, mode: 'not-used'})
         }
       }
