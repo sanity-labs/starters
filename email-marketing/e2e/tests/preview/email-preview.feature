@@ -1,12 +1,12 @@
 Feature: Promotion Email Preview
-  Scenario: Local preview renders email slots
-    Given a promotion exists with email slots
+  Scenario: Local preview renders email blocks
+    Given a promotion exists with email blocks
     When I open the promotion preview at "/promotions/{id}"
-    Then I see the slot content rendered
+    Then I see the block content rendered
     And personalization tokens are replaced with sample data
 
   Scenario: Klaviyo preview toggle shows Klaviyo-format HTML
-    Given a promotion exists with email slots
+    Given a promotion exists with email blocks
     When I open the promotion preview at "/promotions/{id}"
     And I click "Klaviyo preview"
     Then the iframe loads the Klaviyo render endpoint
@@ -14,13 +14,13 @@ Feature: Promotion Email Preview
 
   Scenario: Presentation Tool opens promotion preview
     Given I am in the Studio
-    And a promotion exists with email slots
+    And a promotion exists with email blocks
     When I open that promotion in the Studio
     And I open the Presentation Tool preview
     Then the preview pane shows the promotion at "/promotions/{id}"
 
   Scenario: Local preview view toggle defaults to local
-    Given a promotion exists with email slots
+    Given a promotion exists with email blocks
     When I open the promotion preview at "/promotions/{id}"
     Then the "Local preview" toggle is active
-    And the email slots are rendered as React components
+    And the email blocks are rendered as React components

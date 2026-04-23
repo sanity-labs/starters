@@ -1,5 +1,14 @@
 import type {StructureResolver} from 'sanity/structure'
-import {RocketIcon, BasketIcon, FilterIcon, SyncIcon, SquareIcon} from '@sanity/icons'
+import {
+  RocketIcon,
+  BasketIcon,
+  FilterIcon,
+  SyncIcon,
+  EnvelopeIcon,
+  CogIcon,
+  BoltIcon,
+  CommentIcon,
+} from '@sanity/icons'
 import {CampaignGridView} from './plugins/campaign'
 
 export const structure: StructureResolver = (S) =>
@@ -10,17 +19,44 @@ export const structure: StructureResolver = (S) =>
         .title('Campaigns')
         .icon(RocketIcon)
         .child(
-          S.documentTypeList('campaign')
+          S.list()
             .title('Campaigns')
-            .child((id) =>
-              S.document()
-                .documentId(id)
-                .schemaType('campaign')
-                .views([
-                  S.view.form().title('Brief'),
-                  S.view.component(CampaignGridView).title('Variants').icon(SquareIcon),
-                ]),
-            ),
+            .items([
+              S.listItem()
+                .title('All Campaigns')
+                .icon(RocketIcon)
+                .child(
+                  S.documentTypeList('campaign')
+                    .title('All Campaigns')
+                    .child((id) =>
+                      S.document()
+                        .documentId(id)
+                        .schemaType('campaign')
+                        .views([
+                          S.view.form().title('Brief').icon(RocketIcon),
+                          S.view.component(CampaignGridView).title('Promotions').icon(EnvelopeIcon),
+                        ]),
+                    ),
+                ),
+              S.divider(),
+              S.listItem()
+                .title('Email Settings')
+                .icon(CogIcon)
+                .child(
+                  S.list()
+                    .title('Email Settings')
+                    .items([
+                      S.listItem()
+                        .title('Brand Voice')
+                        .icon(CommentIcon)
+                        .child(S.document().documentId('brandVoice').schemaType('brandVoice')),
+                      S.listItem()
+                        .title('Urgency Stages')
+                        .icon(BoltIcon)
+                        .child(S.documentTypeList('urgencyStage').title('Urgency Stages')),
+                    ]),
+                ),
+            ]),
         ),
       S.divider(),
       S.listItem()

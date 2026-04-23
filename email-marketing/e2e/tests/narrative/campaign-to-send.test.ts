@@ -39,18 +39,11 @@ const testDefinitions = [
     await expect(page.getByText('Generated')).toBeVisible({timeout: 60_000})
   }),
 
-  Then('I see the base promotion was created', async ({playwright: {page}}) => {
+  Then('I see a promotion for each target segment', async ({playwright: {page}}) => {
     await page.goto(`${STUDIO_URL}/structure/promotion`)
-    await expect(page.getByText('Base')).toBeVisible({timeout: 10_000})
+    const rows = page.getByRole('link')
+    await expect(rows.first()).toBeVisible({timeout: 10_000})
   }),
-
-  Then(
-    'I see a segment variant promotion for each target segment',
-    async ({playwright: {page}}) => {
-      const rows = page.getByRole('link')
-      await expect(rows).toHaveCount(await rows.count())
-    },
-  ),
 
   Given('a promotion exists in {string} status', async ({playwright: {page}}, status: string) => {
     const doc = await sanityClient.fetch<{_id: string} | null>(
@@ -91,12 +84,9 @@ const testDefinitions = [
     await page.getByRole('button', {name: panelName}).click()
   }),
 
-  When<string>(
-    'I type {string}',
-    async ({playwright: {page}}, text) => {
-      await page.locator('textarea').last().fill(text)
-    },
-  ),
+  When<string>('I type {string}', async ({playwright: {page}}, text) => {
+    await page.locator('textarea').last().fill(text)
+  }),
 
   When('I send the message', async ({playwright: {page}}) => {
     await page.getByRole('button', {name: /send/i}).click()
@@ -128,11 +118,7 @@ const testDefinitions = [
     await page.getByRole('tab', {name: tab}).click()
   }),
 
-  Then('I see the base promotion tile', async ({playwright: {page}}) => {
-    await expect(page.getByText('Base')).toBeVisible({timeout: 5_000})
-  }),
-
-  Then('I see one tile per segment variant', async ({playwright: {page}}) => {
+  Then('I see one tile per segment promotion', async ({playwright: {page}}) => {
     const tiles = page.locator('[data-testid="promotion-tile"], article, section').filter({
       hasText: /draft|in-review|approved|sent/i,
     })
@@ -161,14 +147,11 @@ const testDefinitions = [
     await expect(page.getByRole('link').first()).toBeVisible({timeout: 5_000})
   }),
 
-  Then(
-    "they can be referenced in a campaign's segments field",
-    async ({playwright: {page}}) => {
-      await page.goto(`${STUDIO_URL}/structure/campaign`)
-      await page.getByRole('link').first().click()
-      await expect(page.locator('[data-testid="field-segments"]')).toBeVisible()
-    },
-  ),
+  Then("they can be referenced in a campaign's segments field", async ({playwright: {page}}) => {
+    await page.goto(`${STUDIO_URL}/structure/campaign`)
+    await page.getByRole('link').first().click()
+    await expect(page.locator('[data-testid="field-segments"]')).toBeVisible()
+  }),
 ]
 
 Feature(featureText, testDefinitions)

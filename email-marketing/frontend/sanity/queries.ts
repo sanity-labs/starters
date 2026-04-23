@@ -9,7 +9,6 @@ export const allCampaignsQuery = defineQuery(`
     endDate,
     emotionalGoal,
     toneTraits,
-    "store": store->{title},
     "urgencyStage": urgencyStage->{title},
     "segments": segments[]->{_id, name, engagementTier},
     "promotionCount": count(*[_type == "promotion" && campaign._ref == ^._id]),
@@ -23,7 +22,6 @@ export const promotionsByCampaignQuery = defineQuery(`
     subjectLine,
     preheader,
     disruptor,
-    isBasePromotion,
     "segment": segment->{_id, name, engagementTier},
     "workflowStatus": *[_type == "workflow.state" && promotionId._ref == ^._id][0].status,
   }
@@ -35,14 +33,15 @@ export const promotionByIdQuery = defineQuery(`
     subjectLine,
     preheader,
     disruptor,
-    isBasePromotion,
     emailSlots[] {
-      _key,
-      position,
-      headline,
-      subheadline,
-      asset,
-      cta,
+      ...,
+      _type == "emailSection" => {
+        "imageUrl": image.asset->url,
+        products[]->{ _id, title, price, url, "imageUrl": image.asset->url },
+      },
+      _type == "emailHeader" => {
+        "logoImageUrl": logoUrl.asset->url,
+      },
     },
     "campaign": campaign->{_id, title, primaryMessage, previewContext},
     "segment": segment->{_id, name, affinityDescription, typicalCopyTone},

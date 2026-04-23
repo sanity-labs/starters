@@ -20,12 +20,6 @@ export const campaign = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
-      name: 'store',
-      title: 'Store',
-      type: 'reference',
-      to: [{type: 'store'}],
-    }),
-    defineField({
       name: 'urgencyStage',
       title: 'Urgency Stage',
       type: 'reference',
@@ -60,13 +54,16 @@ export const campaign = defineType({
       title: 'Supporting Message',
       type: 'text',
       rows: 3,
+      description:
+        'Secondary narrative that reinforces the primary message. Used by AI when generating variant copy.',
     }),
     defineField({
       name: 'valueProposition',
       title: 'Value Proposition',
       type: 'text',
       rows: 3,
-      description: 'What is the offer or benefit?',
+      description:
+        'The concrete offer: discount, free shipping, early access, etc. AI uses this as the lead hook in generated copy.',
     }),
     defineField({
       name: 'emotionalGoal',
@@ -104,6 +101,13 @@ export const campaign = defineType({
                 defineField({name: 'sample', title: 'Sample Value', type: 'string'}),
                 defineField({name: 'description', title: 'Description', type: 'string'}),
               ],
+              preview: {
+                select: {key: 'key', sample: 'sample'},
+                prepare: ({key, sample}) => ({
+                  title: key ? `{{${key}}}` : 'Untitled token',
+                  subtitle: sample ?? '',
+                }),
+              },
             }),
           ],
         }),

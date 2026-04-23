@@ -13,11 +13,11 @@ const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3000'
 let currentPromotionId: string | null = null
 
 const testDefinitions = [
-  Given('a promotion exists with email slots', async () => {
+  Given('a promotion exists with email blocks', async () => {
     const doc = await sanityClient.fetch<{_id: string} | null>(
       `*[_type == "promotion" && count(emailSlots) > 0][0]{_id}`,
     )
-    if (!doc) throw new Error('No promotion with email slots found')
+    if (!doc) throw new Error('No promotion with email blocks found')
     currentPromotionId = doc._id
   }),
 
@@ -27,13 +27,13 @@ const testDefinitions = [
     await page.waitForLoadState('networkidle')
   }),
 
-  Then('I see the slot content rendered', async ({playwright: {page}}) => {
-    const slot = await sanityClient.fetch<{headline: string} | null>(
-      `*[_type == "promotion" && _id == $id][0].emailSlots[0]{headline}`,
+  Then('I see the block content rendered', async ({playwright: {page}}) => {
+    const section = await sanityClient.fetch<{headline: string} | null>(
+      `*[_type == "promotion" && _id == $id][0].emailSlots[_type == "emailSection"][0]{headline}`,
       {id: currentPromotionId},
     )
-    if (slot?.headline) {
-      await expect(page.getByText(slot.headline, {exact: false})).toBeVisible()
+    if (section?.headline) {
+      await expect(page.getByText(section.headline, {exact: false})).toBeVisible()
     }
   }),
 
@@ -69,7 +69,10 @@ const testDefinitions = [
   }),
 
   When('I open the Presentation Tool preview', async ({playwright: {page}}) => {
-    await page.getByRole('button', {name: /open preview|presentation/i}).first().click()
+    await page
+      .getByRole('button', {name: /open preview|presentation/i})
+      .first()
+      .click()
   }),
 
   Then(
@@ -85,12 +88,9 @@ const testDefinitions = [
     await expect(toggle).toHaveClass(/bg-gray-900|active|selected/i)
   }),
 
-  Then(
-    'the email slots are rendered as React components',
-    async ({playwright: {page}}) => {
-      await expect(page.locator('.divide-y').first()).toBeVisible()
-    },
-  ),
+  Then('the email blocks are rendered as React components', async ({playwright: {page}}) => {
+    await expect(page.locator('.divide-y').first()).toBeVisible()
+  }),
 ]
 
 Feature(featureText, testDefinitions)
