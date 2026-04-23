@@ -1,10 +1,5 @@
 import {useEffect, useState} from 'react'
-import {
-  DEFAULT_STUDIO_CLIENT_OPTIONS,
-  useClient,
-  type DocumentBadgeComponent,
-  type DocumentBadgeDescription,
-} from 'sanity'
+import {DEFAULT_STUDIO_CLIENT_OPTIONS, useClient, type DocumentBadgeComponent} from 'sanity'
 import {defineQuery} from 'groq'
 
 const SEGMENT_NAME_QUERY = defineQuery(`*[_type == "segment" && _id == $id][0].name`)
@@ -28,16 +23,6 @@ export const SegmentBadge: DocumentBadgeComponent = (props) => {
       cancelled = true
     }
   }, [client, segmentRef])
-
-  const isBase = Boolean(doc?.isBasePromotion)
-
-  if (isBase) {
-    return {
-      label: 'Base',
-      color: 'primary',
-      title: 'Base promotion variant',
-    } satisfies DocumentBadgeDescription
-  }
 
   if (!segmentName) return null
 

@@ -47,7 +47,16 @@ const PROMOTION_RENDER_QUERY = defineQuery(`
     subjectLine,
     preheader,
     disruptor,
-    emailSlots[]{position, headline, subheadline, asset, cta},
+    emailSlots[]{
+      ...,
+      _type == "emailSection" => {
+        "imageUrl": image.asset->url,
+        products[]->{ _id, title, price, url, "imageUrl": image.asset->url },
+      },
+      _type == "emailHeader" => {
+        "logoImageUrl": logoUrl.asset->url,
+      },
+    },
     "previewContext": campaign->.previewContext.tokens[]{key, sample, description},
   }
 `)
@@ -97,7 +106,8 @@ export async function GET(
     return new Response('Unauthorized', {status: 401})
   }
 
-  const {id} = await params
+  const {id: rawId} = await params
+  const id = rawId.replace(/^drafts\./, '')
   const apiKey = process.env.KLAVIYO_API_KEY
   const wantsJson = request.headers.get('accept')?.includes('application/json')
 

@@ -1,11 +1,11 @@
 import {defineField, defineType} from 'sanity'
 import {EnvelopeIcon} from '@sanity/icons'
-import {emailSlotArrayMember} from './emailSlot'
+import {emailBlockArrayMembers} from './emailBlocks'
 
 /**
  * Promotion (the artifact)
  *
- * Segment-variant artifact: one base promotion + N segment-variant promotions per campaign.
+ * Segment-targeted artifact: one promotion per segment per campaign.
  * Contains subject line, preheader, disruptor, modular slots, and engagement performance metadata.
  */
 export const promotion = defineType({
@@ -26,13 +26,7 @@ export const promotion = defineType({
       title: 'Segment',
       type: 'reference',
       to: [{type: 'segment'}],
-      description: 'Null for base promotion; set for segment-variant promotions.',
-    }),
-    defineField({
-      name: 'isBasePromotion',
-      title: 'Is Base Promotion',
-      type: 'boolean',
-      description: 'True if this is the base variant (applies to all segments by default).',
+      validation: (rule) => rule.required(),
     }),
     defineField({
       name: 'subjectLine',
@@ -53,15 +47,15 @@ export const promotion = defineType({
       title: 'Disruptor',
       type: 'string',
       validation: (rule) => rule.max(20),
-      description: 'Short trigger phrase (max 3 words) to catch attention.',
+      description:
+        'A short attention-grabbing label displayed at the top of the email body (e.g., "Flash sale", "VIP only").',
     }),
     defineField({
       name: 'emailSlots',
       title: 'Email Slots',
       type: 'array',
-      of: [emailSlotArrayMember],
-      description:
-        'Modular slots (top-banner, module-1, module-2) with independent assets and CTAs.',
+      of: emailBlockArrayMembers,
+      description: 'Compose your email using headers, sections, CTAs, dividers, and footers.',
     }),
     defineField({
       name: 'campaignPerformance',
@@ -81,11 +75,10 @@ export const promotion = defineType({
     select: {
       title: 'subjectLine',
       segment: 'segment',
-      isBase: 'isBasePromotion',
     },
-    prepare: ({title, segment, isBase}) => ({
+    prepare: ({title, segment}) => ({
       title: title ?? 'Untitled',
-      subtitle: isBase ? 'Base Promotion' : segment ? `Segment variant` : 'Unassigned',
+      subtitle: segment ? 'Segment promotion' : 'Unassigned',
     }),
   },
 })
