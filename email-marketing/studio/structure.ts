@@ -23,6 +23,23 @@ export const structure: StructureResolver = (S) =>
             .title('Campaigns')
             .items([
               S.listItem()
+                .title('All Campaigns')
+                .icon(RocketIcon)
+                .child(
+                  S.documentTypeList('campaign')
+                    .title('All Campaigns')
+                    .child((id) =>
+                      S.document()
+                        .documentId(id)
+                        .schemaType('campaign')
+                        .views([
+                          S.view.form().title('Brief').icon(RocketIcon),
+                          S.view.component(CampaignGridView).title('Promotions').icon(EnvelopeIcon),
+                        ]),
+                    ),
+                ),
+              S.divider(),
+              S.listItem()
                 .title('Email Settings')
                 .icon(CogIcon)
                 .child(
@@ -38,23 +55,6 @@ export const structure: StructureResolver = (S) =>
                         .icon(BoltIcon)
                         .child(S.documentTypeList('urgencyStage').title('Urgency Stages')),
                     ]),
-                ),
-              S.divider(),
-              S.listItem()
-                .title('All Campaigns')
-                .icon(RocketIcon)
-                .child(
-                  S.documentTypeList('campaign')
-                    .title('All Campaigns')
-                    .child((id) =>
-                      S.document()
-                        .documentId(id)
-                        .schemaType('campaign')
-                        .views([
-                          S.view.form().title('Brief').icon(RocketIcon),
-                          S.view.component(CampaignGridView).title('Promotions').icon(EnvelopeIcon),
-                        ]),
-                    ),
                 ),
             ]),
         ),
