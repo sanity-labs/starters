@@ -21,16 +21,55 @@ export interface PreviewStatus {
   timestamp: string
 }
 
-export interface EmailSlot {
-  position: 'top-banner' | 'module-1' | 'module-2'
-  headline: string
-  subheadline?: string
-  assetUrl?: string
-  cta?: {
-    text: string
-    url: string
-  }
+export interface EmailHeaderBlock {
+  _type: 'emailHeader'
+  _key: string
+  brandName?: string
+  logoImageUrl?: string
 }
+
+export interface EmailSectionBlock {
+  _type: 'emailSection'
+  _key: string
+  headline?: string
+  body?: string
+  imageUrl?: string
+  products?: Array<{
+    _id: string
+    title?: string
+    price?: number
+    url?: string
+    imageUrl?: string
+  }>
+}
+
+export interface EmailCTABlock {
+  _type: 'emailCTA'
+  _key: string
+  text?: string
+  url?: string
+  style?: 'primary' | 'secondary'
+}
+
+export interface EmailDividerBlock {
+  _type: 'emailDivider'
+  _key: string
+  spacing?: 'small' | 'medium' | 'large'
+}
+
+export interface EmailFooterBlock {
+  _type: 'emailFooter'
+  _key: string
+  legalText?: string
+  unsubscribeText?: string
+}
+
+export type EmailBlock =
+  | EmailHeaderBlock
+  | EmailSectionBlock
+  | EmailCTABlock
+  | EmailDividerBlock
+  | EmailFooterBlock
 
 export interface Promotion {
   _id: string
@@ -43,7 +82,7 @@ export interface Promotion {
   subjectLine: string
   preheader: string
   disruptor?: string
-  emailSlots: EmailSlot[]
+  emailSlots: EmailBlock[]
 }
 
 export interface StreamOptions {

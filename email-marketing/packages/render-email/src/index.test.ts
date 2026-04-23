@@ -6,19 +6,28 @@ const BASE_PROMOTION = {
   preheader: 'Test preheader',
   disruptor: 'New',
   emailSlots: [
+    {_type: 'emailHeader' as const, brandName: 'Test Brand'},
     {
-      position: 'top-banner' as const,
+      _type: 'emailSection' as const,
       headline: 'Big Sale Headline',
-      subheadline: 'Up to 50% off everything',
-      asset: {url: 'https://example.com/image.jpg', altText: 'Sale image'},
-      cta: {text: 'Shop Now', url: 'https://example.com/sale'},
+      body: 'Up to 50% off everything',
+      imageUrl: 'https://example.com/image.jpg',
     },
     {
-      position: 'module-1' as const,
+      _type: 'emailCTA' as const,
+      text: 'Shop Now',
+      url: 'https://example.com/sale',
+      style: 'primary' as const,
+    },
+    {_type: 'emailDivider' as const, spacing: 'medium' as const},
+    {
+      _type: 'emailSection' as const,
       headline: 'Featured Products',
-      subheadline: null,
-      asset: null,
-      cta: null,
+    },
+    {
+      _type: 'emailFooter' as const,
+      legalText: 'Legal text here',
+      unsubscribeText: 'Unsubscribe',
     },
   ],
 }
@@ -30,13 +39,13 @@ describe('renderPromotionLocal', () => {
     expect(html.length).toBeGreaterThan(0)
   })
 
-  it('includes slot headlines', async () => {
+  it('includes section headlines', async () => {
     const html = await renderPromotionLocal(BASE_PROMOTION)
     expect(html).toContain('Big Sale Headline')
     expect(html).toContain('Featured Products')
   })
 
-  it('includes slot subheadline', async () => {
+  it('includes section body text', async () => {
     const html = await renderPromotionLocal(BASE_PROMOTION)
     expect(html).toContain('Up to 50% off everything')
   })
@@ -56,16 +65,22 @@ describe('renderPromotionLocal', () => {
     expect(html).toContain('New')
   })
 
+  it('renders header brand name', async () => {
+    const html = await renderPromotionLocal(BASE_PROMOTION)
+    expect(html).toContain('Test Brand')
+  })
+
+  it('renders footer legal text', async () => {
+    const html = await renderPromotionLocal(BASE_PROMOTION)
+    expect(html).toContain('Legal text here')
+  })
+
   it('resolves preview context tokens', async () => {
     const promotion = {
-      ...BASE_PROMOTION,
       emailSlots: [
         {
-          position: 'top-banner' as const,
+          _type: 'emailSection' as const,
           headline: 'Hi {{ first_name }}, check this out',
-          subheadline: null,
-          asset: null,
-          cta: null,
         },
       ],
     }
@@ -76,7 +91,7 @@ describe('renderPromotionLocal', () => {
 
   it('stubs remaining Klaviyo tags with fallback values', async () => {
     const html = await renderPromotionLocal(BASE_PROMOTION)
-    // unsubscribe_url is in the template footer — should be replaced with fallback
+    // unsubscribe_url is in the footer — should be replaced with fallback
     expect(html).not.toContain('{{ unsubscribe_url }}')
   })
 
@@ -91,15 +106,12 @@ describe('renderPromotionLocal', () => {
     expect(typeof html).toBe('string')
   })
 
-  it('escapes HTML entities in slot content', async () => {
+  it('escapes HTML entities in block content', async () => {
     const promotion = {
       emailSlots: [
         {
-          position: 'top-banner' as const,
+          _type: 'emailSection' as const,
           headline: '<script>alert("xss")</script>',
-          subheadline: null,
-          asset: null,
-          cta: null,
         },
       ],
     }
@@ -115,7 +127,7 @@ describe('renderPromotionKlaviyo', () => {
     expect(html.length).toBeGreaterThan(0)
   })
 
-  it('includes slot headlines', async () => {
+  it('includes section headlines', async () => {
     const html = await renderPromotionKlaviyo(BASE_PROMOTION)
     expect(html).toContain('Big Sale Headline')
   })
@@ -129,11 +141,8 @@ describe('renderPromotionKlaviyo', () => {
     const promotion = {
       emailSlots: [
         {
-          position: 'top-banner' as const,
+          _type: 'emailSection' as const,
           headline: 'Hi {{ profile.first_name }}',
-          subheadline: null,
-          asset: null,
-          cta: null,
         },
       ],
     }

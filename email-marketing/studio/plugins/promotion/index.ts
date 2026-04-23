@@ -6,7 +6,13 @@
  */
 
 export {promotion} from './schemaTypes/promotion'
-export {emailSlot} from './schemaTypes/emailSlot'
+export {
+  emailHeader,
+  emailSection,
+  emailCTA,
+  emailDivider,
+  emailFooter,
+} from './schemaTypes/emailBlocks'
 export {ApproveAction} from './documentActions/ApproveAction'
 export {ResendAction} from './documentActions/ResendAction'
 export {WorkflowStateBadge} from './badges/WorkflowStateBadge'

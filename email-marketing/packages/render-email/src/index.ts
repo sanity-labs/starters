@@ -35,7 +35,12 @@ export type {
   RenderContext,
   RenderAdapter,
   PreviewStatus,
-  EmailSlot,
+  EmailBlock,
+  EmailHeaderBlock,
+  EmailSectionBlock,
+  EmailCTABlock,
+  EmailDividerBlock,
+  EmailFooterBlock,
   Promotion,
   StreamOptions,
 } from './types'
@@ -43,18 +48,30 @@ export type {
 import mjml from 'mjml'
 import {stubKlaviyoTags} from './stubs'
 
-type Slot = {
-  position?: string | null
-  asset?: {url?: string | null; altText?: string | null} | null
-  assetUrl?: string | null
+type Block = {
+  _type?: string | null
+  brandName?: string | null
+  logoImageUrl?: string | null
   headline?: string | null
-  subheadline?: string | null
-  cta?: {text?: string | null; url?: string | null} | null
+  body?: string | null
+  imageUrl?: string | null
+  products?: Array<{
+    title?: string | null
+    price?: number | null
+    url?: string | null
+    imageUrl?: string | null
+  }> | null
+  text?: string | null
+  url?: string | null
+  style?: string | null
+  spacing?: string | null
+  legalText?: string | null
+  unsubscribeText?: string | null
 }
 
 type PromotionInput = {
   disruptor?: string | null
-  emailSlots?: Slot[] | null
+  emailSlots?: Block[] | null
 }
 
 function esc(str: string): string {
@@ -65,37 +82,141 @@ function esc(str: string): string {
     .replace(/"/g, '&quot;')
 }
 
+function renderHeaderMjml(block: Block): string {
+  const parts: string[] = []
+  if (block.logoImageUrl) {
+    parts.push(
+      `<mj-image src="${esc(block.logoImageUrl)}" alt="${esc(block.brandName ?? '')}" width="150px" padding="16px 0" />`,
+    )
+  }
+  if (block.brandName && !block.logoImageUrl) {
+    parts.push(
+      `<mj-text font-size="18px" font-weight="bold" color="#111111" align="center">${esc(block.brandName)}</mj-text>`,
+    )
+  }
+  if (parts.length === 0) return ''
+  return `<mj-section padding="16px 32px" background-color="#ffffff">
+      <mj-column>${parts.join('\n        ')}</mj-column>
+    </mj-section>`
+}
+
+function renderSectionMjml(block: Block): string {
+  const parts: string[] = []
+
+  if (block.imageUrl) {
+    parts.push(`<mj-section padding="0">
+      <mj-column>
+        <mj-image src="${esc(block.imageUrl)}" alt="" width="600px" padding="0" />
+      </mj-column>
+    </mj-section>`)
+  }
+
+  const textParts: string[] = []
+  if (block.headline) {
+    textParts.push(
+      `<mj-text font-size="22px" font-weight="bold" color="#111111" padding-bottom="8px">${esc(block.headline)}</mj-text>`,
+    )
+  }
+  if (block.body) {
+    textParts.push(
+      `<mj-text font-size="15px" color="#555555" line-height="1.6" padding-bottom="16px">${esc(block.body)}</mj-text>`,
+    )
+  }
+  if (textParts.length > 0) {
+    parts.push(`<mj-section padding="24px 32px" background-color="#ffffff">
+      <mj-column>${textParts.join('\n        ')}</mj-column>
+    </mj-section>`)
+  }
+
+  const products = block.products ?? []
+  if (products.length > 0) {
+    const productCols = products
+      .map((p) => {
+        const col: string[] = []
+        if (p.imageUrl) {
+          col.push(
+            `<mj-image src="${esc(p.imageUrl)}" alt="${esc(p.title ?? '')}" width="250px" padding-bottom="8px" />`,
+          )
+        }
+        if (p.title) {
+          col.push(
+            `<mj-text font-size="14px" font-weight="bold" color="#111111">${esc(p.title)}</mj-text>`,
+          )
+        }
+        if (p.price != null) {
+          col.push(`<mj-text font-size="13px" color="#555555">$${p.price.toFixed(2)}</mj-text>`)
+        }
+        if (p.url) {
+          col.push(
+            `<mj-button background-color="#111111" color="#ffffff" href="${esc(p.url)}" font-size="12px" border-radius="4px" inner-padding="8px 16px">View</mj-button>`,
+          )
+        }
+        return `<mj-column>${col.join('\n        ')}</mj-column>`
+      })
+      .join('\n      ')
+    parts.push(`<mj-section padding="16px 32px" background-color="#ffffff">
+      ${productCols}
+    </mj-section>`)
+  }
+
+  return parts.join('\n    ')
+}
+
+function renderCTAMjml(block: Block): string {
+  if (!block.text || !block.url) return ''
+  const bg = block.style === 'secondary' ? '#ffffff' : '#111111'
+  const fg = block.style === 'secondary' ? '#111111' : '#ffffff'
+  const border = block.style === 'secondary' ? 'border="1px solid #111111"' : ''
+  return `<mj-section padding="16px 32px" background-color="#ffffff">
+      <mj-column>
+        <mj-button background-color="${bg}" color="${fg}" ${border} href="${esc(block.url)}" font-size="14px" border-radius="4px" inner-padding="12px 24px">${esc(block.text)}</mj-button>
+      </mj-column>
+    </mj-section>`
+}
+
+function renderDividerMjml(block: Block): string {
+  const padding =
+    block.spacing === 'small' ? '8px 0' : block.spacing === 'large' ? '32px 0' : '16px 0'
+  return `<mj-divider border-color="#eeeeee" padding="${padding}" />`
+}
+
+function renderFooterMjml(block: Block): string {
+  const parts: string[] = []
+  if (block.legalText) {
+    parts.push(
+      `<mj-text font-size="11px" color="#aaaaaa" align="center" padding-bottom="8px">${esc(block.legalText)}</mj-text>`,
+    )
+  }
+  const unsubText = block.unsubscribeText ?? 'Unsubscribe'
+  parts.push(`<mj-text font-size="11px" color="#aaaaaa" align="center">
+          <a href="{{ unsubscribe_url }}" style="color:#aaaaaa;text-decoration:none;">${esc(unsubText)}</a>
+        </mj-text>`)
+  return `<mj-section background-color="#ffffff" padding="24px">
+      <mj-column>${parts.join('\n        ')}</mj-column>
+    </mj-section>`
+}
+
+function renderBlock(block: Block): string {
+  switch (block._type) {
+    case 'emailHeader':
+      return renderHeaderMjml(block)
+    case 'emailSection':
+      return renderSectionMjml(block)
+    case 'emailCTA':
+      return renderCTAMjml(block)
+    case 'emailDivider':
+      return renderDividerMjml(block)
+    case 'emailFooter':
+      return renderFooterMjml(block)
+    default:
+      return ''
+  }
+}
+
 function buildMjml(promotion: PromotionInput): string {
-  const slots = promotion.emailSlots ?? []
-
-  const sections = slots
-    .map((slot) => {
-      const imgUrl = slot.asset?.url ?? slot.assetUrl ?? null
-      const parts: string[] = []
-
-      if (imgUrl) {
-        parts.push(`
-    <mj-section padding="0">
-      <mj-column>
-        <mj-image src="${esc(imgUrl)}" alt="${esc(slot.asset?.altText ?? '')}" width="600px" padding="0" />
-      </mj-column>
-    </mj-section>`)
-      }
-
-      if (slot.headline || slot.subheadline || slot.cta?.text) {
-        parts.push(`
-    <mj-section padding="24px 32px" background-color="#ffffff">
-      <mj-column>
-        ${slot.headline ? `<mj-text font-size="22px" font-weight="bold" color="#111111" padding-bottom="8px">${esc(slot.headline)}</mj-text>` : ''}
-        ${slot.subheadline ? `<mj-text font-size="15px" color="#555555" line-height="1.6" padding-bottom="16px">${esc(slot.subheadline)}</mj-text>` : ''}
-        ${slot.cta?.text && slot.cta?.url ? `<mj-button background-color="#111111" color="#ffffff" href="${esc(slot.cta.url)}" font-size="14px" border-radius="4px" inner-padding="12px 24px">${esc(slot.cta.text)}</mj-button>` : ''}
-      </mj-column>
-    </mj-section>`)
-      }
-
-      return parts.join('\n    <mj-divider border-color="#eeeeee" padding="0" />')
-    })
-    .join('\n    <mj-divider border-color="#eeeeee" padding="0" />')
+  const blocks = promotion.emailSlots ?? []
+  const sections = blocks.map(renderBlock).filter(Boolean).join('\n    ')
+  const hasFooter = blocks.some((b) => b._type === 'emailFooter')
 
   return `<mjml>
   <mj-head>
@@ -116,13 +237,17 @@ function buildMjml(promotion: PromotionInput): string {
         : ''
     }
     ${sections}
-    <mj-section background-color="#ffffff" padding="24px">
+    ${
+      !hasFooter
+        ? `<mj-section background-color="#ffffff" padding="24px">
       <mj-column>
         <mj-text font-size="11px" color="#aaaaaa" align="center">
           <a href="{{ unsubscribe_url }}" style="color:#aaaaaa;text-decoration:none;">Unsubscribe</a>
         </mj-text>
       </mj-column>
-    </mj-section>
+    </mj-section>`
+        : ''
+    }
   </mj-body>
 </mjml>`
 }

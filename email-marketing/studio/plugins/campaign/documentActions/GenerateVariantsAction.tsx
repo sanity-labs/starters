@@ -82,7 +82,12 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
           },
           schemaId,
           instruction,
-          target: [{path: 'subjectLine'}, {path: 'preheader'}, {path: 'disruptor'}],
+          target: [
+            {path: 'subjectLine'},
+            {path: 'preheader'},
+            {path: 'disruptor'},
+            {path: 'emailSlots'},
+          ],
         })
 
         // Publish the generated draft so workflow state references resolve

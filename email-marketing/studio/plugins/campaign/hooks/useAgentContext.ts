@@ -73,6 +73,17 @@ export function buildInstruction(
 
   lines.push(`You are writing a promotional email.`)
 
+  lines.push(`\n## Email Structure`)
+  lines.push(`Compose the emailSlots field using these block types in a logical order:`)
+  lines.push(`- **emailHeader**: brandName (string)`)
+  lines.push(
+    `- **emailSection**: headline (string), body (text) — the main content blocks. Use 1–3 sections.`,
+  )
+  lines.push(`- **emailCTA**: text (string), url (url), style ("primary" or "secondary")`)
+  lines.push(`- **emailDivider**: spacing ("small", "medium", or "large")`)
+  lines.push(`- **emailFooter**: legalText (text), unsubscribeText (string)`)
+  lines.push(`A typical email: header → 1–3 sections with dividers between them → CTA → footer.`)
+
   if (campaign?.primaryMessage) {
     lines.push(`\n## Campaign Brief\n${campaign.primaryMessage}`)
   }

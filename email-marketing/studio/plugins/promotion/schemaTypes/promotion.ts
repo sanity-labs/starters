@@ -1,6 +1,6 @@
 import {defineField, defineType} from 'sanity'
 import {EnvelopeIcon} from '@sanity/icons'
-import {emailSlotArrayMember} from './emailSlot'
+import {emailBlockArrayMembers} from './emailBlocks'
 
 /**
  * Promotion (the artifact)
@@ -47,15 +47,15 @@ export const promotion = defineType({
       title: 'Disruptor',
       type: 'string',
       validation: (rule) => rule.max(20),
-      description: 'Short trigger phrase (max 3 words) to catch attention.',
+      description:
+        'A short attention-grabbing label displayed at the top of the email body (e.g., "Flash sale", "VIP only").',
     }),
     defineField({
       name: 'emailSlots',
       title: 'Email Slots',
       type: 'array',
-      of: [emailSlotArrayMember],
-      description:
-        'Modular slots (top-banner, module-1, module-2) with independent assets and CTAs.',
+      of: emailBlockArrayMembers,
+      description: 'Compose your email using headers, sections, CTAs, dividers, and footers.',
     }),
     defineField({
       name: 'campaignPerformance',

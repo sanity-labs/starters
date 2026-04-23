@@ -34,12 +34,14 @@ export const promotionByIdQuery = defineQuery(`
     preheader,
     disruptor,
     emailSlots[] {
-      _key,
-      position,
-      headline,
-      subheadline,
-      asset,
-      cta,
+      ...,
+      _type == "emailSection" => {
+        "imageUrl": image.asset->url,
+        products[]->{ _id, title, price, url, "imageUrl": image.asset->url },
+      },
+      _type == "emailHeader" => {
+        "logoImageUrl": logoUrl.asset->url,
+      },
     },
     "campaign": campaign->{_id, title, primaryMessage, previewContext},
     "segment": segment->{_id, name, affinityDescription, typicalCopyTone},
