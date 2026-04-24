@@ -9,7 +9,7 @@ const WORKFLOW_QUERY = defineQuery(`
     status,
     approvedBy,
     sentAt,
-    history[]{_key, status, timestamp, changedBy} | order(timestamp desc),
+    history[]{_key, status, timestamp, changedBy, error} | order(timestamp desc),
   }
 `)
 
@@ -22,6 +22,7 @@ type WorkflowState = {
     status: string | null
     timestamp: string | null
     changedBy: string | null
+    error: string | null
   }> | null
 }
 
@@ -32,6 +33,7 @@ const STATUS_COLORS: Record<string, 'primary' | 'positive' | 'caution' | 'critic
   sent: 'positive',
   resent: 'caution',
   rejected: 'critical',
+  error: 'critical',
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -41,6 +43,7 @@ const STATUS_LABELS: Record<string, string> = {
   sent: 'Delivered via Klaviyo',
   resent: 'Resend queued',
   rejected: 'Rejected',
+  error: 'Error',
 }
 
 function PreviewStatusInspectorComponent({documentId}: DocumentInspectorProps) {
@@ -76,19 +79,27 @@ function PreviewStatusInspectorComponent({documentId}: DocumentInspectorProps) {
             {workflow.history && workflow.history.length > 0 && (
               <Stack space={2}>
                 {workflow.history.map((entry) => (
-                  <Flex key={entry._key} gap={2} align="center">
-                    <Text size={0} muted style={{minWidth: 70}}>
-                      {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '—'}
-                    </Text>
-                    <Badge
-                      tone={STATUS_COLORS[entry.status ?? 'draft'] ?? 'primary'}
-                      fontSize={0}
-                      padding={1}
-                      radius={1}
-                    >
-                      {STATUS_LABELS[entry.status ?? ''] ?? (entry.status ?? '—').replace('-', ' ')}
-                    </Badge>
-                  </Flex>
+                  <Stack key={entry._key} space={1}>
+                    <Flex gap={2} align="center">
+                      <Text size={0} muted style={{minWidth: 70}}>
+                        {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '—'}
+                      </Text>
+                      <Badge
+                        tone={STATUS_COLORS[entry.status ?? 'draft'] ?? 'primary'}
+                        fontSize={0}
+                        padding={1}
+                        radius={1}
+                      >
+                        {STATUS_LABELS[entry.status ?? ''] ??
+                          (entry.status ?? '—').replace('-', ' ')}
+                      </Badge>
+                    </Flex>
+                    {entry.error && (
+                      <Text size={0} style={{color: 'var(--card-badge-critical-fg-color)'}}>
+                        {entry.error}
+                      </Text>
+                    )}
+                  </Stack>
                 ))}
               </Stack>
             )}
