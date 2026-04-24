@@ -1,5 +1,6 @@
-import {useEffect, useState, useMemo} from 'react'
-import {Badge, Box, Card, Flex, Label, Stack, Text} from '@sanity/ui'
+import {useEffect, useState} from 'react'
+import {Badge, Box, Flex, Label, Stack, Text} from '@sanity/ui'
+import {BarChartIcon} from '@sanity/icons'
 import {useClient, defineDocumentInspector, type DocumentInspectorProps} from 'sanity'
 import {defineQuery} from 'groq'
 
@@ -8,7 +9,7 @@ const WORKFLOW_QUERY = defineQuery(`
     status,
     approvedBy,
     sentAt,
-    history[]{_key, status, timestamp, changedBy} | order(timestamp desc),
+    history[]{_key, status, timestamp, changedBy, error} | order(timestamp desc),
   }
 `)
 
@@ -34,17 +35,28 @@ type WorkflowState = {
     status: string | null
     timestamp: string | null
     changedBy: string | null
+    error: string | null
   }> | null
 }
-
-type PreviewStatusEntry = {key: string; mode: 'sample' | 'send-time-only' | 'not-used'}
 
 const STATUS_COLORS: Record<string, 'primary' | 'positive' | 'caution' | 'critical'> = {
   draft: 'primary',
   'in-review': 'caution',
   approved: 'positive',
   sent: 'positive',
+  resent: 'caution',
   rejected: 'critical',
+  error: 'critical',
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'Promotion created',
+  'in-review': 'Submitted for review',
+  approved: 'Approved for send',
+  sent: 'Delivered via Klaviyo',
+  resent: 'Resend queued',
+  rejected: 'Rejected',
+  error: 'Error',
 }
 
 function scanForTokens(
@@ -75,6 +87,11 @@ function scanForTokens(
     }
   }
   return found
+}
+
+type PreviewStatusEntry = {
+  key: string
+  mode: 'sample' | 'send-time-only' | 'not-used'
 }
 
 function PreviewStatusInspectorComponent({documentId}: DocumentInspectorProps) {
@@ -127,128 +144,88 @@ function PreviewStatusInspectorComponent({documentId}: DocumentInspectorProps) {
     }
   }, [client, promotionId])
 
-  const used = tokens.filter((t) => t.mode !== 'not-used')
-  const sampleCount = used.filter((t) => t.mode === 'sample').length
-  const sendTimeCount = used.filter((t) => t.mode === 'send-time-only').length
-  const accuracy =
-    used.length === 0
-      ? 'N/A'
-      : sampleCount === used.length
-        ? 'High'
-        : sampleCount === 0
-          ? 'Low'
-          : 'Medium'
-
   return (
     <Box padding={4} overflow="auto">
       <Stack space={5}>
-        {/* Workflow status */}
         {workflow && (
           <Stack space={3}>
             <Label size={1} muted>
               Workflow
             </Label>
-            <Flex align="center" gap={2}>
-              <Badge
-                tone={STATUS_COLORS[workflow.status ?? 'draft'] ?? 'primary'}
-                fontSize={1}
-                padding={2}
-                radius={2}
-              >
-                {(workflow.status ?? 'draft').replace('-', ' ')}
-              </Badge>
-              {workflow.sentAt && (
-                <Text size={1} muted>
-                  Sent {new Date(workflow.sentAt).toLocaleDateString()}
-                </Text>
-              )}
-            </Flex>
+            {workflow.sentAt && (
+              <Text size={1} muted>
+                Last sent {new Date(workflow.sentAt).toLocaleDateString()}
+              </Text>
+            )}
 
             {workflow.history && workflow.history.length > 0 && (
               <Stack space={2}>
                 {workflow.history.map((entry) => (
-                  <Flex key={entry._key} gap={2} align="center">
-                    <Text size={0} muted style={{minWidth: 70}}>
-                      {entry.timestamp ? new Date(entry.timestamp).toLocaleDateString() : '—'}
-                    </Text>
-                    <Badge
-                      tone={STATUS_COLORS[entry.status ?? 'draft'] ?? 'primary'}
-                      fontSize={0}
-                      padding={1}
-                      radius={1}
-                    >
-                      {(entry.status ?? '—').replace('-', ' ')}
-                    </Badge>
-                    {entry.changedBy && (
-                      <Text
-                        size={0}
-                        muted
-                        style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}
+                  <Stack key={entry._key} space={1}>
+                    <Flex gap={2} align="center">
+                      <Text size={0} muted style={{minWidth: 70}}>
+                        {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '—'}
+                      </Text>
+                      <Badge
+                        tone={STATUS_COLORS[entry.status ?? 'draft'] ?? 'primary'}
+                        fontSize={0}
+                        padding={1}
+                        radius={1}
                       >
-                        {entry.changedBy}
+                        {STATUS_LABELS[entry.status ?? ''] ??
+                          (entry.status ?? '—').replace('-', ' ')}
+                      </Badge>
+                    </Flex>
+                    {entry.error && (
+                      <Text size={0} style={{color: 'var(--card-badge-critical-fg-color)'}}>
+                        {entry.error}
                       </Text>
                     )}
-                  </Flex>
+                  </Stack>
                 ))}
               </Stack>
             )}
           </Stack>
         )}
 
-        {/* Preview accuracy */}
         {tokens.length > 0 && (
           <Stack space={3}>
-            <Flex align="center" justify="space-between">
-              <Label size={1} muted>
-                Preview Accuracy
-              </Label>
-              <Text size={1} weight="semibold">
-                {accuracy}
-              </Text>
-            </Flex>
-
-            {used.length > 0 && (
-              <Stack space={2}>
-                {used.map((t) => (
-                  <Flex key={t.key} align="center" justify="space-between" gap={2}>
-                    <Text size={1} style={{fontFamily: 'monospace'}}>
-                      {`{{ ${t.key} }}`}
-                    </Text>
-                    <Badge
-                      tone={t.mode === 'sample' ? 'positive' : 'caution'}
-                      fontSize={0}
-                      padding={1}
-                      radius={1}
-                    >
-                      {t.mode === 'sample' ? 'sample' : 'send-time'}
-                    </Badge>
-                  </Flex>
-                ))}
-              </Stack>
-            )}
-
-            {tokens.some((t) => t.mode === 'not-used') && (
-              <Card padding={3} radius={2} tone="transparent" border>
-                <Stack space={1}>
-                  <Label size={0} muted>
-                    Unused previewContext tokens
-                  </Label>
-                  {tokens
-                    .filter((t) => t.mode === 'not-used')
-                    .map((t) => (
-                      <Text key={t.key} size={0} muted style={{fontFamily: 'monospace'}}>
-                        {`{{ ${t.key} }}`}
-                      </Text>
-                    ))}
-                </Stack>
-              </Card>
-            )}
+            <Label size={1} muted>
+              Preview Tokens
+            </Label>
+            <Stack space={2}>
+              {tokens.map((t) => (
+                <Flex key={t.key} gap={2} align="center">
+                  <Text size={0} weight="semibold" style={{fontFamily: 'monospace'}}>
+                    {`{{${t.key}}}`}
+                  </Text>
+                  <Badge
+                    tone={
+                      t.mode === 'sample'
+                        ? 'positive'
+                        : t.mode === 'not-used'
+                          ? 'caution'
+                          : 'default'
+                    }
+                    fontSize={0}
+                    padding={1}
+                    radius={1}
+                  >
+                    {t.mode === 'sample'
+                      ? 'has sample'
+                      : t.mode === 'not-used'
+                        ? 'unused'
+                        : 'send-time only'}
+                  </Badge>
+                </Flex>
+              ))}
+            </Stack>
           </Stack>
         )}
 
-        {!workflow && tokens.length === 0 && (
+        {!workflow && (
           <Text size={1} muted>
-            No workflow state or preview context found.
+            No workflow state found.
           </Text>
         )}
       </Stack>
@@ -259,7 +236,7 @@ function PreviewStatusInspectorComponent({documentId}: DocumentInspectorProps) {
 export const PreviewStatusInspector = defineDocumentInspector({
   name: 'promotion-preview-status',
   useMenuItem() {
-    return {title: 'Preview Status'}
+    return {title: 'Preview Status', icon: BarChartIcon}
   },
   component: PreviewStatusInspectorComponent,
 })

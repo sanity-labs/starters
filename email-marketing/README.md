@@ -1,6 +1,6 @@
 # Email Marketing Operations
 
-A Sanity Studio starter for content-driven email campaign operations. Organize work around a **three-tier content model**: campaigns (governed briefs with creative direction and audience segmentation), promotions (segment-variant artifacts with approval workflows and engagement tracking), and emailSlots (modular, reusable content blocks). Generate variants with AI, refine in multi-turn sessions, preview with accuracy badges, and dispatch to ESP (Klaviyo integration included). All workflows operate from Studio with no hand-offs.
+A Sanity Studio starter for content-driven email campaign operations. Organize work around a **three-tier content model**: campaigns (governed briefs with creative direction and audience segmentation), promotions (segment-variant artifacts with approval workflows and engagement tracking), and email slots (modular, composable content blocks). Generate variants with AI, refine in multi-turn sessions, preview with accuracy badges, and dispatch to ESP (Klaviyo integration included). All workflows operate from Studio with no hand-offs.
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@ A Sanity Studio starter for content-driven email campaign operations. Organize w
 
 ## Architecture
 
-The email marketing starter is built around a **three-tier content model** where the campaign brief is the canonical unit of work, promotions are segment-variant artifacts, and emailSlots are modular, reusable blocks. This separation enables content governance, parallel variant generation, and performance tracking without duplication.
+The email marketing starter is built around a **three-tier content model** where the campaign brief is the canonical unit of work, promotions are segment-variant artifacts, and email slots are modular, composable content pieces. This separation enables content governance, parallel variant generation, and performance tracking without duplication.
 
 ### Three-Tier Document Model
 
@@ -27,15 +27,15 @@ The email marketing starter is built around a **three-tier content model** where
    - Single source of truth for campaign narrative across all derived surfaces
 
 2. **Promotion** (The Artifact)
-   - Segment-variant artifact produced from the brief; one base + one per target segment
-   - Fields: campaign (ref), segment (ref, nullable), subjectLine, preheader, disruptor, emailSlots (array), workflow.state, campaignPerformance (readOnly)
+   - Segment-variant artifact produced from the brief; one per target segment
+   - Fields: campaign (ref), segment (ref), subjectLine, preheader, disruptor, emailSlots (array of email slot types), workflow.state, campaignPerformance (readOnly)
    - References the brief; inherits tone traits and applies segment-specific enrichment
-   - Tracks engagement metrics (openRate, clickRate, conversionRate, sendCount)
+   - Tracks engagement metrics (openRate, clickThroughRate, conversionRate)
 
-3. **EmailSlot** (The Module)
-   - Reusable content block with position (hero, cta, footer, etc.), asset reference (DAM), headline, subheadline, CTA
-   - Composed into promotions; changes to assets cascade to all references
-   - Keeps pixel data out of Sanity; Sanity carries the composition
+3. **Email Slots** (The Modules)
+   - Composable inline object types assembled into a promotion's `emailSlots` array
+   - Block types: `emailHeader` (logo + brand name), `emailSection` (headline, body, image, products), `emailCTA` (button with primary/secondary style), `emailDivider` (spacing), `emailFooter` (legal text + unsubscribe)
+   - Defined in `studio/plugins/promotion/schemaTypes/emailBlocks.ts`
 
 4. **Segment** (Reference Data)
    - Two-layer: readOnly synced from Klaviyo (externalId, name, memberCount, lastSyncedAt)
@@ -48,36 +48,35 @@ Six workflows move content from ideation to engagement tracking, all triggered f
 
 1. **Generate Variants (Batch)** — Content ops lead fills brief, clicks "Generate variants"; Content Agent API creates one promotion per target segment
 2. **Refine Variant (Multi-Turn)** — Opens Conversation Inspector on promotion; multi-turn thread with AI suggestions; accepted changes patch promotion live
-3. **Grid Review** — All promotions (base + variants) appear as tiles in CampaignGrid view; lead spot-checks across variants
+3. **Grid Review** — All promotions appear as tiles in CampaignGrid view; lead spot-checks across variants
 4. **Preview and Share** — Render email HTML with accuracy badges; generate signed preview links for external reviewers
 5. **Approve and Dispatch** — Trigger approval state transition; `on-promotion-approved` Function composes ESP payload, creates campaign, triggers send
-6. **Engagement Log-Back** — ESP webhook fires on open/click/conversion; `engagement-log-back` Function updates `promotion.campaignPerformance` metrics
+6. **Engagement Log-Back** — ESP webhook hits Next.js route (`/api/webhooks/engagement`); updates `promotion.campaignPerformance` metrics
 
 ### Implementation Packages
 
-All domain logic is in `packages/@starter/` (npm scope `@starter/`) with semantic, zero-dependency subpaths for tree-shaking:
+Shared packages live in `packages/`:
 
-- **`@starter/render-email`** (at `packages/@starter/render-email/`) — MJML compilation, streaming HTML output, DOMPurify sanitization, Handlebars stub replacement
-  - Exports: `./streaming` (MJML → Readable stream), `./stubs` (token replacement), `./sanitize` (email-safe config), `./types`
-- **`@starter/esp-connector`** (at `packages/@starter/esp-connector/`) — ESP-agnostic interface + Klavioy implementation
-  - Exports: `./interface` (EspConnector type), `./klaviyo` (KlaviyoConnector), extensible for Braze/AJO
-- **`@starter/preview-middleware`** (at `packages/@starter/preview-middleware/`) — Composable auth, rate-limit, security-headers, audit logging
-  - Exports: `./auth` (Studio OAuth, preview tokens, webhook signatures), `./rate-limit` (per-IP, per-token, per-document), `./security-headers`, `./logging`
+- **`@starter/render-email`** (at `packages/render-email/`) — MJML compilation, streaming HTML output, DOMPurify sanitization, Handlebars stub replacement
+  - Exports: `./streaming` (MJML to Readable stream), `./stubs` (token replacement), `./sanitize` (email-safe config), `./types`
+- **`@starter/eslint-config`** — Shared ESLint configuration
+- **`@starter/sanity-types`** — Generated TypeGen types (output of `pnpm typegen`)
+- **`@starter/tsconfig`** — Shared TypeScript base configs
 
 ### Studio Domain-Organized Plugins
 
 - **campaign/** — brief schema, GenerateVariantsAction, CampaignGrid view, Content Agent context wiring
-- **promotion/** — artifact schema, VariantRefinementPanel (Conversation Inspector), workflow state machine, approval actions
+- **promotion/** — artifact schema, email slot types, VariantRefinementPanel (Conversation Inspector), workflow state machine, approval actions
 - **klaviyo/** — segment sync integration, import UI, readOnly origin labels
-- **preview/** — shareable link generation (signed PASETO/JWT), Presentation tool iframe
+- **preview/** — shareable link generation, Presentation tool iframe
 - **assist/** — field-level AI generation configuration
 
 ### Functions (Sanity Functions)
 
-- **on-promotion-approved** — Fires when promotion.workflow.state transitions to "approved"; composes ESP payload, creates campaign, triggers send
+- **on-promotion-approved** — Fires when `workflow.state` transitions to `"approved"`; renders email HTML, creates Klaviyo template and campaign, triggers send
 - **import-klaviyo** — Syncs lists and segments from Klaviyo into Sanity (triggered via `klaviyoImport` document with `importState: "requested"`)
-- **on-slot-needs-asset** — Notifies creatives when emailSlot.asset is unfilled
-- **engagement-log-back** — Inbound ESP webhook (Klaviyo); verifies signature; updates promotion.campaignPerformance with aggregated metrics
+
+Engagement tracking is handled by a Next.js webhook route at `frontend/app/api/webhooks/engagement/route.ts`, not a Sanity Function.
 
 ### Preview Service (Separate Next.js App)
 
@@ -87,8 +86,8 @@ Renders email HTML with four modes and strict authentication:
 | :-------------------- | :---------------------------- | :--------------------------- | :--------------------------- | :------------------------------ |
 | Grid tile             | Studio Structure Builder      | Batch of promotion IDs (SSE) | Studio OAuth                 | Local MJML per tile             |
 | 1:1 preview           | Content ops lead              | Single promotion ID          | Studio OAuth + preview token | Local MJML + accuracy badge     |
-| Klavioy verification  | CRM manager                   | Promotion ID                 | Preview token                | Klavioy API render with stubs   |
-| Shareable review link | External reviewer (no Studio) | Promotion ID + signed token  | Time-boxed PASETO/JWT        | Local or Klavioy MJML in iframe |
+| Klaviyo verification  | CRM manager                   | Promotion ID                 | Preview token                | Klaviyo API render with stubs   |
+| Shareable review link | External reviewer (no Studio) | Promotion ID + signed token  | Time-boxed PASETO/JWT        | Local or Klaviyo MJML in iframe |
 
 **Streaming pipeline:** MJML render → DOMPurify sanitize → Handlebars stub replacement → TextEncoder → response body
 
@@ -99,32 +98,26 @@ Renders email HTML with four modes and strict authentication:
 **Documents & Workflows**
 
 - **Campaigns** — governed unit of work with creative brief, tone traits, personalization tokens, launch window
-- **Promotions** — segment-variant artifacts (subject, preheader, disruptor, modular email slots, approval workflow, performance metrics)
-- **EmailSlots** — reusable content blocks with position, asset, headline, subheadline, CTA
+- **Promotions** — segment-variant artifacts (subject, preheader, disruptor, composable email slots, approval workflow, performance metrics)
+- **Email Slots** — composable content blocks: header, section, CTA, divider, footer
 - **Segments** — two-layer schema (readOnly synced from Klaviyo + editable enrichment for copy tone and engagement tier)
 
 **AI & Generation**
 
 - **Batch variant generation** — GenerateVariantsAction on campaign creates N promotions for selected segments
 - **Multi-turn refinement** — VariantRefinementPanel for iterative AI-assisted copywriting with thread history
-- **@sanity/assist configuration** — Field-level AI on subject line, preheader, disruptor, slot headlines
+- **@sanity/assist configuration** — Field-level AI on subject line, preheader, disruptor, block headlines
 
 **Preview & Dispatch**
 
-- **Streaming preview** — MJML → HTML with DOMPurify sanitization, Handlebars stubs, accuracy badges (X-Preview-Status)
+- **Streaming preview** — MJML to HTML with DOMPurify sanitization, Handlebars stubs, accuracy badges (X-Preview-Status)
 - **Klaviyo integration** — dispatch promotions to Klaviyo with template creation and campaign sending
 - **Engagement feedback** — inbound Klaviyo webhooks update promotion.campaignPerformance metrics
 
-**Analytics & Management**
-
-- **Campaign dashboard** — standalone App SDK app for cycle time, variant coverage, cross-segment performance
-- **Approval workflow** — workflow.state parallel documents track promotion status, approvers, history
-
 **Platform & Security**
 
-- **Package architecture** — semantic exports (@starter/render-email, @starter/esp-connector, @starter/preview-middleware) with zero-dependency subpaths for tree-shaking
+- **Package architecture** — semantic exports (`@starter/render-email`) with zero-dependency subpaths for tree-shaking
 - **Security** — 7-layer defense: HTTPS+HSTS, auth (Studio session + preview tokens + webhook signatures), rate limiting, CSP headers, audit logging
-- **Middleware stack** — composable auth, rate-limit, security-headers, audit logging for preview service
 
 ## Prerequisites
 
@@ -153,7 +146,7 @@ pnpm bootstrap
 This deploys the blueprint, deploys the schema, generates types, imports seed data, and prompts for your Klaviyo API key (see [Klaviyo Setup](#klaviyo-setup) for how to create one). If you skip the key during bootstrap, set it later:
 
 ```bash
-npx sanity functions env add send-email KLAVIYO_API_KEY pk_your_key_here
+npx sanity functions env add on-promotion-approved KLAVIYO_API_KEY pk_your_key_here
 npx sanity functions env add import-klaviyo KLAVIYO_API_KEY pk_your_key_here
 ```
 
@@ -170,24 +163,38 @@ Studio runs at `http://localhost:3333`, frontend at `http://localhost:3000`.
 ```
 email-marketing/
 ├── studio/                      # Sanity Studio v5
-│   ├── schemaTypes/            # Email, campaign, list, segment, product, settings schemas
-│   ├── components/             # GenerateEmailButton, SendPublishAction, ImportFromKlaviyoAction, etc.
+│   ├── schemaTypes/            # klaviyoImport, product, workflow.state, reference-data/
+│   ├── plugins/                # Domain-organized plugins
+│   │   ├── campaign/           # Brief schema, GenerateVariantsAction, CampaignGridView
+│   │   ├── promotion/          # Promotion schema, email slots, approval actions, inspectors
+│   │   ├── klaviyo/            # Segment sync integration
+│   │   ├── preview/            # Presentation tool wiring
+│   │   └── assist/             # AI generation config
+│   ├── components/             # ImportFromKlaviyoAction, OpenKlaviyoAction
 │   ├── scripts/bootstrap.ts    # One-command project setup
 │   ├── structure.ts            # Studio sidebar navigation
 │   └── seed/                   # Sample dataset
 ├── frontend/                    # Next.js 16 + React 19 + Tailwind v4
 │   ├── app/
-│   │   ├── page.tsx           # Email list view
-│   │   └── emails/preview/    # Email preview pages
-│   └── sanity/                # Client, queries, live preview
+│   │   ├── page.tsx            # Campaign list view
+│   │   ├── campaigns/[id]/     # Campaign detail
+│   │   ├── promotions/[id]/    # Promotion preview with block rendering
+│   │   └── api/
+│   │       ├── draft-mode/enable/   # Draft mode endpoint
+│   │       ├── preview/klaviyo/[id] # Klaviyo render preview
+│   │       └── webhooks/engagement/ # ESP engagement webhook
+│   └── sanity/                 # Client, queries, live preview
 ├── functions/                   # Sanity Functions
-│   ├── send-email/            # Renders HTML, creates Klaviyo campaign, sends
-│   ├── import-klaviyo/        # Syncs lists & segments from Klaviyo
-│   └── lib/
-│       ├── klaviyo.ts         # Klaviyo API client
-│       └── mjml.ts            # Email HTML renderer
-├── packages/@starter/          # Shared configs (ESLint, TypeScript, Sanity types)
-├── sanity.blueprint.ts         # Function trigger registrations
+│   ├── on-promotion-approved/  # Renders HTML, creates Klaviyo campaign, sends
+│   └── import-klaviyo/         # Syncs lists & segments from Klaviyo
+├── packages/                    # Shared packages
+│   ├── render-email/           # @starter/render-email (MJML, streaming, sanitization)
+│   ├── eslint-config/          # @starter/eslint-config
+│   ├── sanity-types/           # @starter/sanity-types (TypeGen output)
+│   └── tsconfig/               # @starter/tsconfig
+├── e2e/                         # Playwright end-to-end tests
+├── docs/                        # ARCHITECTURE.md, SECURITY.md, TESTING.md
+├── sanity.blueprint.ts          # Function trigger registrations
 ├── pnpm-workspace.yaml
 └── package.json
 ```
@@ -210,7 +217,7 @@ email-marketing/
 
 5. Copy the key — bootstrap will prompt for it, or set it manually:
    ```bash
-   npx sanity functions env add send-email KLAVIYO_API_KEY pk_your_key
+   npx sanity functions env add on-promotion-approved KLAVIYO_API_KEY pk_your_key
    npx sanity functions env add import-klaviyo KLAVIYO_API_KEY pk_your_key
    ```
 
@@ -261,13 +268,13 @@ This starter implements a **7-layer security posture** for the preview service:
 6. **Rate limiting** — Per-IP token bucket (100 req/min default, configurable)
 7. **Audit logging** — Timestamp, method, path, status, IP, duration (redacted for PII)
 
-See [SECURITY.md](./SECURITY.md) for the full threat model, configuration checklist, and mitigation strategies.
+See [SECURITY.md](./docs/SECURITY.md) for the full threat model, configuration checklist, and mitigation strategies.
 
 ## Testing
 
 Unit tests for streaming pipelines, middleware, and connectors; integration tests for preview routes; load testing guidance.
 
-See [TESTING.md](./TESTING.md) for test examples and strategy.
+See [TESTING.md](./docs/TESTING.md) for test examples and strategy.
 
 ## Environment Variables
 
@@ -280,16 +287,18 @@ See [TESTING.md](./TESTING.md) for test examples and strategy.
 
 ### Frontend `.env`
 
-| Variable                        | Description                             |
-| ------------------------------- | --------------------------------------- |
-| `NEXT_PUBLIC_SANITY_PROJECT_ID` | Your Sanity project ID                  |
-| `NEXT_PUBLIC_SANITY_DATASET`    | Dataset name (defaults to `production`) |
+| Variable                        | Description                                                                 |
+| ------------------------------- | --------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SANITY_PROJECT_ID` | Your Sanity project ID                                                      |
+| `NEXT_PUBLIC_SANITY_DATASET`    | Dataset name (defaults to `production`)                                     |
+| `SANITY_API_READ_TOKEN`         | Sanity API token with Viewer permissions (read-only)                        |
+| `KLAVIYO_API_KEY`               | Klaviyo private API key for the preview route (`/api/preview/klaviyo/[id]`) |
 
 ### Function Runtime
 
-| Variable          | How to Set                                                                                                                                                                 |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `KLAVIYO_API_KEY` | Set during bootstrap, or manually: `npx sanity functions env add send-email KLAVIYO_API_KEY <key>` and `npx sanity functions env add import-klaviyo KLAVIYO_API_KEY <key>` |
+| Variable          | How to Set                                                                                                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `KLAVIYO_API_KEY` | Set during bootstrap, or manually: `npx sanity functions env add on-promotion-approved KLAVIYO_API_KEY <key>` and `npx sanity functions env add import-klaviyo KLAVIYO_API_KEY <key>` |
 
 ## Learn More
 

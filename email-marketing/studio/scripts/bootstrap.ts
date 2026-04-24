@@ -137,7 +137,7 @@ if (klaviyoKey) {
   console.log('Triggered Klaviyo import — lists and segments will sync in the background')
 } else {
   console.log(
-    'No key entered — set it later with: npx sanity functions env add send-email KLAVIYO_API_KEY <key>',
+    'No key entered — set it later with:\n  npx sanity functions env add import-klaviyo KLAVIYO_API_KEY <key>\n  npx sanity functions env add on-promotion-approved KLAVIYO_API_KEY <key>',
   )
 }
 
