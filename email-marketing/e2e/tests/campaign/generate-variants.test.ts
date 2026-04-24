@@ -41,9 +41,7 @@ const testDefinitions = [
   }),
 
   Given('the campaign has segments and a primary message', async ({playwright: {page}}) => {
-    const segment = await sanityClient.fetch<{_id: string} | null>(
-      `*[_type == "segment"][0]{_id}`,
-    )
+    const segment = await sanityClient.fetch<{_id: string} | null>(`*[_type == "segment"][0]{_id}`)
     if (!segment) throw new Error('No segments available — run Klaviyo sync first')
     await sanityClient
       .patch(currentCampaignId!)
@@ -64,9 +62,9 @@ const testDefinitions = [
   }),
 
   Then('the dialog shows generation progress text', async ({playwright: {page}}) => {
-    await expect(
-      page.getByRole('dialog').getByText(/generating|fetching/i),
-    ).toBeVisible({timeout: 5_000})
+    await expect(page.getByRole('dialog').getByText(/generating|fetching/i)).toBeVisible({
+      timeout: 5_000,
+    })
   }),
 
   When('the generation completes', async ({playwright: {page}}) => {
@@ -78,12 +76,9 @@ const testDefinitions = [
     await page.getByRole('tab', {name: tab}).click()
   }),
 
-  Then(
-    'I see promotion tiles for the base and each segment',
-    async ({playwright: {page}}) => {
-      await expect(page.getByText('Base')).toBeVisible({timeout: 5_000})
-    },
-  ),
+  Then('I see promotion tiles for the base and each segment', async ({playwright: {page}}) => {
+    await expect(page.getByText('Base')).toBeVisible({timeout: 5_000})
+  }),
 
   Then(
     'each created promotion has a workflow state of {string}',

@@ -7,11 +7,31 @@ export interface SanitizeOptions {
 
 const EMAIL_SANITIZE_OPTIONS: SanitizeOptions = {
   allowedTags: [
-    'p', 'br', 'strong', 'em', 'a', 'img',
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'ul', 'ol', 'li',
-    'table', 'tr', 'td', 'th',
-    'div', 'span', 'section', 'article', 'header', 'footer',
+    'p',
+    'br',
+    'strong',
+    'em',
+    'a',
+    'img',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'ul',
+    'ol',
+    'li',
+    'table',
+    'tr',
+    'td',
+    'th',
+    'div',
+    'span',
+    'section',
+    'article',
+    'header',
+    'footer',
   ],
   allowedAttributes: ['href', 'src', 'alt', 'width', 'height', 'style', 'class'],
 }
@@ -46,5 +66,3 @@ export async function* sanitizeHtml(
     if (sanitized) yield sanitized
   }
 }
-
-

@@ -80,11 +80,14 @@ const testDefinitions = [
     ).toBeVisible({timeout: 5_000})
   }),
 
-  Then('the document has a badge showing {string}', async ({playwright: {page}}, status: string) => {
-    await expect(
-      page.locator('[data-testid="document-badges"]').getByText(status, {exact: false}),
-    ).toBeVisible({timeout: 5_000})
-  }),
+  Then(
+    'the document has a badge showing {string}',
+    async ({playwright: {page}}, status: string) => {
+      await expect(
+        page.locator('[data-testid="document-badges"]').getByText(status, {exact: false}),
+      ).toBeVisible({timeout: 5_000})
+    },
+  ),
 ]
 
 Feature(featureText, testDefinitions)

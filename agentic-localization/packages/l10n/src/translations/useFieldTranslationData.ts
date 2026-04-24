@@ -63,10 +63,7 @@ export function useFieldTranslationData(
   const {perspectiveStack} = usePerspective()
   const publishedId = getPublishedId(documentId)
 
-  const actionableFields = useMemo(
-    () => fields.filter((f) => f.depth >= 0),
-    [fields],
-  )
+  const actionableFields = useMemo(() => fields.filter((f) => f.depth >= 0), [fields])
 
   // Separate fetch/listen queries — required because `listenQuery` applies
   // `perspective` only to the fetch, not to the listener filter. The listener
@@ -97,10 +94,7 @@ export function useFieldTranslationData(
     [documentStore, queryObject, publishedId, perspectiveStack],
   )
 
-  const rawValue = useObservable(doc$) as
-    | Record<string, unknown>
-    | null
-    | undefined
+  const rawValue = useObservable(doc$) as Record<string, unknown> | null | undefined
 
   return useMemo(() => {
     const matrix: Record<string, Record<string, FieldLocaleStatus>> = {}
@@ -110,25 +104,20 @@ export function useFieldTranslationData(
     for (const field of actionableFields) {
       const current = rawValue?.[field.displayPath]
 
-      const entries = (
-        Array.isArray(current) ? current : []
-      ) as InternationalizedArrayItem[]
+      const entries = (Array.isArray(current) ? current : []) as InternationalizedArrayItem[]
 
       // Find source language — first entry with a non-empty value
       const sourceEntry = entries.find((e) => isNonEmpty(e.value))
       if (sourceEntry) {
         sourceLanguages[field.displayPath] = sourceEntry.language
-        currentSourceValues[field.displayPath] = JSON.stringify(
-          sourceEntry.value,
-        )
+        currentSourceValues[field.displayPath] = JSON.stringify(sourceEntry.value)
       }
 
       // Build per-locale status
       const localeStatuses: Record<string, FieldLocaleStatus> = {}
       for (const locale of locales) {
         const entry = entries.find((e) => e.language === locale.id)
-        localeStatuses[locale.id] =
-          entry && isNonEmpty(entry.value) ? 'filled' : 'empty'
+        localeStatuses[locale.id] = entry && isNonEmpty(entry.value) ? 'filled' : 'empty'
       }
       matrix[field.displayPath] = localeStatuses
     }

@@ -72,14 +72,24 @@ const testDefinitions = [
   }),
 
   Then('the {string} field is editable', async ({playwright: {page}}, fieldLabel: string) => {
-    const field = page.locator(`[data-testid="field-${fieldLabel.toLowerCase().replace(/\s+/g, '')}"], label:has-text("${fieldLabel}")`)
+    const field = page.locator(
+      `[data-testid="field-${fieldLabel.toLowerCase().replace(/\s+/g, '')}"], label:has-text("${fieldLabel}")`,
+    )
     await expect(field).toBeVisible()
-    const input = page.locator(`label:has-text("${fieldLabel}")`).locator('..').locator('input, textarea').first()
+    const input = page
+      .locator(`label:has-text("${fieldLabel}")`)
+      .locator('..')
+      .locator('input, textarea')
+      .first()
     await expect(input).not.toBeDisabled()
   }),
 
   Then('the {string} field is read-only', async ({playwright: {page}}, fieldLabel: string) => {
-    const input = page.locator(`label:has-text("${fieldLabel}")`).locator('..').locator('input, textarea').first()
+    const input = page
+      .locator(`label:has-text("${fieldLabel}")`)
+      .locator('..')
+      .locator('input, textarea')
+      .first()
     const isReadOnly = await input.getAttribute('readonly')
     const isDisabled = await input.isDisabled()
     expect(isReadOnly !== null || isDisabled).toBeTruthy()
