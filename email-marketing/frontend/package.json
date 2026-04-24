@@ -21,13 +21,13 @@
   "devDependencies": {
     "@sanity/codegen": "^6.0.2",
     "@starter/tsconfig": "workspace:*",
-    "@tailwindcss/postcss": "^4.2.3",
+    "@tailwindcss/postcss": "^4.2.4",
     "@tailwindcss/typography": "^0.5.19",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "postcss": "^8.5.10",
     "sanity-types": "workspace:*",
-    "tailwindcss": "^4.2.3",
+    "tailwindcss": "^4.2.4",
     "typescript": "catalog:"
   }
 }

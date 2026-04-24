@@ -228,11 +228,11 @@ Load `references/troubleshooting.md` for common issues:
 
 ## Reference Files
 
-| File                                | Load when...                                                 |
-| ----------------------------------- | ------------------------------------------------------------ |
-| `references/architecture.md`        | You need the full project map, data flow, or schema overview |
-| `references/customization-guide.md` | Customizing glossaries, style guides, evals, or functions    |
-| `references/troubleshooting.md`     | Debugging translation, eval, or deployment issues            |
+| File                                 | Load when...                                                      |
+| ------------------------------------ | ----------------------------------------------------------------- |
+| `references/architecture.md`         | You need the full project map, data flow, or schema overview      |
+| `references/customization-guide.md`  | Customizing glossaries, style guides, evals, or functions         |
+| `references/troubleshooting.md`      | Debugging translation, eval, or deployment issues                 |
 | `references/field-level-patterns.md` | Understanding or customizing the field-level translation workflow |
 
 ## Companion Skills

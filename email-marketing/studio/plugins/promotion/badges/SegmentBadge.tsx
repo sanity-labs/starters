@@ -28,7 +28,7 @@ export const SegmentBadge: DocumentBadgeComponent = (props) => {
 
   return {
     label: segmentName,
-    color: 'primary',
+    color: 'default',
     title: `Targeting segment: ${segmentName}`,
   }
 }
