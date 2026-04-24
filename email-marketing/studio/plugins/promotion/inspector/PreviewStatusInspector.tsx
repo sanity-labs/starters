@@ -13,6 +13,19 @@ const WORKFLOW_QUERY = defineQuery(`
   }
 `)
 
+const PREVIEW_CONTEXT_QUERY = defineQuery(`
+  *[_type == "promotion" && _id == $id][0]{
+    "tokens": campaign->.previewContext.tokens[]{key, description},
+    emailSlots[]{
+      _type,
+      _type == "emailSection" => { headline, body },
+      _type == "emailHeader" => { brandName },
+      _type == "emailCTA" => { text },
+      _type == "emailFooter" => { legalText, unsubscribeText },
+    },
+  }
+`)
+
 type WorkflowState = {
   status: string | null
   approvedBy: string | null
@@ -46,16 +59,85 @@ const STATUS_LABELS: Record<string, string> = {
   error: 'Error',
 }
 
+function scanForTokens(
+  blocks: Array<{
+    headline?: string | null
+    body?: string | null
+    brandName?: string | null
+    text?: string | null
+    legalText?: string | null
+    unsubscribeText?: string | null
+  }> | null,
+): Set<string> {
+  const found = new Set<string>()
+  const pattern = /\{\{\s*([\w.]+)\s*\}\}/g
+  for (const block of blocks ?? []) {
+    for (const val of [
+      block.headline,
+      block.body,
+      block.brandName,
+      block.text,
+      block.legalText,
+      block.unsubscribeText,
+    ]) {
+      if (!val) continue
+      for (const match of val.matchAll(pattern)) {
+        found.add(match[1])
+      }
+    }
+  }
+  return found
+}
+
+type PreviewStatusEntry = {
+  key: string
+  mode: 'sample' | 'send-time-only' | 'not-used'
+}
+
 function PreviewStatusInspectorComponent({documentId}: DocumentInspectorProps) {
   const client = useClient({apiVersion: '2026-04-08'})
   const promotionId = documentId.replace(/^drafts\./, '')
 
   const [workflow, setWorkflow] = useState<WorkflowState | null>(null)
+  const [tokens, setTokens] = useState<PreviewStatusEntry[]>([])
 
   useEffect(() => {
     let cancelled = false
-    client.fetch<WorkflowState | null>(WORKFLOW_QUERY, {id: promotionId}).then((wf) => {
-      if (!cancelled) setWorkflow(wf)
+    Promise.all([
+      client.fetch<WorkflowState | null>(WORKFLOW_QUERY, {id: promotionId}),
+      client.fetch<{
+        tokens: Array<{key?: string | null; description?: string | null}> | null
+        emailSlots: Array<{
+          headline?: string | null
+          body?: string | null
+          brandName?: string | null
+          text?: string | null
+          legalText?: string | null
+          unsubscribeText?: string | null
+        }> | null
+      } | null>(PREVIEW_CONTEXT_QUERY, {id: promotionId}),
+    ]).then(([wf, preview]) => {
+      if (cancelled) return
+      setWorkflow(wf)
+
+      const usedInBlocks = scanForTokens(preview?.emailSlots ?? [])
+      const previewContextKeys = new Set(
+        (preview?.tokens ?? []).map((t) => t.key).filter(Boolean) as string[],
+      )
+
+      const entries: PreviewStatusEntry[] = []
+      for (const key of [...usedInBlocks]) {
+        entries.push({
+          key,
+          mode: previewContextKeys.has(key) ? 'sample' : 'send-time-only',
+        })
+      }
+      for (const key of [...previewContextKeys]) {
+        if (!usedInBlocks.has(key)) {
+          entries.push({key, mode: 'not-used'})
+        }
+      }
+      setTokens(entries)
     })
     return () => {
       cancelled = true
@@ -103,6 +185,41 @@ function PreviewStatusInspectorComponent({documentId}: DocumentInspectorProps) {
                 ))}
               </Stack>
             )}
+          </Stack>
+        )}
+
+        {tokens.length > 0 && (
+          <Stack space={3}>
+            <Label size={1} muted>
+              Preview Tokens
+            </Label>
+            <Stack space={2}>
+              {tokens.map((t) => (
+                <Flex key={t.key} gap={2} align="center">
+                  <Text size={0} weight="semibold" style={{fontFamily: 'monospace'}}>
+                    {`{{${t.key}}}`}
+                  </Text>
+                  <Badge
+                    tone={
+                      t.mode === 'sample'
+                        ? 'positive'
+                        : t.mode === 'not-used'
+                          ? 'caution'
+                          : 'default'
+                    }
+                    fontSize={0}
+                    padding={1}
+                    radius={1}
+                  >
+                    {t.mode === 'sample'
+                      ? 'has sample'
+                      : t.mode === 'not-used'
+                        ? 'unused'
+                        : 'send-time only'}
+                  </Badge>
+                </Flex>
+              ))}
+            </Stack>
           </Stack>
         )}
 
