@@ -4,16 +4,16 @@
 
 This starter uses two complementary translation architectures:
 
-| Aspect | Document-level | Field-level |
-| --- | --- | --- |
-| Plugin | `@sanity/document-internationalization` | `sanity-plugin-internationalized-array` |
-| Storage | Separate document per locale (e.g., `article__i18n_es-MX`) | Inline array entries on the same document |
-| Metadata doc | `translation.metadata` | `fieldTranslation.metadata` |
-| Workflow states | `missing`, `usingFallback`, `needsReview`, `approved`, `stale` | `missing`, `needsReview`, `approved`, `stale` |
-| Stale detection | Server-side via Sanity Functions | Client-side via `deriveFieldCellStates` + `useStaleSyncEffect` |
-| Publish gate | None (separate docs) | `createFieldTranslationPublishGate` wraps PublishAction |
-| Inspector UI | Translation pane (per-locale document list) | Field x locale matrix (FieldTranslationContent) |
-| Use case | Full document translation (articles, pages) | Per-field translation (bios, descriptions, taglines) |
+| Aspect          | Document-level                                                 | Field-level                                                    |
+| --------------- | -------------------------------------------------------------- | -------------------------------------------------------------- |
+| Plugin          | `@sanity/document-internationalization`                        | `sanity-plugin-internationalized-array`                        |
+| Storage         | Separate document per locale (e.g., `article__i18n_es-MX`)     | Inline array entries on the same document                      |
+| Metadata doc    | `translation.metadata`                                         | `fieldTranslation.metadata`                                    |
+| Workflow states | `missing`, `usingFallback`, `needsReview`, `approved`, `stale` | `missing`, `needsReview`, `approved`, `stale`                  |
+| Stale detection | Server-side via Sanity Functions                               | Client-side via `deriveFieldCellStates` + `useStaleSyncEffect` |
+| Publish gate    | None (separate docs)                                           | `createFieldTranslationPublishGate` wraps PublishAction        |
+| Inspector UI    | Translation pane (per-locale document list)                    | Field x locale matrix (FieldTranslationContent)                |
+| Use case        | Full document translation (articles, pages)                    | Per-field translation (bios, descriptions, taglines)           |
 
 **When to use which**: Use document-level when the entire document is translated
 as a unit (articles, blog posts). Use field-level when only specific fields need
@@ -62,14 +62,14 @@ deriveFieldCellStates(snapshot, stateMap, currentSourceValues)
 that merges document state (filled/empty) with metadata workflow state into a
 `FieldCellState` matrix. The rules:
 
-| # | Condition | Result | Rationale |
-| --- | --- | --- | --- |
-| 1 | No array entry for this locale | `missing` | Translation doesn't exist yet |
-| 2 | Entry exists, no metadata | `approved` (implicit) | Manual/pre-existing content — no workflow tracking needed |
-| 3 | Entry exists, metadata `needsReview`, source unchanged | `needsReview` | AI translated but not yet reviewed |
-| 4 | Entry exists, metadata `needsReview` or `approved`, source changed | `stale` | Source content changed since translation was done |
-| 5 | Entry exists, metadata `stale` | `stale` | Already marked stale (persisted) |
-| 6 | Entry exists, metadata `approved`, source unchanged | `approved` | Reviewed and source hasn't changed |
+| #   | Condition                                                          | Result                | Rationale                                                 |
+| --- | ------------------------------------------------------------------ | --------------------- | --------------------------------------------------------- |
+| 1   | No array entry for this locale                                     | `missing`             | Translation doesn't exist yet                             |
+| 2   | Entry exists, no metadata                                          | `approved` (implicit) | Manual/pre-existing content — no workflow tracking needed |
+| 3   | Entry exists, metadata `needsReview`, source unchanged             | `needsReview`         | AI translated but not yet reviewed                        |
+| 4   | Entry exists, metadata `needsReview` or `approved`, source changed | `stale`               | Source content changed since translation was done         |
+| 5   | Entry exists, metadata `stale`                                     | `stale`               | Already marked stale (persisted)                          |
+| 6   | Entry exists, metadata `approved`, source unchanged                | `approved`            | Reviewed and source hasn't changed                        |
 
 **Source locale** is always implicitly `approved` (skipped from derivation).
 
@@ -173,14 +173,17 @@ Each cell translation in `useFieldTranslateActions.processCell()` follows a
 ### Step 1: Translate with `noWrite: true`
 
 ```ts
-const translated = await translate({
-  schemaId,
-  documentId: actionDocumentId,
-  fromLanguage: {id: sourceLocaleId},
-  toLanguage: {id: locale.id, title: locale.title},
-  target: {path: [...field.path, {_key: sourceEntry._key}, 'value']},
-  noWrite: true,
-}, doc)
+const translated = await translate(
+  {
+    schemaId,
+    documentId: actionDocumentId,
+    fromLanguage: {id: sourceLocaleId},
+    toLanguage: {id: locale.id, title: locale.title},
+    target: {path: [...field.path, {_key: sourceEntry._key}, 'value']},
+    noWrite: true,
+  },
+  doc,
+)
 ```
 
 **Why `noWrite`**: The Agent Actions Translate API reads the document from the
@@ -194,11 +197,12 @@ without writing.
 ### Step 2: Patch document
 
 ```ts
-client.patch(actionDocumentId)
+client
+  .patch(actionDocumentId)
   .setIfMissing({[fieldName]: []})
   .unset([`${fieldName}[language=="${locale.id}"]`])
   .append(fieldName, [
-    {_key: entryKey, _type: itemType, language: locale.id, value: translatedEntry.value}
+    {_key: entryKey, _type: itemType, language: locale.id, value: translatedEntry.value},
   ])
   .commit()
 ```

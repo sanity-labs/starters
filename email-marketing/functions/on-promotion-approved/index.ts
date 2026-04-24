@@ -237,17 +237,25 @@ export const handler = documentEventHandler(async ({context, event}) => {
     console.log(
       `[on-promotion-approved] Sent ${promotionRef} via Klaviyo campaign ${klaviyoCampaignId}`,
     )
-  } catch (error) {
+  } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
+    // Log the Klaviyo response body if available (axios-style errors)
+    const responseBody =
+      error && typeof error === 'object' && 'response' in error
+        ? JSON.stringify((error as {response?: {data?: unknown}}).response?.data, null, 2)
+        : undefined
     console.error(`[on-promotion-approved] Failed: ${message}`)
+    if (responseBody) console.error(`[on-promotion-approved] Response body: ${responseBody}`)
     await client
       .patch(wfId)
+      .set({status: 'error'})
       .append('history', [
         {
           _key: `h-${Date.now()}`,
           _type: 'object',
-          status: 'approved',
+          status: 'error',
           timestamp: new Date().toISOString(),
+          error: message,
         },
       ])
       .commit()

@@ -159,22 +159,22 @@ Agent Actions Translate API call
 
 ## Schema Types
 
-| Type name                 | Kind     | Key fields                                                                      | Source                             |
-| ------------------------- | -------- | ------------------------------------------------------------------------------- | ---------------------------------- |
-| `l10n.locale`             | document | code (BCP-47), title, nativeName, fallback (ref)                                | `schemas/translationLocale.tsx`    |
-| `l10n.glossary`           | document | title, sourceLocale (ref), entries[]                                            | `schemas/translationGlossary.ts`   |
-| `l10n.glossary.entry`     | object   | term, status, doNotTranslate, partOfSpeech, definition, context, translations[] | `schemas/glossaryEntry.ts`         |
-| `l10n.style-guide`        | document | title, locale (ref), formality, tone[], additionalInstructions (PT)             | `schemas/translationStyleGuide.ts` |
-| `l10n.locale.translation` | object   | locale (ref), translation, gender                                               | `schemas/localeTranslation.ts`     |
+| Type name                   | Kind     | Key fields                                                                                               | Source                                |
+| --------------------------- | -------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `l10n.locale`               | document | code (BCP-47), title, nativeName, fallback (ref)                                                         | `schemas/translationLocale.tsx`       |
+| `l10n.glossary`             | document | title, sourceLocale (ref), entries[]                                                                     | `schemas/translationGlossary.ts`      |
+| `l10n.glossary.entry`       | object   | term, status, doNotTranslate, partOfSpeech, definition, context, translations[]                          | `schemas/glossaryEntry.ts`            |
+| `l10n.style-guide`          | document | title, locale (ref), formality, tone[], additionalInstructions (PT)                                      | `schemas/translationStyleGuide.ts`    |
+| `l10n.locale.translation`   | object   | locale (ref), translation, gender                                                                        | `schemas/localeTranslation.ts`        |
 | `fieldTranslation.metadata` | document | documentRef (weak ref), documentType, workflowStates[] (field, language, status, source, sourceSnapshot) | `schemas/fieldTranslationMetadata.ts` |
 
 ## GROQ Queries
 
-| Export                         | Returns                                                | Used by                                |
-| ------------------------------ | ------------------------------------------------------ | -------------------------------------- |
-| `SUPPORTED_LANGUAGES_QUERY`    | `{id, title}[]` — all locales, ordered by title        | `LocalesContext` (single subscription) |
+| Export                         | Returns                                                | Used by                                   |
+| ------------------------------ | ------------------------------------------------------ | ----------------------------------------- |
+| `SUPPORTED_LANGUAGES_QUERY`    | `{id, title}[]` — all locales, ordered by title        | `LocalesContext` (single subscription)    |
 | `GLOSSARIES_QUERY`             | Glossaries with resolved entries + locale translations | `GlossariesContext` (single subscription) |
-| `STYLE_GUIDE_FOR_LOCALE_QUERY` | Style guide for a specific `$localeCode`, or null      | Translation inspector, prompt assembly |
+| `STYLE_GUIDE_FOR_LOCALE_QUERY` | Style guide for a specific `$localeCode`, or null      | Translation inspector, prompt assembly    |
 
 ## Data Flow: Field-Level Translation Workflow
 

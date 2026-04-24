@@ -48,34 +48,43 @@ Email marketing starter that connects Sanity Studio to Klaviyo. Compose emails w
 ## Project Structure
 
 - `studio/` — Sanity Studio v5
-  - `studio/schemaTypes/` — Document schemas: `email.ts`, `campaign.ts`, `list.ts`, `audience.ts` (segments), `emailSettings.ts`, `klaviyoImport.ts`, `product.ts`, plus email body block types
-  - `studio/components/` — Custom Studio components: `GenerateEmailButton.tsx` (AI generation), `SendPublishAction.tsx` (gated publish+send), `ImportFromKlaviyoAction.tsx` (sync trigger), `KlaviyoDocumentDescription.tsx`, `OpenKlaviyoAction.tsx`
-  - `studio/structure.ts` — Sidebar: Campaigns, Products, Email Settings (Settings, Klaviyo sync, Lists, Segments)
+  - `studio/schemaTypes/` — Core schemas: `klaviyoImport.ts`, `product.ts`, `workflow.state.ts`, `reference-data/` (`brandVoice.ts`, `segment.ts`, `urgencyStage.ts`)
+  - `studio/plugins/` — Domain-organized plugins:
+    - `campaign/` — Brief schema, `GenerateVariantsAction`, `CampaignGridView`, Content Agent context
+    - `promotion/` — Promotion schema, email block types (`emailBlocks.ts`), `ApproveAction`, `ResendAction`, inspectors
+    - `klaviyo/` — Segment sync integration, import UI
+    - `preview/` — Presentation tool wiring
+    - `assist/` — Field-level AI generation config
+  - `studio/components/` — `ImportFromKlaviyoAction.tsx`, `KlaviyoImportDescription.tsx`, `OpenKlaviyoAction.tsx`
+  - `studio/structure.ts` — Sidebar: Campaigns (All Campaigns, Email Settings: Brand Voice, Urgency Stages), Products, Klaviyo (Sync/Import, Segments)
   - `studio/scripts/bootstrap.ts` — One-command setup
   - `studio/seed/` — Sample dataset (ndjson)
 - `frontend/` — Next.js 16 + React 19 + Tailwind v4
-  - `frontend/app/page.tsx` — Email list view with status badges
-  - `frontend/app/emails/preview/[id]/` — Email preview with block rendering
+  - `frontend/app/page.tsx` — Campaign list view
+  - `frontend/app/campaigns/[id]/` — Campaign detail
+  - `frontend/app/promotions/[id]/` — Promotion preview with block rendering
+  - `frontend/app/api/webhooks/engagement/` — ESP engagement webhook
+  - `frontend/app/api/preview/klaviyo/[id]/` — Klaviyo render preview
   - `frontend/sanity/` — Client, queries, live preview setup
 - `functions/` — Sanity Functions
-  - `functions/send-email/index.ts` — Renders HTML, creates Klaviyo template + campaign, triggers send
+  - `functions/on-promotion-approved/index.ts` — Renders HTML, creates Klaviyo template + campaign, triggers send
   - `functions/import-klaviyo/index.ts` — Syncs lists & segments from Klaviyo into Sanity
-  - `functions/lib/klaviyo.ts` — Klaviyo API client (base URL, auth, rate limiting, error handling)
-  - `functions/lib/mjml.ts` — Email HTML renderer (responsive HTML with product grids, CTA buttons, unsubscribe links)
 - `sanity.blueprint.ts` — Function triggers (delta filters)
-- `packages/@starter/` — Shared configs (ESLint, TypeScript, Sanity types)
+- `packages/` — Shared packages: `render-email/` (@starter/render-email), `eslint-config/`, `sanity-types/`, `tsconfig/`
+- `e2e/` — Playwright end-to-end tests
+- `docs/` — ARCHITECTURE.md, SECURITY.md, TESTING.md
 
 ## Key Architecture Notes
 
-- **Email rendering exists in two places**: `frontend/app/emails/preview/` renders React components for live preview; `functions/lib/mjml.ts` renders standalone HTML for Klaviyo (with Handlebars variables like `{{ unsubscribe_url }}`)
-- **SendPublishAction** replaces the default publish action for `emailMessage` documents, gated by status workflow
-- **Blueprint triggers**: `import-klaviyo` fires on `klaviyoImport` documents when `importState == "requested"`; `send-email` fires on `emailMessage` documents when `status == "approved"` and `sendState` is not `"sent"` or `"sending"`
-- **Klaviyo API key** is set as a function runtime environment variable (`sanity functions env add`), not stored in `.env` files
+- **Email rendering exists in two places**: `frontend/app/promotions/[id]/` renders React components for live preview; `functions/on-promotion-approved/` renders standalone HTML for Klaviyo via `@starter/render-email`
+- **ApproveAction and ResendAction** replace the default publish action for `promotion` documents, gated by `workflow.state`
+- **Blueprint triggers**: `import-klaviyo` fires on `klaviyoImport` documents when `importState == "requested"`; `on-promotion-approved` fires on `workflow.state` documents when `status == "approved"`
+- **Klaviyo API key** is set as a function runtime environment variable (`sanity functions env add`), not stored in `.env` files (the frontend also uses `KLAVIYO_API_KEY` in its `.env` for the Klaviyo preview route)
 - **Lists and segments** are read-only in Sanity — managed in Klaviyo, synced into Sanity for campaign targeting
 
 ## Deploying Functions
 
-Functions deploy via Sanity Blueprints. The blueprint config (`sanity.blueprint.ts`) lives at the **project root** and its `src` paths are relative to the root (e.g. `functions/dist/send-email`).
+Functions deploy via Sanity Blueprints. The blueprint config (`sanity.blueprint.ts`) lives at the **project root** and its `src` paths are relative to the root (e.g. `functions/dist/on-promotion-approved`).
 
 1. Build from functions dir: `cd functions && pnpm run build`
 2. Deploy from **project root**: `npx sanity blueprints deploy`

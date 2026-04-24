@@ -14,15 +14,15 @@
     "test": "vitest run --project render-email"
   },
   "dependencies": {
-    "isomorphic-dompurify": "^3.9.0",
-    "mjml": "^5.0.1"
+    "isomorphic-dompurify": "^3.10.0",
+    "mjml": "^5.1.0"
   },
   "devDependencies": {
     "@starter/tsconfig": "workspace:*",
     "@types/mjml": "^5.0.0",
     "@types/node": "^22.19.17",
     "typescript": "catalog:",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.5"
   },
   "engines": {
     "node": ">=20.19"

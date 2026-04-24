@@ -27,7 +27,6 @@ export default defineCliConfig({
       '../frontend/sanity/**/*.{ts,tsx}',
       '../functions/import-klaviyo/**/*.ts',
       '../functions/on-promotion-approved/**/*.ts',
-      '../functions/engagement-log-back/**/*.ts',
     ],
     generates: '../packages/sanity-types/sanity.types.ts',
     overloadClientMethods: true,

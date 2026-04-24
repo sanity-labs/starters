@@ -51,6 +51,7 @@ const STATUS_TONE: Record<string, 'primary' | 'positive' | 'caution' | 'critical
   approved: 'positive',
   sent: 'positive',
   rejected: 'critical',
+  error: 'critical',
 }
 
 const TIER_LABEL: Record<string, string> = {
@@ -73,10 +74,12 @@ export function CampaignGridView({document}: ViewProps) {
 
   const fetchPromotions = useCallback(() => {
     if (!cleanCampaignId) return
-    client.fetch<Promotion[]>(PROMOTIONS_QUERY, {id: cleanCampaignId}).then((results) => {
-      setPromotions(results ?? [])
-      setLoading(false)
-    })
+    client
+      .fetch<Promotion[]>(PROMOTIONS_QUERY, {id: cleanCampaignId}, {perspective: 'previewDrafts'})
+      .then((results) => {
+        setPromotions(results ?? [])
+        setLoading(false)
+      })
   }, [client, cleanCampaignId])
 
   useEffect(() => {

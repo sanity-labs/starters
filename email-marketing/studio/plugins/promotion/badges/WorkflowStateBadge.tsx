@@ -41,7 +41,7 @@ export const WorkflowStateBadge: DocumentBadgeComponent = (props) => {
   if (!status) return null
 
   return {
-    label: status.replace('-', ' '),
+    label: status.replace('-', ' ').replace(/^\w/, (c) => c.toUpperCase()),
     color: STATUS_COLORS[status] ?? 'primary',
     title: `Workflow status: ${status}`,
   }
