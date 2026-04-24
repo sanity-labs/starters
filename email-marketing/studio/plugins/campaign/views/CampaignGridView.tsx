@@ -235,7 +235,7 @@ function PromotionTile({promotion: p, client, agentClient, schemaId, onRefresh}:
   return (
     <Card border radius={3} padding={4} tone="default">
       <Stack space={4}>
-        {/* Header: icon + segment name + tier badge + status badge */}
+        {/* Header: icon + segment name + actions + status badge */}
         <Flex align="center" justify="space-between" gap={2}>
           <Flex align="center" gap={2} style={{minWidth: 0}}>
             <Text size={1}>
@@ -254,21 +254,33 @@ function PromotionTile({promotion: p, client, agentClient, schemaId, onRefresh}:
             <Badge tone={statusTone} fontSize={0} padding={2} radius={2}>
               {status.replace('-', ' ')}
             </Badge>
+            <Button
+              as="a"
+              href={`${previewUrl}/api/preview/klaviyo/${p._id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              icon={LaunchIcon}
+              mode="bleed"
+              fontSize={0}
+              padding={2}
+              title="Open preview"
+            />
+            <Button
+              icon={TrashIcon}
+              mode="bleed"
+              tone="critical"
+              fontSize={0}
+              padding={2}
+              onClick={() => setDialogOpen(true)}
+              title="Delete promotion"
+              style={{cursor: 'pointer'}}
+            />
           </Flex>
         </Flex>
 
         {/* Email preview */}
         <Card border radius={2} padding={3} tone="transparent">
           <Stack space={3}>
-            {p.disruptor && (
-              <Text
-                size={0}
-                weight="bold"
-                style={{textTransform: 'uppercase', letterSpacing: '0.1em'}}
-              >
-                {p.disruptor}
-              </Text>
-            )}
             {p.subjectLine ? (
               <Text size={2} weight="semibold">
                 {p.subjectLine}
@@ -286,46 +298,25 @@ function PromotionTile({promotion: p, client, agentClient, schemaId, onRefresh}:
           </Stack>
         </Card>
 
-        {/* Footer: block count + action buttons */}
+        {/* Footer: block count + edit button */}
         <Flex align="center" justify="space-between" gap={2}>
           <Text size={0} muted>
             {p.blockCount ?? 0} block{p.blockCount !== 1 ? 's' : ''}
           </Text>
-          <Flex align="center" gap={2}>
+          <IntentLink
+            intent="edit"
+            params={{id: p._id, type: 'promotion'}}
+            style={{textDecoration: 'none'}}
+          >
             <Button
-              as="a"
-              href={`${previewUrl}/api/preview/klaviyo/${p._id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              icon={LaunchIcon}
-              text="Open preview"
-              mode="ghost"
-              fontSize={0}
-              padding={2}
+              as="span"
+              text="Edit promotion"
+              tone="primary"
+              mode="default"
+              fontSize={1}
+              padding={3}
             />
-            <IntentLink
-              intent="edit"
-              params={{id: p._id, type: 'promotion'}}
-              style={{textDecoration: 'none'}}
-            >
-              <Button
-                as="span"
-                text="Edit promotion"
-                tone="primary"
-                mode="default"
-                fontSize={0}
-                padding={2}
-              />
-            </IntentLink>
-            <Button
-              icon={TrashIcon}
-              mode="bleed"
-              tone="critical"
-              fontSize={0}
-              padding={2}
-              onClick={() => setDialogOpen(true)}
-            />
-          </Flex>
+          </IntentLink>
         </Flex>
       </Stack>
 
