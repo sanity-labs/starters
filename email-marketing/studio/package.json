@@ -17,12 +17,12 @@
     "@sanity/assist": "^6.0.4",
     "@sanity/icons": "catalog:",
     "@sanity/ui": "^3.1.14",
-    "@sanity/vision": "5.21.0",
+    "@sanity/vision": "catalog:",
     "ai": "^6.0.168",
-    "content-agent": "^0.7.5",
+    "content-agent": "^0.7.6",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "sanity": "5.21.0",
+    "sanity": "catalog:",
     "styled-components": "catalog:"
   },
   "devDependencies": {
@@ -30,6 +30,6 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "typescript": "catalog:",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.5"
   }
 }
