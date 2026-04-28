@@ -15,6 +15,7 @@ export {
 } from './schemaTypes/emailBlocks'
 export {ApproveAction} from './documentActions/ApproveAction'
 export {ResendAction} from './documentActions/ResendAction'
+export {SendTestAction} from './documentActions/SendTestAction'
 export {WorkflowStateBadge} from './badges/WorkflowStateBadge'
 export {SegmentBadge} from './badges/SegmentBadge'
 export {RefinementInspector} from './inspector/RefinementInspector'
