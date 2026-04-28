@@ -152,7 +152,7 @@ Reusable content block with position, asset reference, and editable text.
 
 Background sync of Klaviyo lists and segments, no manual click required.
 
-1. `scheduled-import-klaviyo` Function fires on cron (`every 5 minutes`).
+1. `scheduled-import-klaviyo` Function fires every 12 hours (midnight and noon Pacific time).
 2. Function reads the `klaviyoImport` singleton; if `importState` is `idle`, `imported`, or `error`, it patches it to `"requested"`.
 3. Patch triggers the existing `import-klaviyo` document Function (delta filter on `importState == "requested"`), which performs the actual Klaviyo API calls.
 4. If `importState` is already `requested` or `importing`, the scheduled run is a no-op (skip log).

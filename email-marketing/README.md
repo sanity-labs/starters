@@ -75,7 +75,7 @@ Shared packages live in `packages/`:
 
 - **on-promotion-approved** — Fires when `workflow.state` transitions to `"approved"`; renders email HTML, creates Klaviyo template and campaign, triggers send
 - **import-klaviyo** — Syncs lists and segments from Klaviyo into Sanity (triggered via `klaviyoImport` document with `importState: "requested"`)
-- **scheduled-import-klaviyo** — Scheduled function that runs every 5 minutes, patches the `klaviyoImport` document's `importState` to `"requested"`, which in turn fires `import-klaviyo`. Provides background sync without manual clicks. Authenticates via a robot token defined alongside the function in `sanity.blueprint.ts`.
+- **scheduled-import-klaviyo** — Scheduled function that runs every 12 hours (midnight and noon Pacific time), patches the `klaviyoImport` document's `importState` to `"requested"`, which in turn fires `import-klaviyo`. Provides background sync without manual clicks. Authenticates via a robot token defined alongside the function in `sanity.blueprint.ts`.
 
 Engagement tracking is handled by a Next.js webhook route at `frontend/app/api/webhooks/engagement/route.ts`, not a Sanity Function.
 
@@ -188,7 +188,7 @@ email-marketing/
 ├── functions/                   # Sanity Functions
 │   ├── on-promotion-approved/  # Renders HTML, creates Klaviyo campaign, sends
 │   ├── import-klaviyo/         # Syncs lists & segments from Klaviyo (on-demand)
-│   └── scheduled-import-klaviyo/ # Triggers import-klaviyo every 5 minutes
+│   └── scheduled-import-klaviyo/ # Triggers import-klaviyo every 12h (midnight & noon PT)
 ├── packages/                    # Shared packages
 │   ├── render-email/           # @starter/render-email (MJML, streaming, sanitization)
 │   ├── eslint-config/          # @starter/eslint-config
