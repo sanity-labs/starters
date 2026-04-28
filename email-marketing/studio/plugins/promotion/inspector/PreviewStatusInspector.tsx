@@ -53,7 +53,7 @@ const STATUS_LABELS: Record<string, string> = {
   draft: 'Promotion created',
   'in-review': 'Submitted for review',
   approved: 'Approved for send',
-  sent: 'Delivered via Klaviyo',
+  sent: 'Delivered via Resend',
   resent: 'Resend queued',
   rejected: 'Rejected',
   error: 'Error',

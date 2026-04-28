@@ -1,26 +1,8 @@
 import {createClient} from 'next-sanity'
 import {defineQuery} from 'next-sanity'
-import {createHmac, timingSafeEqual} from 'node:crypto'
+import {Resend} from 'resend'
 
-function verifyKlaviyoSignature(req: Request, rawBody: string): boolean {
-  const signingKey = process.env.KLAVIYO_WEBHOOK_SECRET
-  if (!signingKey) return true
-
-  const timestamp = req.headers.get('X-Klaviyo-Request-Timestamp')
-  const signature = req.headers.get('X-Klaviyo-Request-Signature')
-  if (!timestamp || !signature) return false
-
-  const age = Date.now() / 1000 - Number(timestamp)
-  if (Number.isNaN(age) || age > 300 || age < 0) return false
-
-  const expected = createHmac('sha256', signingKey)
-    .update(timestamp + rawBody)
-    .digest('base64')
-
-  const sigBuf = Buffer.from(signature, 'base64')
-  const expBuf = Buffer.from(expected, 'base64')
-  return sigBuf.length === expBuf.length && timingSafeEqual(sigBuf, expBuf)
-}
+const resend = new Resend(process.env.RESEND_API_KEY!)
 
 const client = createClient({
   projectId: process.env.SANITY_PROJECT_ID!,
@@ -30,7 +12,7 @@ const client = createClient({
   useCdn: false,
 })
 
-const PROMOTION_BY_KLAVIYO_CAMPAIGN_QUERY = defineQuery(`
+const PROMOTION_BY_BROADCAST_QUERY = defineQuery(`
   *[_type == "promotion" && externalCampaignId == $id][0]._id
 `)
 
@@ -38,47 +20,60 @@ const CURRENT_PERFORMANCE_QUERY = defineQuery(`
   *[_type == "promotion" && _id == $id][0].campaignPerformance
 `)
 
-type KlaviyoMetricEvent = {
+type ResendWebhookEvent = {
+  type: string
+  created_at?: string
   data: {
-    type: string
-    attributes: {
-      metric_id?: string
-      campaign_id?: string
-      properties?: Record<string, unknown>
-      datetime?: string
-    }
+    email_id?: string
+    broadcast_id?: string
+    to?: string[]
+    from?: string
+    subject?: string
   }
 }
 
 export async function POST(request: Request): Promise<Response> {
   const rawBody = await request.text()
-  if (!verifyKlaviyoSignature(request, rawBody)) {
+
+  const webhookSecret = process.env.RESEND_WEBHOOK_SECRET
+  if (!webhookSecret) {
+    return new Response('Webhook secret not configured', {status: 500})
+  }
+
+  try {
+    resend.webhooks.verify({
+      payload: rawBody,
+      headers: {
+        'svix-id': request.headers.get('svix-id') ?? '',
+        'svix-timestamp': request.headers.get('svix-timestamp') ?? '',
+        'svix-signature': request.headers.get('svix-signature') ?? '',
+      },
+      webhookSecret,
+    })
+  } catch {
     return new Response('Unauthorized', {status: 401})
   }
 
-  const body = JSON.parse(rawBody) as KlaviyoMetricEvent[]
+  const event = JSON.parse(rawBody) as ResendWebhookEvent
 
-  for (const event of body) {
-    const campaignId = event.data?.attributes?.campaign_id
-    if (!campaignId) continue
+  const broadcastId = event.data?.broadcast_id
+  if (!broadcastId) return new Response(null, {status: 200})
 
-    const promotionId = await client.fetch(PROMOTION_BY_KLAVIYO_CAMPAIGN_QUERY, {id: campaignId})
-    if (!promotionId) continue
+  const promotionId = await client.fetch(PROMOTION_BY_BROADCAST_QUERY, {id: broadcastId})
+  if (!promotionId) return new Response(null, {status: 200})
 
-    const current = await client.fetch(CURRENT_PERFORMANCE_QUERY, {id: promotionId})
-    const performance = current ?? {openRate: 0, clickThroughRate: 0, conversionRate: 0}
+  const current = await client.fetch(CURRENT_PERFORMANCE_QUERY, {id: promotionId})
+  const performance = current ?? {openRate: 0, clickThroughRate: 0}
 
-    const metricType = event.data?.type
-    if (metricType === 'Opened Email') {
-      performance.openRate = (performance.openRate ?? 0) + 1
-    } else if (metricType === 'Clicked Email') {
-      performance.clickThroughRate = (performance.clickThroughRate ?? 0) + 1
-    } else if (metricType === 'Placed Order') {
-      performance.conversionRate = (performance.conversionRate ?? 0) + 1
-    }
-
-    await client.patch(promotionId).set({campaignPerformance: performance}).commit()
+  if (event.type === 'email.opened') {
+    performance.openRate = (performance.openRate ?? 0) + 1
+  } else if (event.type === 'email.clicked') {
+    performance.clickThroughRate = (performance.clickThroughRate ?? 0) + 1
   }
+  // No `conversionRate` mapping: Resend has no purchase/order events.
+  // See docs/ESP-NOTES.md for guidance on wiring conversion attribution
+  // from an external event source if needed.
 
+  await client.patch(promotionId).set({campaignPerformance: performance}).commit()
   return new Response(null, {status: 200})
 }

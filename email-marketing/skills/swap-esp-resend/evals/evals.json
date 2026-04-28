@@ -1,0 +1,64 @@
+{
+  "name": "swap-esp-resend",
+  "description": "Evals for the swap-esp-resend skill — measure trigger accuracy and quality of swap guidance.",
+  "evals": [
+    {
+      "id": "explicit-swap-request",
+      "prompt": "Swap Klaviyo for Resend in this email-marketing starter.",
+      "expectations": [
+        "Triggers the swap-esp-resend skill (skill description should match cleanly).",
+        "Surfaces the four functional gaps before changes start: no behavioral segments, no flows, no metric events, no server-side render API.",
+        "Asks the user for the four required inputs: API key, verified sending domain + from-address, webhook signing secret, segment-sync retention preference.",
+        "Identifies all 16 touchpoint rows or assigns them across the email-marketing 6-agent team.",
+        "Calls out that conversionRate has no Resend equivalent."
+      ]
+    },
+    {
+      "id": "loose-trigger-replace-esp",
+      "prompt": "I want to use Resend instead of Klaviyo for this project.",
+      "expectations": [
+        "Triggers the swap-esp-resend skill from a less explicit phrasing.",
+        "Confirms scope (full swap, not coexistence) before starting.",
+        "Mentions Svix webhook signing migration."
+      ]
+    },
+    {
+      "id": "very-loose-trigger-different-esp",
+      "prompt": "Replace the ESP in this project.",
+      "expectations": [
+        "Skill description matches loosely; agent asks which ESP.",
+        "If user says Resend, skill triggers.",
+        "If user says a different ESP, skill makes clear it is Resend-specific and offers to generalize after."
+      ]
+    },
+    {
+      "id": "send-function-rewrite",
+      "prompt": "Rewrite functions/on-promotion-approved/index.ts to send via Resend instead of Klaviyo.",
+      "expectations": [
+        "Drops the create-template + assign-template ceremony.",
+        "Uses resend.broadcasts.create + resend.broadcasts.send.",
+        "Persists broadcast.id as externalCampaignId.",
+        "Updates the {{ unsubscribe_url }} merge tag to {{{RESEND_UNSUBSCRIBE_URL}}} in buildHtml.",
+        "Reads RESEND_API_KEY and RESEND_FROM_EMAIL from process.env.",
+        "Preserves the workflow.state error/history append behavior."
+      ]
+    },
+    {
+      "id": "webhook-svix-migration",
+      "prompt": "Migrate frontend/app/api/webhooks/engagement/route.ts from Klaviyo HMAC verification to Resend Svix verification.",
+      "expectations": [
+        "Uses resend.webhooks.verify({payload, headers, webhookSecret}) on raw request body.",
+        "Reads svix-id, svix-timestamp, svix-signature headers.",
+        "Maps email.opened → openRate++, email.clicked → clickThroughRate++.",
+        "Drops the Placed Order → conversionRate increment with a comment pointing to ESP-NOTES.md.",
+        "Reads broadcast_id from event.data, not campaign_id from event.data.attributes."
+      ]
+    }
+  ],
+  "notes": [
+    "These evals are designed to run via skill-creator's parallel baseline-vs-with-skill harness.",
+    "The first three test trigger accuracy (does the skill description match user intent at varying levels of explicitness).",
+    "The last two test the depth and correctness of the swap guidance.",
+    "Live-send validation is out of scope for evals — it requires a real Resend API key and verified domain. Use the dogfood branch for that."
+  ]
+}

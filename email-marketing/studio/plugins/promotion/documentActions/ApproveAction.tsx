@@ -97,7 +97,7 @@ export const ApproveAction: DocumentActionComponent = (props) => {
       return {
         type: 'confirm' as const,
         tone: 'positive' as const,
-        message: 'Approve and send this promotion to Klaviyo?',
+        message: 'Approve and send via Resend?',
         onCancel: () => setState('idle'),
         onConfirm,
       }
@@ -121,7 +121,7 @@ export const ApproveAction: DocumentActionComponent = (props) => {
               )}
               {state === 'done' && (
                 <Text size={2} style={{color: 'var(--card-positive-fg-color)'}}>
-                  ✓ Promotion approved and queued for send via Klaviyo.
+                  ✓ Promotion approved and queued for send via Resend.
                 </Text>
               )}
               {state === 'error' && (

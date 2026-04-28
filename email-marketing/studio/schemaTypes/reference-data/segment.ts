@@ -3,7 +3,7 @@ import {defineField, defineType} from 'sanity'
 /**
  * Segment (two-layer: synced + enriched)
  *
- * ReadOnly layer: synced from Klaviyo by import-klaviyo Function.
+ * ReadOnly layer: synced from Resend by import-resend-segments Function.
  * Editable layer: authored by CRM manager with copy tone and affinity context.
  */
 export const segment = defineType({
@@ -14,10 +14,10 @@ export const segment = defineType({
     // ReadOnly synced layer
     defineField({
       name: 'externalId',
-      title: 'External ID (Klaviyo)',
+      title: 'External ID (Resend)',
       type: 'string',
       readOnly: true,
-      description: 'Segment ID from Klaviyo.',
+      description: 'Segment ID from Resend.',
     }),
     defineField({
       name: 'name',
@@ -32,18 +32,8 @@ export const segment = defineType({
       type: 'string',
       readOnly: true,
       options: {
-        list: [
-          {title: 'List', value: 'list'},
-          {title: 'Behavioral', value: 'behavioral'},
-        ],
+        list: [{title: 'List', value: 'list'}],
       },
-    }),
-    defineField({
-      name: 'description',
-      title: 'Description (Klaviyo)',
-      type: 'text',
-      readOnly: true,
-      rows: 2,
     }),
     defineField({
       name: 'memberCount',
@@ -53,10 +43,9 @@ export const segment = defineType({
     }),
     defineField({
       name: 'isActive',
-      title: 'Active',
+      title: 'Active in Resend',
       type: 'boolean',
       readOnly: true,
-      description: 'Whether this segment is actively being evaluated in Klaviyo.',
     }),
     // TODO: remove isTest field once test segments are no longer needed
     defineField({
@@ -64,7 +53,7 @@ export const segment = defineType({
       title: 'Test Segment',
       type: 'boolean',
       readOnly: true,
-      description: 'Test segments are excluded from Klaviyo sync cleanup.',
+      description: 'Test segments are excluded from Resend sync cleanup.',
     }),
     // Editable enrichment layer
     defineField({

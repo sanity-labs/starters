@@ -29,17 +29,17 @@ export default defineBlueprint({
       ],
     }),
     defineDocumentFunction({
-      name: 'import-klaviyo',
-      src: 'functions/dist/import-klaviyo',
+      name: 'import-resend-segments',
+      src: 'functions/dist/import-resend-segments',
       event: {
         on: ['update'],
-        filter: '_type == "klaviyoImport" && importState == "requested"',
+        filter: '_type == "espImport" && importState == "requested"',
         projection: '{_id, importState}',
       },
     }),
     defineScheduledFunction({
-      name: 'scheduled-import-klaviyo',
-      src: 'functions/dist/scheduled-import-klaviyo',
+      name: 'scheduled-import-resend-segments',
+      src: 'functions/dist/scheduled-import-resend-segments',
       event: {expression: 'every 5 minutes'},
       robotToken: '$.resources.email-marketing-robot.token',
       env: {

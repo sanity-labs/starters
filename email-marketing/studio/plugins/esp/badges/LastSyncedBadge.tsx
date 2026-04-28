@@ -2,7 +2,7 @@ import type {DocumentBadgeComponent, DocumentBadgeDescription} from 'sanity'
 
 type ImportState = 'idle' | 'requested' | 'importing' | 'imported' | 'error'
 
-type KlaviyoImportDoc = {
+type EspImportDoc = {
   importState?: ImportState
   lastImportedAt?: string
 }
@@ -29,7 +29,7 @@ function formatRelative(iso: string): string {
 }
 
 export const LastSyncedBadge: DocumentBadgeComponent = (props) => {
-  const doc = (props.published ?? props.draft) as KlaviyoImportDoc | null
+  const doc = (props.published ?? props.draft) as EspImportDoc | null
   const state = doc?.importState ?? 'idle'
   const lastImportedAt = doc?.lastImportedAt
 
@@ -37,7 +37,7 @@ export const LastSyncedBadge: DocumentBadgeComponent = (props) => {
     return {
       label: 'Syncing…',
       color: 'primary',
-      title: 'Sync with Klaviyo in progress',
+      title: 'Sync with Resend in progress',
     }
   }
 

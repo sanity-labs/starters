@@ -1,85 +1,49 @@
 import {describe, it, expect} from 'vitest'
-import {stubKlaviyoTags, buildPreviewStatus, resolvePreviewContext} from './index.js'
+import {stubResendTags, buildPreviewStatus, resolvePreviewContext} from './index.js'
 
-describe('stubKlaviyoTags', () => {
-  it('replaces {{ unsubscribe_url }} with fallback', () => {
-    const html = 'Click here: {{ unsubscribe_url }}'
-    const {html: result, resolved} = stubKlaviyoTags(html)
-    expect(result).toContain('https://manage.klaviyo.com/unsubscribe')
-    expect(resolved['unsubscribe_url']).toBe(false)
+describe('stubResendTags', () => {
+  it('replaces {{{RESEND_UNSUBSCRIBE_URL}}} with fallback', () => {
+    const html = 'Click here: {{{RESEND_UNSUBSCRIBE_URL}}}'
+    const {html: result, resolved} = stubResendTags(html)
+    expect(result).toContain('https://resend.com/unsubscribe')
+    expect(resolved['RESEND_UNSUBSCRIBE_URL']).toBe(false)
   })
 
-  it('marks unsubscribe_url as true when not in HTML', () => {
-    const {resolved} = stubKlaviyoTags('Hello world')
-    expect(resolved['unsubscribe_url']).toBe(true)
-  })
-
-  it('replaces profile.email with fallback', () => {
-    const html = 'Email: {{ profile.email }}'
-    const {html: result, resolved} = stubKlaviyoTags(html)
-    expect(result).toContain('subscriber@example.com')
-    expect(resolved['profile.email']).toBe(false)
-  })
-
-  it('replaces profile.first_name with fallback', () => {
-    const html = 'Hi {{ profile.first_name }}!'
-    const {html: result, resolved} = stubKlaviyoTags(html)
-    expect(result).toContain('John')
-    expect(resolved['profile.first_name']).toBe(false)
-  })
-
-  it('replaces profile.last_name with fallback', () => {
-    const html = 'Name: {{ profile.last_name }}'
-    const {html: result, resolved} = stubKlaviyoTags(html)
-    expect(result).toContain('Doe')
-    expect(resolved['profile.last_name']).toBe(false)
+  it('marks RESEND_UNSUBSCRIBE_URL as true when not in HTML', () => {
+    const {resolved} = stubResendTags('Hello world')
+    expect(resolved['RESEND_UNSUBSCRIBE_URL']).toBe(true)
   })
 
   it('handles extra whitespace in tags', () => {
-    const html = 'Click: {{  unsubscribe_url  }}'
-    const {html: result, resolved} = stubKlaviyoTags(html)
-    expect(result).toContain('https://manage.klaviyo.com/unsubscribe')
-    expect(resolved['unsubscribe_url']).toBe(false)
+    const html = 'Click: {{{  RESEND_UNSUBSCRIBE_URL  }}}'
+    const {html: result, resolved} = stubResendTags(html)
+    expect(result).toContain('https://resend.com/unsubscribe')
+    expect(resolved['RESEND_UNSUBSCRIBE_URL']).toBe(false)
   })
 
-  it('marks all four tags as true when none present', () => {
-    const {resolved} = stubKlaviyoTags('Empty HTML')
-    expect(resolved['unsubscribe_url']).toBe(true)
-    expect(resolved['profile.email']).toBe(true)
-    expect(resolved['profile.first_name']).toBe(true)
-    expect(resolved['profile.last_name']).toBe(true)
-  })
-
-  it('marks tag as false when present, true when absent', () => {
-    const html = '{{ unsubscribe_url }} and {{ profile.first_name }} present'
-    const {resolved} = stubKlaviyoTags(html)
-    expect(resolved['unsubscribe_url']).toBe(false)
-    expect(resolved['profile.first_name']).toBe(false)
-    expect(resolved['profile.email']).toBe(true)
-    expect(resolved['profile.last_name']).toBe(true)
+  it('marks tag as true when none present', () => {
+    const {resolved} = stubResendTags('Empty HTML')
+    expect(resolved['RESEND_UNSUBSCRIBE_URL']).toBe(true)
   })
 
   it('replaces all instances of a tag', () => {
-    const html = '{{ unsubscribe_url }} and again {{ unsubscribe_url }}'
-    const {html: result} = stubKlaviyoTags(html)
-    const count = (result.match(/https:\/\/manage\.klaviyo\.com\/unsubscribe/g) || []).length
+    const html = '{{{RESEND_UNSUBSCRIBE_URL}}} and again {{{RESEND_UNSUBSCRIBE_URL}}}'
+    const {html: result} = stubResendTags(html)
+    const count = (result.match(/https:\/\/resend\.com\/unsubscribe/g) || []).length
     expect(count).toBe(2)
   })
 
-  it('matches profileXemail pattern (BUG: dot not escaped in regex)', () => {
-    // BUG: the regex `{{ profile.email }}` treats . as wildcard, matching profileXemail
-    const html = '{{ profileXemail }}'
-    const {resolved} = stubKlaviyoTags(html)
-    // This is the buggy behavior: unescaped dot matches 'X'
-    expect(resolved['profile.email']).toBe(false)
+  it('does not match double-brace Klaviyo-style tags', () => {
+    // Resend uses triple-brace; double-brace should not be substituted
+    const html = '{{ RESEND_UNSUBSCRIBE_URL }}'
+    const {html: result, resolved} = stubResendTags(html)
+    expect(result).toBe(html)
+    expect(resolved['RESEND_UNSUBSCRIBE_URL']).toBe(true)
   })
 
   it('empty HTML returns all resolved as true', () => {
-    const {resolved} = stubKlaviyoTags('')
-    expect(resolved['unsubscribe_url']).toBe(true)
-    expect(resolved['profile.email']).toBe(true)
-    expect(resolved['profile.first_name']).toBe(true)
-    expect(resolved['profile.last_name']).toBe(true)
+    const {resolved} = stubResendTags('')
+    expect(resolved['RESEND_UNSUBSCRIBE_URL']).toBe(true)
   })
 })
 

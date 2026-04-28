@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {Feature} from 'racejar/playwright'
-import {expect} from '@playwright/test'
+import {expect, type APIResponse} from '@playwright/test'
 import {Given, When, Then} from '../../fixtures/steps.js'
 import {sanityClient} from '../../fixtures/sanity-client.js'
 
@@ -11,6 +11,7 @@ const STUDIO_URL = process.env.STUDIO_URL ?? 'http://localhost:3333'
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3000'
 
 let currentPromotionId: string | null = null
+let previewResponse: APIResponse | null = null
 
 const testDefinitions = [
   Given('a promotion exists with email blocks', async () => {
@@ -47,15 +48,23 @@ const testDefinitions = [
     await page.waitForLoadState('networkidle')
   }),
 
-  Then('the iframe loads the Klaviyo render endpoint', async ({playwright: {page}}) => {
-    const iframe = page.frameLocator('iframe[title="Klaviyo email preview"]')
-    await expect(iframe.locator('body')).toBeVisible({timeout: 10_000})
+  When('I fetch the preview endpoint at {string}', async ({playwright: {page}}, path: string) => {
+    const url = path.replace('{id}', currentPromotionId!)
+    previewResponse = await page.request.get(`${FRONTEND_URL}${url}`)
   }),
 
-  Then('the iframe shows the email HTML', async ({playwright: {page}}) => {
-    const iframe = page.frameLocator('iframe[title="Klaviyo email preview"]')
-    const body = await iframe.locator('body').textContent()
-    expect(body?.length).toBeGreaterThan(0)
+  Then('the response status is {int}', async (_ctx, status: number) => {
+    expect(previewResponse?.status()).toBe(status)
+  }),
+
+  Then('the response sets X-Preview-Status to {string}', async (_ctx, value: string) => {
+    expect(previewResponse?.headers()['x-preview-status']).toBe(value)
+  }),
+
+  Then('the response body contains email HTML', async () => {
+    const body = await previewResponse!.text()
+    expect(body.length).toBeGreaterThan(0)
+    expect(body).toMatch(/<html|<body|<table/i)
   }),
 
   Given('I am in the Studio', async ({playwright: {page}}) => {

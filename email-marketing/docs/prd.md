@@ -1,5 +1,7 @@
 # Email Marketing Operations — Product Requirements Document
 
+> **Status note (2026-04-28):** This PRD describes the original design that targeted Klaviyo with an aspirational ESP-agnostic connector pattern (`@starter/esp-connector`). The current implementation calls the Resend SDK directly from Sanity Functions — the connector abstraction was never built. Where the PRD references Klaviyo specifics (template-render API, HMAC webhook signing, behavioral segments, conversion events), see [docs/ESP-NOTES.md](./ESP-NOTES.md) for the gaps and the [resend-integration skill](../skills/resend-integration/SKILL.md) for the as-built architecture. The user-facing problem and solution framing below are unchanged.
+
 ## Problem Statement
 
 Marketing operations teams rebuild campaign artifacts from scratch every cycle. Campaign intent (brief), asset references, localization, segment variants, and brand governance live in separate systems (project tools, ESPs, figma, docs), with no single source of truth. This forces:
@@ -20,8 +22,8 @@ Architecturally:
 
 - **Three-tier document model**: brief (`campaign`) → artifact (`promotion`) → modular content (`emailSlot`). Variants branch from the brief; each segment-variant promotion inherits intent by reference.
 - **AI as content operations, not automation**: Content Agent API drives one-shot batch generation (one brief → N variants) and multi-turn refinement (iterative tuning for a specific segment). Agent Context injects brief, segment, and brand voice context so generation is grounded, not speculative.
-- **ESP-agnostic send layer**: A Sanity Function dispatches approved content to any ESP via a pluggable payload composer interface. Klaviyo is the default; swapping to Braze or AJO requires adding an ESP module, not rewriting the integration boundary.
-- **Streaming preview fidelity**: A preview service renders MJML → handles Klaviyo send-time stubs (personalization tokens) → streams the result back with accuracy metadata so reviewers know what's dynamic vs. live.
+- **ESP send layer**: A Sanity Function dispatches approved content to Resend (`broadcasts.create` + `broadcasts.send`). Future ESP swaps follow the [swap-esp-resend skill](../skills/swap-esp-resend/SKILL.md) pattern.
+- **Streaming preview fidelity**: A preview service renders MJML → handles Resend send-time stubs (`{{{RESEND_UNSUBSCRIBE_URL}}}` and friends) → streams the result back with accuracy metadata so reviewers know what's dynamic vs. live.
 - **Performance feedback loop**: Engagement signal (opens, clicks, conversions) flows back from the ESP to populate `campaignPerformance` fields on each variant, grounding the next cycle's AI context.
 
 ## User Stories
@@ -46,7 +48,7 @@ Architecturally:
 
 9. As a content ops lead, I want the preview to show personalization tokens ({{first_name}}, {{last_purchase_date}}) resolved to sample data, so that reviewers understand the final look when sent.
 
-10. As a content ops lead, I want the preview to clearly indicate which fields are send-time-only (Klaviyo {{coupon_code}}) vs. resolved at preview time, so that reviewers aren't confused about what's dynamic.
+10. As a content ops lead, I want the preview to clearly indicate which fields are send-time-only (Resend `{{{RESEND_UNSUBSCRIBE_URL}}}` and friends) vs. resolved at preview time, so that reviewers aren't confused about what's dynamic.
 
 11. As a content ops lead, I want to trigger approval on a promotion, so that a state-machine transition fires and an approval Function dispatches the content to the ESP.
 
@@ -58,15 +60,15 @@ Architecturally:
 
 1. As an integration engineer, I want to configure a Function on promotion approval events, so that the send logic is decoupled from the Studio UI.
 
-2. As an integration engineer, I want to write an ESP-specific payload composer (e.g., `composeKlaviyoPayload()`) as a standalone utility package, so that the composer is testable outside the Function runtime.
+2. As an integration engineer, I want the Resend send logic isolated in a single Sanity Function (`on-promotion-approved`), so that the integration boundary is small and testable.
 
-3. As an integration engineer, I want the payload composer to conform to an `EspConnector<TPayload>` interface, so that swapping ESPs requires writing a new composer, not rewriting the Function.
+3. As an integration engineer, I want a documented swap procedure (the `swap-esp-resend` skill) for migrating to a different ESP, so that the change is mechanical and complete rather than ad-hoc. ⚠️ The original design called for a runtime `EspConnector<TPayload>` abstraction; we built a migration skill instead — simpler in code, equivalent in outcome.
 
-4. As an integration engineer, I want to add Braze or AJO support, so that I can swap ESPs by adding a new module under `@starter/esp-connector` without touching existing Klaviyo code.
+4. As an integration engineer, I want to add Mailchimp / SendGrid / Postmark support by running a future `swap-esp-<vendor>` skill, so that ESP migrations don't require rewriting from scratch.
 
-5. As an integration engineer, I want the preview service to call Klaviyo's `/api/template-render/` endpoint to verify how send-time tags are resolved, so that I know the Sanity preview matches what Klaviyo will render.
+5. As an integration engineer, I want the preview service to render react-email / MJML locally (no ESP roundtrip), so that previews are fast and don't depend on ESP availability. Note: the original design called for calling Klaviyo's `/api/template-render/`; Resend has no equivalent server-side render API, so we render locally instead.
 
-6. As an integration engineer, I want the preview service to sanitize HTML and handle SSRF attacks, so that I can safely render Sanity-authored content before posting to Klaviyo.
+6. As an integration engineer, I want the preview service to sanitize HTML and handle SSRF attacks, so that I can safely render Sanity-authored content.
 
 7. As an integration engineer, I want rate limiting and auth on preview endpoints, so that the service doesn't get abused and doesn't expose content to unauthenticated users.
 
@@ -112,33 +114,23 @@ All domain packages live under `packages/` with `@starter/` npm scope. Each pack
 
 **`@starter/render-email`**
 
-- **Purpose**: Platform-agnostic MJML rendering, streaming, sanitization, and Klaviyo stub replacement.
+- **Purpose**: Platform-agnostic MJML rendering, streaming, sanitization, and Resend merge-tag stub replacement.
 - **Exports**:
   - `.` — `renderPromotionLocal(promotion, previewContext): string` (local MJML render for preview grid)
   - `./streaming` — `renderMjmlStream(mjml): ReadableStream`, `StubReplacerStream` (Readable stream transform), `sanitizeStream` (dompurify sanitizer), `streamToString(stream): Promise<string>`
-  - `./stubs` — `stubKlaviyoTags(html): html`, `resolvePreviewContext(promotion, previewData): resolved`, `buildPreviewStatus(promotion): metadata`
+  - `./stubs` — `stubResendTags(html): html`, `resolvePreviewContext(promotion, previewData): resolved`, `buildPreviewStatus(promotion): metadata`
   - `./sanitize` — `createEmailSanitizer(options): sanitizer` (dompurify wrapper)
   - `./types` — `RenderAdapter`, `RenderContext`, `PreviewStatus`
 - **Internal imports** (`#`): `#types`, `#utils` (no deep relative paths; internal cross-file refs use imports field)
 - **Open-closed**: New render targets (e.g., a React Email adapter) add new subpath exports; core render functions never change.
 - **Tree-shaking**: MJML and dompurify are imported only in their respective subpaths, so consumers importing only `./types` or `.` pay no runtime cost for heavy dependencies.
 
-**`@starter/esp-connector`**
+**ESP integration (Resend, direct SDK)**
 
-- **Purpose**: ESP-agnostic payload composition interface with per-ESP implementations.
-- **Core interface**:
-  ```typescript
-  interface EspConnector<TPayload> {
-    compose(input: ComposerInput): TPayload
-    dispatch(payload: TPayload, adapter: DispatchAdapter): Promise<void>
-  }
-  ```
-- **Exports**:
-  - `.` — `EspConnector<T>`, `createPayloadDispatcher(config)`, `ComposerInput`, `DispatchAdapter`
-  - `./klaviyo` — `KlaviyoConnector`, `KlaviyoPayload`, usage of Klaviyo v2025-07-15 API
-  - `./types` — All TS interfaces
-- **Open-closed**: Adding Braze support = writing `./braze` with `BrazeConnector` export; existing Klaviyo code untouched.
-- **Usage in Functions**: The `on-promotion-approved` Function receives a promotion, calls `espConnector.compose(input)` to build the ESP-specific payload, then calls `espConnector.dispatch(payload, adapter)` to POST to the ESP.
+- **Purpose**: Send approved promotions via Resend.
+- **Status note:** The original PRD called for a `@starter/esp-connector` package with a runtime `EspConnector<TPayload>` interface and per-ESP implementations. That abstraction was never built. The current implementation calls the `resend` Node SDK directly from `functions/on-promotion-approved/index.ts`. ESP migrations follow the [swap-esp-resend skill](../skills/swap-esp-resend/SKILL.md) — a one-shot mechanical swap rather than runtime polymorphism.
+- **Send flow**: `on-promotion-approved` builds HTML via `@starter/render-email`, calls `resend.broadcasts.create({segmentId, from, subject, html})`, then `resend.broadcasts.send(broadcast.id)`, and persists `broadcast.id` as `externalCampaignId`.
+- **No template lifecycle**: Resend has no stored-template API; HTML is passed inline per send.
 
 **`@starter/preview-middleware`**
 
@@ -177,20 +169,20 @@ Domain plugins live under `studio/plugins/` and own their schema, document actio
 - **Document badges**: Workflow state (Draft | In Review | Approved | Sent) + segment name tag
 - **Workflow state docs**: Parallel `workflow.state` documents created by "Generate variants" action; no embedded status fields on promotion
 
-**`studio/plugins/klaviyo/`**
+**`studio/plugins/esp/`**
 
-- **Schema**: `list.ts`, `segment.ts` (two-layer: readOnly synced + editable enrichment), `klaviyoImport.ts` (state tracking)
+- **Schema**: `segment.ts` (two-layer: readOnly synced + editable enrichment), `espImport.ts` (state tracking)
 - **Document actions**:
-  - "Import from Klaviyo" — invokes import-klaviyo Function
-  - "Open in Klaviyo" — link to external Klaviyo UI
-- **Document descriptions**: "Managed in Klaviyo" origin badge on read-only fields
-- **Logic**: import-klaviyo Function handles paginated sync, transaction-batched upserts/deletes, state machine tracking
+  - "Import from Resend" — invokes `import-resend-segments` Function
+  - "Open in Resend" — link to external Resend dashboard (`https://resend.com/broadcasts/{id}` for promotions)
+- **Document descriptions**: "Managed in Resend" origin badge on read-only fields
+- **Logic**: `import-resend-segments` Function fetches segments + contacts, transaction-batched upserts/deletes, state machine tracking
 
 **`studio/plugins/preview/`**
 
 - **Schema**: none (utilities only)
 - **Document actions**: none (preview URLs shared out-of-band)
-- **Logic**: Shareable preview URL generation via `@sanity/preview-url-secret`, deep linking to preview service `/v1/render/local/:id` (content ops) vs. `/v1/render/klaviyo/:id` (CRM manager verification)
+- **Logic**: Shareable preview URL generation via `@sanity/preview-url-secret`, deep linking to preview service `/api/preview/resend/:id` (local MJML render — Resend has no server-side render API equivalent)
 - **Presentation tool wiring**: configures Studio's Presentation Tool to point at preview service
 
 **`studio/plugins/assist/`**
@@ -230,11 +222,10 @@ Domain plugins live under `studio/plugins/` and own their schema, document actio
 
 **`segment` (two-layer)**
 
-- **ReadOnly synced layer** (populated by import-klaviyo Function, never edited):
-  - `externalId` (Klaviyo segment ID)
+- **ReadOnly synced layer** (populated by `import-resend-segments` Function, never edited):
+  - `externalId` (Resend segment ID)
   - `name`
-  - `type` (list | behavioral)
-  - `description` (Klaviyo's definition)
+  - `type` (list — Resend Segments are static lists; no `behavioral` option, see [ESP-NOTES.md](./ESP-NOTES.md))
   - `memberCount`
 - **Editable enrichment layer** (authored by CRM manager after sync):
   - `affinityDescription` (plain text, e.g. "High-value repeat customers who bought jewelry in Q4")
@@ -281,33 +272,32 @@ Domain plugins live under `studio/plugins/` and own their schema, document actio
 
 **Personalization awareness**: `campaign.previewContext` is serialized as context, so Content Agent API generation understands available tokens ({{first_name}}, {{last_purchase_date}}) and incorporates them naturally in generated copy, not treating them as opaque syntax.
 
-### Audience Source: Klaviyo-Synced Segments
+### Audience Source: Resend-Synced Segments
 
-**Default assumption**: For mid-market B2C, Klaviyo IS the CDP. Segments are synced from Klaviyo into Sanity via scheduled Function.
+**Default assumption**: Audiences are managed in Resend and synced into Sanity via scheduled Function. Resend Segments are static lists; behavioral/dynamic segmentation must be implemented in Sanity Functions if needed (see [ESP-NOTES.md](./ESP-NOTES.md)).
 
 **Two-layer schema** (readOnly structural + editable enrichment):
 
-- Sync layer (Function-written): `externalId`, `name`, `type`, `description`, `memberCount`
+- Sync layer (Function-written): `externalId`, `name`, `memberCount`
 - Enrichment layer (CRM manager-authored): `affinityDescription`, `typicalCopyTone`, `engagementTier`
 
-**Extension point**: For enterprise customers with a real CDP (Segment, AEP, ActionIQ), replace the `import-klaviyo` Function with a `import-cdp` Function. The segment schema remains unchanged; only the sync source changes.
+**Extension point**: For enterprise customers with a real CDP (Segment, AEP, ActionIQ), replace `import-resend-segments` with an `import-cdp` Function. The segment schema remains unchanged; only the sync source changes.
 
-**Workflow**: CRM manager runs "Import from Klaviyo" action → import-klaviyo Function syncs latest segments → CRM manager enriches new segments with copy-tone context (one-time per segment, persists across re-syncs).
+**Workflow**: CRM manager runs "Import from Resend" action → `import-resend-segments` Function syncs latest segments → CRM manager enriches new segments with copy-tone context (one-time per segment, persists across re-syncs).
 
 ### Preview Service Architecture
 
 **Five versioned endpoints** (per brief §5 Implementation):
 
-1. `GET /v1/render/local/:promotionId` — Content ops: renders MJML locally; resolves previewContext sample data; returns HTML + X-Preview-Status accuracy badge
-2. `GET /v1/render/klaviyo/:promotionId` — CRM manager: calls Klaviyo `/api/template-render/` to verify Klaviyo's rendering of send-time stubs; returns Klaviyo's HTML + accuracy badge
-3. `GET /v1/campaign-grid/:campaignId` — CampaignGrid view: returns JSON array of { promotionId, segment, localRender: html, status: metadata }
-4. `POST /v1/preview/verify` — Integration engineer utility: test endpoint that renders a promotion, verifies sanitization, logs the output
-5. `POST /webhooks/engagement-log-back` — Inbound: Klaviyo POSTs opens/clicks/conversions; writes to campaignPerformance fields
+1. `GET /api/preview/resend/:promotionId` — renders MJML locally; resolves previewContext sample data; returns HTML + X-Preview-Status accuracy badge. (Resend has no server-side render API — local render is the only path.)
+2. `GET /v1/campaign-grid/:campaignId` — CampaignGrid view: returns JSON array of { promotionId, segment, localRender: html, status: metadata }
+3. `POST /v1/preview/verify` — Integration engineer utility: test endpoint that renders a promotion, verifies sanitization, logs the output
+4. `POST /api/webhooks/engagement` — Inbound: Resend POSTs opens/clicks/bounces (Svix-signed); writes to campaignPerformance fields
 
 **Middleware stack** (via `@starter/preview-middleware`):
 
-- `studioSessionMiddleware` on routes 1–4 (requires valid Studio session)
-- `espWebhookMiddleware` on route 5 (verifies Klaviyo signature)
+- `studioSessionMiddleware` on render routes (requires valid Studio session)
+- Svix verification (`resend.webhooks.verify`) on the engagement webhook route
 - `rateLimitMiddleware` on all (per-IP for unauthenticated, per-token for auth'd)
 - `auditLoggingMiddleware` on all (structured logging, PII redaction)
 - `securityHeaders` on all responses (CSP `script-src 'none'`, X-Frame-Options, X-Content-Type-Options, HSTS)
@@ -317,7 +307,7 @@ Domain plugins live under `studio/plugins/` and own their schema, document actio
 ```
 renderMjmlStream(mjml)
   → sanitizeStream (dompurify)
-  → StubReplacerStream (Klaviyo stub handling: {{coupon_code}} → leave as-is with metadata)
+  → StubReplacerStream (Resend stub handling: {{{RESEND_UNSUBSCRIBE_URL}}} → leave as-is with metadata)
   → streamToString or client (if HTTP Response, stream directly; if testing, consume to string)
 ```
 
@@ -338,14 +328,14 @@ renderMjmlStream(mjml)
 **`on-promotion-approved`**
 
 - **Trigger**: promotion document approval (workflow.state transition)
-- **Logic**: Compose ESP payload via `espConnector.compose(input)`, then `espConnector.dispatch(payload, adapter)` to POST to ESP (Klaviyo by default)
-- **Return**: Write `sendId` back to promotion, update `sendState` field
+- **Logic**: Build HTML via `@starter/render-email`; call `resend.broadcasts.create({segmentId, from, subject, html})` then `resend.broadcasts.send(broadcast.id)`
+- **Return**: Persist `broadcast.id` as `externalCampaignId`; update `sendState` field
 
-**`import-klaviyo`** (adapted from `feat-email-marketing-klaviyo`)
+**`import-resend-segments`**
 
-- **Trigger**: Manual action "Import from Klaviyo" or scheduled (e.g., daily)
-- **Logic**: Paginated list/segment sync from Klaviyo API; transaction-batched upserts/deletes; state machine (`importState: idle | syncing | completed`)
-- **Return**: Create/update segment documents with synced layer fields
+- **Trigger**: Manual action "Import from Resend" (sets `espImport.importState = "requested"`) or 5-minute cron via `scheduled-import-resend-segments`
+- **Logic**: List segments via `resend.segments.list()`; count contacts per segment via `resend.contacts.list({segmentId})`; transaction-batched upserts/deletes preserving the editable enrichment layer; state machine (`importState: idle | requested | importing | imported | error`)
+- **Return**: Create/update segment documents with synced-layer fields
 
 **`on-slot-needs-asset`**
 
@@ -353,11 +343,11 @@ renderMjmlStream(mjml)
 - **Logic**: Notify creative (via Slack webhook or internal task system) that a slot needs an image
 - **Return**: Log notification, optionally create a creative task document
 
-**`engagement-log-back`**
+**Engagement webhook (frontend route, not a Sanity Function)**
 
-- **Trigger**: Inbound webhook from Klaviyo (POST /webhooks/engagement-log-back)
-- **Logic**: Parse Klaviyo engagement payload (campaign ID, variant ID, event: open | click | conversion); fetch promotion; update `campaignPerformance` field with aggregated metrics
-- **Return**: Write metrics, acknowledge webhook
+- **Trigger**: Inbound Svix-signed POST from Resend (`/api/webhooks/engagement`)
+- **Logic**: Verify Svix signature via `resend.webhooks.verify` on raw body; map `email.opened` → `openRate++`, `email.clicked` → `clickThroughRate++`, `email.bounced` → bounce log; correlate by `broadcast_id` → `externalCampaignId`. No `conversionRate` source — see [ESP-NOTES.md](./ESP-NOTES.md).
+- **Return**: Patch `campaignPerformance`, acknowledge webhook
 
 ### App SDK Dashboard (`apps/campaign-dashboard/`)
 
@@ -372,15 +362,15 @@ renderMjmlStream(mjml)
 
 ### Studio UI Surface Assignments
 
-| Surface                    | Usage                                                                                                                                                                                                                               |
-| :------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Document badges**        | `promotion`: workflow state tag + segment name. `segment`/`list`: "Managed in Klaviyo" origin label. `campaign`: urgency stage color-coded.                                                                                         |
-| **Document actions**       | `campaign`: "Generate variants" (batch), "Import from Klaviyo" (audience sync). `promotion`: "Approve", "Resend" (workflow), "Multi-turn refinement" (AI). `segment`: "Mark enriched" (admin flag after CRM populates tone fields). |
-| **Field actions**          | `subjectLine`, `preheader`, `disruptor`, `emailSlot.headline`, `emailSlot.subheadline`: `@sanity/assist` inline generation (one-off suggestions). Not the entry point for multi-turn — that's the VariantRefinementPanel.           |
-| **Document inspector**     | `promotion`: preview accuracy badge (resolved/stubbed/unknown counts from X-Preview-Status), workflow history timeline. NOT the AI conversation panel.                                                                              |
-| **Structure Builder view** | `campaign`: `<CampaignGrid>` custom view — all variant promotions side-by-side as Shadow DOM tiles (fast re-render on brief edit).                                                                                                  |
-| **Presentation tool**      | `promotion`: configures to `/v1/render/local/:id` (Studio session auth) for 1:1 iframe preview.                                                                                                                                     |
-| **App SDK app**            | Standalone campaign performance dashboard. Studio tool pane link as shortcut for ops lead.                                                                                                                                          |
+| Surface                    | Usage                                                                                                                                                                                                                                                                           |
+| :------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Document badges**        | `promotion`: workflow state tag + segment name. `segment`: "Managed in Resend" origin label. `campaign`: urgency stage color-coded.                                                                                                                                             |
+| **Document actions**       | `campaign`: "Generate variants" (batch), "Import from Resend" (audience sync). `promotion`: "Approve", "Resend" (re-send workflow action — naming unrelated to the ESP), "Multi-turn refinement" (AI). `segment`: "Mark enriched" (admin flag after CRM populates tone fields). |
+| **Field actions**          | `subjectLine`, `preheader`, `disruptor`, `emailSlot.headline`, `emailSlot.subheadline`: `@sanity/assist` inline generation (one-off suggestions). Not the entry point for multi-turn — that's the VariantRefinementPanel.                                                       |
+| **Document inspector**     | `promotion`: preview accuracy badge (resolved/stubbed/unknown counts from X-Preview-Status), workflow history timeline. NOT the AI conversation panel.                                                                                                                          |
+| **Structure Builder view** | `campaign`: `<CampaignGrid>` custom view — all variant promotions side-by-side as Shadow DOM tiles (fast re-render on brief edit).                                                                                                                                              |
+| **Presentation tool**      | `promotion`: configures to `/api/preview/resend/:id` (Studio session auth) for 1:1 iframe preview.                                                                                                                                                                              |
+| **App SDK app**            | Standalone campaign performance dashboard. Studio tool pane link as shortcut for ops lead.                                                                                                                                                                                      |
 
 ### Context Management Pattern (Agentic-Localization Model)
 
@@ -421,22 +411,24 @@ const contentAgent = useMemo(() => createStudioAgent(client, workspace), [client
 
 **Caveat**: Browser-only. Server-side Functions (on-promotion-approved, engagement-log-back) still require an explicit `SANITY_API_READ_TOKEN`.
 
-### Adaptation from `feat-email-marketing-klaviyo`
+### Adaptation history
 
-**Keep** (already high-quality):
+The starter originally targeted Klaviyo (under an aspirational `@starter/esp-connector` abstraction) and was migrated to Resend in 2026-04. The migration is reproducible via the [swap-esp-resend skill](../skills/swap-esp-resend/SKILL.md).
 
-- `functions/lib/klaviyo.ts` API client (v2025-07-15, correct error handling)
-- `import-klaviyo` Function (paginated sync, state machine, transaction batching)
-- Klaviyo Studio UX components (ImportFromKlaviyoAction, OpenKlaviyoAction)
+**Kept** (already high-quality at swap time):
 
-**Rewrite**:
+- Two-layer segment schema (synced + enrichment)
+- Approval workflow + state machine
+- Render-email package architecture (MJML + streaming + sanitization + stubs)
+- Studio UX components (`ImportFromResendAction`, `OpenResendAction` — names updated post-swap)
 
-- Schema (introduce promotion, emailSlot; separate brief from targeting; add brandVoice + previewContext)
-- Generation (document action on campaign → N promotions, not button on emailMessage)
-- Render (real MJML via mjml package, not hand-rolled HTML strings)
-- Preview service (streaming pipeline, Klaviyo verification endpoint, stubs, accuracy badge)
-- App SDK dashboard (net-new)
-- Security (7-layer posture: auth, input validation, sanitization, rate limiting, headers, audit logging)
+**Rewritten during the Resend swap**:
+
+- ESP integration: dropped the unbuilt `EspConnector<TPayload>` abstraction; `on-promotion-approved` calls `resend.broadcasts.create` + `.send` directly
+- Webhook verification: HMAC-SHA256 → Svix
+- Preview rendering: Klaviyo `/api/template-render/` roundtrip → local MJML render only (Resend has no equivalent)
+- Merge-tag syntax: `{{ unsubscribe_url }}` → `{{{RESEND_UNSUBSCRIBE_URL}}}`
+- Env vars: `KLAVIYO_API_KEY` → `RESEND_API_KEY` + `RESEND_FROM_EMAIL` + `RESEND_WEBHOOK_SECRET`
 
 ## Testing Decisions
 
@@ -444,17 +436,16 @@ const contentAgent = useMemo(() => createStudioAgent(client, workspace), [client
 
 Test external behavior, not implementation details. A good test verifies the contract of a module (what it claims to do) without coupling to how it does it internally. For this starter:
 
-- **Payload composers** are testable in isolation: given a promotion + campaign context, does `composeKlaviyoPayload()` return valid JSON:API format?
+- **Send integration** is testable in isolation by mocking the Resend SDK: given a promotion + campaign context, does `on-promotion-approved` call `resend.broadcasts.create` with the expected payload and persist the returned `broadcast.id`?
 - **Render functions** are testable in isolation: given a promotion + previewContext, does `renderPromotionLocal()` return valid, sanitized HTML with stubs left in place?
 - **Middleware** is testable as a chain: given a Request, do auth/rate-limit/headers middleware compose correctly?
 - **Functions** are harder to test in isolation (they depend on Sanity client, external APIs), so focus on integration tests: does the full on-promotion-approved flow write the sendId back?
 
 ### Modules to Test
 
-1. **`@starter/esp-connector`**
-   - `composeKlaviyoPayload(input)` — does it produce valid Klaviyo JSON:API?
-   - `KlaviyoConnector.dispatch(payload, adapter)` — does it call adapter.post() with the right URL/headers?
-   - New connector implementations (Braze, AJO) — same contract tests apply
+1. **Resend send integration** (`functions/on-promotion-approved`)
+   - With a mocked Resend SDK: does the function call `broadcasts.create` with the right payload? Call `broadcasts.send` with the returned id? Persist `externalCampaignId` back to the promotion?
+   - Error paths: invalid `from`, missing segment, Resend API 4xx/5xx — does the workflow.state get patched to `error`?
 
 2. **`@starter/render-email`**
    - `renderPromotionLocal(promotion, previewContext)` — valid HTML? Stubs in place? Sample data resolved?
@@ -467,8 +458,8 @@ Test external behavior, not implementation details. A good test verifies the con
    - `securityHeaders` — does SECURITY_HEADERS constant contain CSP, HSTS, X-Frame-Options?
 
 4. **Sanity Functions** (integration tests, real client)
-   - `on-promotion-approved` — given an approved promotion, does the Function call espConnector and write sendId back?
-   - `import-klaviyo` — does the Function paginate, upsert segments, handle errors gracefully?
+   - `on-promotion-approved` — given an approved promotion, does the Function call Resend and write `externalCampaignId` back?
+   - `import-resend-segments` — does the Function fetch segments, count contacts, upsert with createIfNotExists + partial patch (preserving enrichment), handle errors gracefully?
 
 ### Prior Art
 
@@ -476,13 +467,13 @@ The agentic-localization starter has integration tests for Functions (e.g., `@sa
 
 ### Test Framework
 
-Recommend **Vitest** (already used in many Sanity starters) for unit tests of packages. **MSW** for mocking external APIs (Klaviyo, Stripe, etc.) in preview service tests. **@sanity/cli test** or **@sanity/test-utils** for Function integration tests.
+Recommend **Vitest** (already used in many Sanity starters) for unit tests of packages. **MSW** for mocking external APIs (Resend, Stripe, etc.) in preview service tests. **@sanity/cli test** or **@sanity/test-utils** for Function integration tests.
 
 ## Out of Scope
 
 1. **HTTP-invocable Sanity Functions** — The preview service uses Next.js in v1. Migration to Sanity Functions requires HTTP-invocation to ship as GA (currently roadmap). Marked as v2 work.
 
-2. **Non-Klaviyo ESPs** (beyond the connector abstraction) — Braze, AJO, Marketo connectors are out of scope for this starter. The abstraction is there; implementations are customer-driven or future PRs.
+2. **Non-Resend ESPs** — Braze, AJO, Marketo, Mailchimp, SendGrid, Postmark are out of scope for this starter. The pattern for migrating between ESPs is documented in the [swap-esp-resend skill](../skills/swap-esp-resend/SKILL.md); future ESP swaps follow the same shape.
 
 3. **Transactional email** — This starter is promotional campaigns only. Transactional (order confirmations, password resets, shipping updates) are fundamentally different ownership models and belong in a separate starter.
 
@@ -500,7 +491,7 @@ Three surfaces are shipped as GA (`@sanity/agent-context`, Content Agent API, Sa
 
 1. **Portable Text → email-safe HTML renderer** — No shipped `@portabletext/to-mjml` package. The starter ships `@starter/render-email` with MJML rendering (uses the `mjml` npm package directly). For Portable Text fields (e.g., disclaimers, CTAs), the starter ships a helper; production use should consider upgrading to a shipped renderer when available.
 
-2. **Klaviyo `/api/template-render/` pattern** — Klaviyo's API is real; the preview service pattern (streaming, stub handling, accuracy badges) is custom. Other ESPs (Braze, AJO) have different render APIs; each preview route is ESP-specific.
+2. **Server-side render API** — Klaviyo had `/api/template-render/`; Resend does not, and we render locally via `@react-email/render` and MJML. The preview service pattern (streaming, stub handling, accuracy badges) is custom. Future ESPs may or may not have a server-render API; the preview route is ESP-specific.
 
 3. **HTTP-invocable Sanity Functions** — The preview service uses Next.js today. If Sanity Functions ship HTTP invocation as GA, the preview service can migrate to a platform-agnostic `@starter/preview-service-functions` package. Marked as v2 work.
 
@@ -508,14 +499,14 @@ Three surfaces are shipped as GA (`@sanity/agent-context`, Content Agent API, Sa
 
 - **Preview service**: Streaming MJML render + sanitization is CPU-bound (especially with large images or slot counts). Rate limiting and caching are essential.
 - **Batch generation**: Spawning N segment-variant promotions via Content Agent API is N parallel `generate()` calls. No built-in batching in Content Agent API v0.6.0; clients batch explicitly (Document action loops over segments and calls generate per segment).
-- **Engagement log-back**: Klub iyo webhooks can be high-volume (millions of opens per day for large senders). The engagement-log-back Function should aggregate metrics in-memory before writing back to Sanity (batched updates, not one write per event).
+- **Engagement log-back**: Resend webhooks can be high-volume for large senders. The engagement webhook handler should aggregate metrics in-memory before writing back to Sanity (batched updates, not one write per event).
 
 ### Security Posture
 
 The starter enforces a 7-layer security model:
 
 1. **Transport**: HTTPS (delegated to hosting, e.g., Vercel)
-2. **Auth**: Studio session (preview routes), preview URL secret (external reviewers), Klaviyo webhook signature (inbound)
+2. **Auth**: Studio session (preview routes), preview URL secret (external reviewers), Svix webhook signature verification (inbound from Resend)
 3. **Input validation**: Zod schemas on all Function inputs; runtime validation of Sanity responses
 4. **Render-time**: SSRF protection (no arbitrary URL fetches in render logic), HTML sanitization (dompurify), no eval()
 5. **Output headers**: CSP `script-src 'none'`, X-Frame-Options `SAMEORIGIN`, X-Content-Type-Options `nosniff`, HSTS
@@ -528,7 +519,7 @@ The starter enforces a 7-layer security model:
 
 **Functions**: Deploy via `sanity deploy` (event-triggered Functions) or `sanity functions deploy` if using HTTP invocation (v2).
 
-**Preview service** (v1, Next.js): Deploy to Vercel or your host. Requires `SANITY_PROJECT_ID`, `SANITY_DATASET`, `SANITY_API_READ_TOKEN`, `KLAVIYO_API_KEY` env vars. In v2, migrate to Sanity Functions and remove Next.js dependency.
+**Preview service** (v1, Next.js): Deploy to Vercel or your host. Requires `SANITY_PROJECT_ID`, `SANITY_DATASET`, `SANITY_API_READ_TOKEN`, `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `RESEND_FROM_EMAIL` env vars. In v2, migrate to Sanity Functions and remove Next.js dependency.
 
 **App SDK dashboard**: Deploy to Vercel or your host. Can be embedded in Studio via App SDK plugin (optional).
 
@@ -564,10 +555,10 @@ promotion (base) + promotion[] (segment-variants)
 └── workflow.state (parallel document, not embedded)
 
 segment (two-layer)
-├── [ReadOnly synced by import-klaviyo]
+├── [ReadOnly synced by import-resend-segments]
 │   ├── externalId
 │   ├── name
-│   └── description
+│   └── memberCount
 └── [Editable enrichment by CRM manager]
     ├── affinityDescription
     ├── typicalCopyTone

@@ -11,12 +11,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@react-email/render": "^1.4.0",
     "@starter/render-email": "workspace:*",
-    "klaviyo-api": "^22.0.0",
     "next": "^16.2.4",
     "next-sanity": "^12.3.0",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "resend": "^6.12.0"
   },
   "devDependencies": {
     "@sanity/codegen": "^6.0.2",

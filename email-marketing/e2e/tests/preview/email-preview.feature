@@ -5,12 +5,12 @@ Feature: Promotion Email Preview
     Then I see the block content rendered
     And personalization tokens are replaced with sample data
 
-  Scenario: Klaviyo preview toggle shows Klaviyo-format HTML
+  Scenario: Local-render preview endpoint returns email HTML
     Given a promotion exists with email blocks
-    When I open the promotion preview at "/promotions/{id}"
-    And I click "Klaviyo preview"
-    Then the iframe loads the Klaviyo render endpoint
-    And the iframe shows the email HTML
+    When I fetch the preview endpoint at "/api/preview/resend/{id}"
+    Then the response status is 200
+    And the response sets X-Preview-Status to "local-render"
+    And the response body contains email HTML
 
   Scenario: Presentation Tool opens promotion preview
     Given I am in the Studio

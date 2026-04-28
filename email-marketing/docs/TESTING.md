@@ -50,19 +50,35 @@ describe('renderMjmlStream', () => {
 **Example:**
 
 ```typescript
-describe('verifyKlaviyoSignature', () => {
-  it('accepts valid HMAC signatures within time window', () => {
-    const timestamp = Math.floor(Date.now() / 1000)
-    const body = JSON.stringify({event: 'open'})
-    const data = `${timestamp}.${body}`
-    const signature = crypto.createHmac('sha256', apiKey).update(data).digest('base64')
+import {Resend} from 'resend'
 
-    expect(verifyKlaviyoSignature(body, signature, timestamp, apiKey)).toBe(true)
+describe('Resend Svix webhook verification', () => {
+  const resend = new Resend(process.env.RESEND_API_KEY!)
+
+  it('accepts a valid Svix-signed payload', () => {
+    const rawBody = JSON.stringify({type: 'email.opened', data: {email_id: 'em_1'}})
+    const headers = signSvixHeaders(rawBody, process.env.RESEND_WEBHOOK_SECRET!)
+
+    expect(() =>
+      resend.webhooks.verify({
+        payload: rawBody,
+        headers,
+        webhookSecret: process.env.RESEND_WEBHOOK_SECRET!,
+      }),
+    ).not.toThrow()
   })
 
-  it('rejects signatures outside 5-minute window', () => {
-    const oldTimestamp = Math.floor(Date.now() / 1000) - 600 // 10 minutes ago
-    expect(() => verifyKlaviyoSignature(body, sig, oldTimestamp, apiKey)).toThrow()
+  it('rejects payloads outside the 5-minute window', () => {
+    const rawBody = JSON.stringify({type: 'email.opened', data: {email_id: 'em_1'}})
+    const headers = signSvixHeaders(rawBody, process.env.RESEND_WEBHOOK_SECRET!, {ageSeconds: 600})
+
+    expect(() =>
+      resend.webhooks.verify({
+        payload: rawBody,
+        headers,
+        webhookSecret: process.env.RESEND_WEBHOOK_SECRET!,
+      }),
+    ).toThrow()
   })
 })
 ```
@@ -121,13 +137,12 @@ describe('Engagement webhook', () => {
         },
       ],
     })
-    const signature = signKlaviyoPayload(timestamp, body, apiKey)
+    const headers = signSvixHeaders(body, process.env.RESEND_WEBHOOK_SECRET!)
 
-    const response = await fetch('http://localhost:3000/v1/webhook/engagement/klaviyo', {
+    const response = await fetch('http://localhost:3000/api/webhooks/engagement', {
       method: 'POST',
       headers: {
-        'X-Klaviyo-Request-Timestamp': timestamp,
-        'X-Klaviyo-Request-Signature': signature,
+        ...headers,
         'Content-Type': 'application/json',
       },
       body,

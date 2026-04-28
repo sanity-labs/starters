@@ -105,7 +105,7 @@ export const ResendAction: DocumentActionComponent = (props) => {
               )}
               {state === 'done' && (
                 <Text size={2} style={{color: 'var(--card-positive-fg-color)'}}>
-                  ✓ Promotion re-sent via Klaviyo.
+                  ✓ Promotion re-sent via Resend.
                 </Text>
               )}
               {state === 'error' && (

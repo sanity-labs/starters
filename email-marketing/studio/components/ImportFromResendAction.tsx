@@ -15,7 +15,7 @@ interface ImportResult {
   importErrorMessage?: string
 }
 
-export function ImportFromKlaviyoAction(
+export function ImportFromResendAction(
   props: DocumentActionProps,
 ): DocumentActionDescription | null {
   const {id, type, published, draft} = props
@@ -31,7 +31,7 @@ export function ImportFromKlaviyoAction(
   const isImporting = importState === 'requested' || importState === 'importing'
   const isError = importState === 'error'
 
-  const label = isImporting ? 'Syncing...' : isError ? 'Retry Sync' : 'Sync with Klaviyo'
+  const label = isImporting ? 'Syncing...' : isError ? 'Retry Sync' : 'Sync with Resend'
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -78,7 +78,7 @@ export function ImportFromKlaviyoAction(
         if (!result) return
 
         if (result.importState === 'importing') {
-          setStatusMessage('Syncing with Klaviyo...')
+          setStatusMessage('Syncing with Resend...')
         } else if (result.importState === 'imported') {
           stopPolling()
           setStatusMessage(`Synced ${result.segmentCount ?? 0} segments`)
@@ -103,14 +103,14 @@ export function ImportFromKlaviyoAction(
     dialog: dialogOpen
       ? {
           type: 'confirm' as const,
-          message: 'Sync segments from Klaviyo?',
+          message: 'Sync segments from Resend?',
           onCancel: () => setDialogOpen(false),
           onConfirm: handleImport,
         }
       : polling || statusMessage
         ? {
             type: 'dialog' as const,
-            header: 'Klaviyo Sync',
+            header: 'Resend Sync',
             content: statusMessage,
             onClose: () => {
               stopPolling()
@@ -118,6 +118,6 @@ export function ImportFromKlaviyoAction(
             },
           }
         : null,
-    'data-testid': 'import-klaviyo-btn',
+    'data-testid': 'import-resend-btn',
   } as unknown as DocumentActionDescription
 }

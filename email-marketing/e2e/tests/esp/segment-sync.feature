@@ -1,25 +1,25 @@
-Feature: Klaviyo Segment Sync
+Feature: Resend Segment Sync
   Background:
     Given I am in the Studio
 
-  Scenario: Sync button appears on the Klaviyo import page
-    When I navigate to the Klaviyo sync section
-    Then I see the "Sync with Klaviyo" button
+  Scenario: Sync button appears on the Resend import page
+    When I navigate to the Resend sync section
+    Then I see the "Sync with Resend" button
 
   Scenario: Sync dialog confirms action before starting
-    When I navigate to the Klaviyo sync section
+    When I navigate to the Resend sync section
     And I click the sync button
     Then a confirmation dialog appears
 
   Scenario: Sync displays progress while importing
-    When I navigate to the Klaviyo sync section
+    When I navigate to the Resend sync section
     And I click the sync button
     And I confirm the sync
     Then a progress dialog appears
-    And the dialog shows "Syncing with Klaviyo"
+    And the dialog shows "Syncing with Resend"
 
   Scenario: Successful sync shows segment count
-    When I navigate to the Klaviyo sync section
+    When I navigate to the Resend sync section
     And I click the sync button
     And I confirm the sync
     And the sync completes successfully

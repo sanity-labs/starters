@@ -6,9 +6,9 @@ import {type DocumentBadgeComponent} from 'sanity'
 import {schemaTypes} from './schemaTypes'
 import {structure} from './structure'
 import {assist} from './plugins/assist'
-import {ImportFromKlaviyoAction} from './components/ImportFromKlaviyoAction'
-import {OpenKlaviyoAction} from './components/OpenKlaviyoAction'
-import {LastSyncedBadge} from './plugins/klaviyo'
+import {ImportFromResendAction} from './components/ImportFromResendAction'
+import {OpenResendAction} from './components/OpenResendAction'
+import {LastSyncedBadge} from './plugins/esp'
 import {GenerateVariantsAction} from './plugins/campaign'
 import {
   ApproveAction,
@@ -89,13 +89,13 @@ export default defineConfig({
   document: {
     productionUrl: async (prev, {document}) => {
       if (document._type === 'promotion') {
-        return `${previewUrl}/api/preview/klaviyo/${document._id}`
+        return `${previewUrl}/api/preview/resend/${document._id}`
       }
       return prev
     },
     actions: (prev, {schemaType}) => {
-      if (schemaType === 'klaviyoImport') {
-        return [ImportFromKlaviyoAction, OpenKlaviyoAction, ...prev]
+      if (schemaType === 'espImport') {
+        return [ImportFromResendAction, OpenResendAction, ...prev]
       }
       if (schemaType === 'campaign') {
         return [GenerateVariantsAction, ...prev]
@@ -112,7 +112,7 @@ export default defineConfig({
       if (schemaType === 'promotion') {
         return [WorkflowStateBadge, SegmentBadge, ...prev]
       }
-      if (schemaType === 'klaviyoImport') {
+      if (schemaType === 'espImport') {
         return [LastSyncedBadge]
       }
       return prev
@@ -130,7 +130,7 @@ export default defineConfig({
     templates: (prev) =>
       prev.filter(
         (t) =>
-          !['segment', 'klaviyoImport', 'workflow.state'].includes(
+          !['segment', 'espImport', 'workflow.state'].includes(
             'schemaType' in t ? (t.schemaType as string) : '',
           ),
       ),

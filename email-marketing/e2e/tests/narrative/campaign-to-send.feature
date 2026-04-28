@@ -16,7 +16,7 @@ Feature: Campaign to Send — Full Content Operations Narrative
     And I click "Approve"
     And I confirm the approval dialog
     Then the workflow state transitions to "approved"
-    And the on-promotion-approved function dispatches to Klaviyo
+    And the on-promotion-approved function dispatches via Resend
 
   Scenario: Variant Refinement panel refines copy via content agent
     Given I am in the Studio
@@ -37,8 +37,8 @@ Feature: Campaign to Send — Full Content Operations Narrative
 
   Scenario: Segment sync populates segments available for campaign targeting
     Given I am in the Studio
-    When I navigate to the Klaviyo sync section
-    And I click "Sync with Klaviyo"
+    When I navigate to the Resend sync section
+    And I click "Sync with Resend"
     And I confirm the sync dialog
     And the sync completes
     Then segment documents appear in the segments list

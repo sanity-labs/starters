@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest'
-import {renderPromotionLocal, renderPromotionKlaviyo} from './index.js'
+import {renderPromotionLocal, renderPromotion} from './index.js'
 
 const BASE_PROMOTION = {
   subjectLine: 'Test Subject',
@@ -89,10 +89,10 @@ describe('renderPromotionLocal', () => {
     expect(html).not.toContain('{{ first_name }}')
   })
 
-  it('stubs remaining Klaviyo tags with fallback values', async () => {
+  it('stubs remaining Resend merge tags with fallback values', async () => {
     const html = await renderPromotionLocal(BASE_PROMOTION)
-    // unsubscribe_url is in the footer — should be replaced with fallback
-    expect(html).not.toContain('{{ unsubscribe_url }}')
+    // RESEND_UNSUBSCRIBE_URL is in the footer — should be replaced with fallback
+    expect(html).not.toContain('{{{RESEND_UNSUBSCRIBE_URL}}}')
   })
 
   it('handles promotion with no emailSlots', async () => {
@@ -120,21 +120,21 @@ describe('renderPromotionLocal', () => {
   })
 })
 
-describe('renderPromotionKlaviyo', () => {
+describe('renderPromotion', () => {
   it('returns an HTML string', async () => {
-    const html = await renderPromotionKlaviyo(BASE_PROMOTION)
+    const html = await renderPromotion(BASE_PROMOTION)
     expect(typeof html).toBe('string')
     expect(html.length).toBeGreaterThan(0)
   })
 
   it('includes section headlines', async () => {
-    const html = await renderPromotionKlaviyo(BASE_PROMOTION)
+    const html = await renderPromotion(BASE_PROMOTION)
     expect(html).toContain('Big Sale Headline')
   })
 
-  it('preserves Klaviyo unsubscribe token in footer', async () => {
-    const html = await renderPromotionKlaviyo(BASE_PROMOTION)
-    expect(html).toContain('{{ unsubscribe_url }}')
+  it('preserves Resend unsubscribe merge tag in footer', async () => {
+    const html = await renderPromotion(BASE_PROMOTION)
+    expect(html).toContain('{{{RESEND_UNSUBSCRIBE_URL}}}')
   })
 
   it('does not substitute preview context tokens', async () => {
@@ -142,11 +142,11 @@ describe('renderPromotionKlaviyo', () => {
       emailSlots: [
         {
           _type: 'emailSection' as const,
-          headline: 'Hi {{ profile.first_name }}',
+          headline: 'Hi {{{RESEND_FIRST_NAME}}}',
         },
       ],
     }
-    const html = await renderPromotionKlaviyo(promotion)
-    expect(html).toContain('{{ profile.first_name }}')
+    const html = await renderPromotion(promotion)
+    expect(html).toContain('{{{RESEND_FIRST_NAME}}}')
   })
 })

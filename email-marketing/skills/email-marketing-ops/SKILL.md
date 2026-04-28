@@ -1,215 +1,267 @@
 ---
 name: email-marketing-ops
-description: 'Build multi-variant email campaigns with AI, streaming preview, and Klaviyo dispatch. Covers three-tier document model (campaign brief → promotion artifact → email slot), batch variant generation, multi-turn refinement, @sanity/agent-context wiring, preview accuracy badges, security (7-layer defense), and engagement feedback. Supports both greenfield (new Sanity studio) and brownfield (adding to existing) patterns. Trigger on: email marketing, variant generation, campaign dashboard, Klaviyo sync, preview service, engagement metrics, segment enrichment, email dispatch, AI refinement, campaign brief, promotion artifact, email slot.'
+description: Operate the email-marketing starter end-to-end with Resend - deploying Sanity Functions, debugging webhook failures, recovering from failed sends, re-syncing segments, monitoring campaign performance. Trigger on - operations, deploy functions, webhook failure, send failure, segment sync issue, campaign performance, ops, runbook.
 ---
 
-# Email Marketing with Sanity & Klaviyo
+# Email Marketing Ops with Sanity & Resend
 
-Build email campaigns as a **three-tier document hierarchy**:
+This skill is the operator's runbook for the email-marketing starter post-Resend swap. It covers running, deploying, and debugging the live system — not just integrating with it. Use it when something is broken, when shipping a function change, or when onboarding a new operator.
 
-1. **Campaign** — creative brief (goals, messaging, tone traits, personalization tokens)
-2. **Promotion** — segment-variant artifact (subject, preheader, disruptor, modular slots, approval workflow)
-3. **EmailSlot** — reusable content block (position, asset, headline, subheadline, CTA)
+For the architectural integration view (which Resend SDK calls live where), see the sibling skill `resend-integration`. This skill assumes that integration is in place and you're now operating it.
 
-Generate N variants from one brief, refine with multi-turn AI, preview with accuracy badges, dispatch to Klaviyo. All from Studio.
+## Mental model
 
-## Core Principles
+Three runtimes, one dataset:
 
-**Separation of concerns**: Campaign is intent (what to say, to whom, by when); promotion is execution (how to say it for each segment). Schema enforces this—campaigns have no targeting fields.
+1. **Studio** (`studio/`) — content editing, approval workflow, manual segment-sync trigger
+2. **Frontend** (Next.js, `frontend/`) — preview rendering and the inbound engagement webhook
+3. **Sanity Functions** (`functions/`) — the only place that calls the Resend SDK for sending and segment sync
 
-**Modular content**: EmailSlot replaces Portable Text. Enforce consistency, enable component-driven composition.
+There is **no shared connector package**. Earlier drafts described a `@starter/esp-connector` abstraction; that was removed during the Resend swap. Each function imports `resend` directly. If you're trying to find where a Resend call lives, read the function — there's no indirection layer.
 
-**AI-augmented not AI-native**: AI generates variants and refines copy, but humans approve every promotion before send. Thread-based refinement preserves context across turns.
+## Surface map
 
-**Security by design**: 7-layer defense (HTTPS+HSTS, auth 3-paths, input validation, render-time sanitization, CSP headers, rate limiting, audit logging) protects preview service and dispatch pipeline.
+| Surface          | File                                                  | What it does                                                                                                                                 |
+| ---------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Send             | `functions/on-promotion-approved/index.ts`            | `resend.broadcasts.create({segmentId, from, subject, html})` → `resend.broadcasts.send(id)` → persist `broadcast.id` as `externalCampaignId` |
+| Segment sync     | `functions/import-resend-segments/index.ts`           | `resend.segments.list()` + `resend.contacts.list({segmentId})`; partial-patches `segment` docs (preserves enrichment)                        |
+| Scheduled sync   | `functions/scheduled-import-resend-segments/index.ts` | Cron (`every 5 minutes`); flips `espImport.importState = 'requested'`                                                                        |
+| Webhook ingest   | `frontend/app/api/webhooks/engagement/route.ts`       | Svix-verified; maps `email.opened` → `openRate++`, `email.clicked` → `clickThroughRate++`                                                    |
+| Local preview    | `frontend/app/api/preview/resend/[id]/route.ts`       | `@react-email/render` — no Resend call required                                                                                              |
+| Studio deep-link | `studio/components/OpenResendAction.tsx`              | Opens `https://resend.com/broadcasts/{externalCampaignId}`                                                                                   |
+| Blueprint        | `sanity.blueprint.ts`                                 | Triggers + cron + robot token                                                                                                                |
 
-**Observable, not eventual**: Preview accuracy badges (X-Preview-Status) show which tokens are resolved vs. stubbed. Editors know before sending.
+## Setup
 
-**Engaged audiences as default**: Segments are two-layer (synced from Klaviyo + editable enrichment for copy tone). Enrichment persists across re-syncs; it's editorial metadata, not infrastructure.
+### One-time per environment
 
-## Orientation
+```bash
+# 1. Install
+pnpm install                       # from project root or starter root
 
-### Project Map
+# 2. Set env on the function runtime (per function, repeat for each)
+npx sanity functions env add on-promotion-approved RESEND_API_KEY re_xxx
+npx sanity functions env add on-promotion-approved RESEND_FROM_EMAIL "Brand <updates@example.com>"
+npx sanity functions env add import-resend-segments RESEND_API_KEY re_xxx
+# scheduled-import-resend-segments doesn't call Resend directly — it just flips a state field
 
-Read [references/architecture.md](references/architecture.md) for the full entry points and file structure. Key locations:
+# 3. Set env on the frontend (used by the preview route + webhook handler)
+# in frontend/.env:
+#   RESEND_API_KEY=re_xxx
+#   RESEND_WEBHOOK_SECRET=whsec_xxx
+#   RESEND_FROM_EMAIL=Brand <updates@example.com>
+```
 
-**Packages (domain logic)**
+`pnpm bootstrap` runs deploy + schema + typegen + seed and prompts for the keys above. Use it for fresh environments.
 
-- `packages/render-email/` — MJML streaming, sanitization, stub handling (`./streaming`, `./stubs`, `./sanitize`, `./types`)
-- `packages/esp-connector/` — EspConnector interface + KlaviyoConnector, payload dispatcher (`./klaviyo`, extensible to ./braze, ./ajo)
-- `packages/preview-middleware/` — Composable middleware: auth, rate-limit, security-headers, logging (`./auth`, `./rate-limit`, `./security-headers`, `./logging`)
-- `packages/eslint-config/`, `packages/tsconfig/`, `packages/sanity-types/` — Shared configs
+### Verifying a sending domain
 
-**Studio (domain-organized plugins)**
+Resend will refuse to send until SPF + DKIM TXT records resolve. In Resend dashboard → Domains → Add Domain → publish the records → wait for verification → use a `from` on that domain. For dogfood-only testing, `from: 'onboarding@resend.dev'` works but only delivers to your own Resend account email.
 
-- `studio/plugins/campaign/` — campaign schema, GenerateVariantsAction, CampaignGrid view, agent context
-- `studio/plugins/promotion/` — promotion schema, emailSlot, VariantRefinementPanel, approval workflow
-- `studio/plugins/klaviyo/` — sync UI, import trigger, readOnly origin labels
-- `studio/plugins/preview/` — shareable preview links, Presentation tool wiring
-- `studio/plugins/assist/` — @sanity/assist field-level generation config
-- `studio/schemaTypes/reference-data/` — store, urgencyStage, segment (two-layer), brandVoice, enticement, promoCode, termsAndConditions
+## Deploying functions
 
-**Functions**
+This is the part that catches new operators. Functions run in Sanity's runtime, deployed via Sanity Blueprints.
 
-- `functions/on-promotion-approved/` — dispatch to Klaviyo when approved
-- `functions/import-klaviyo/` — sync lists and segments from Klaviyo (request-document trigger)
-- `functions/on-slot-needs-asset/` — notify creatives on unfilled emailSlot
-- `functions/engagement-log-back/` — inbound Klaviyo webhook → patch campaignPerformance
+```bash
+# 1. Build (from functions/ — the build outputs to functions/dist/)
+cd functions && pnpm run build && cd ..
 
-**App SDK**
+# 2. Deploy from PROJECT ROOT (where sanity.blueprint.ts lives)
+npx sanity blueprints deploy
+```
 
-- `apps/campaign-dashboard/` — standalone (no Studio seat) campaign list and performance metrics
+**Do not run `npx sanity blueprints deploy` from inside `functions/`.** The blueprint's `src` paths are project-root-relative (e.g. `functions/dist/on-promotion-approved`); running from `functions/` doubles the path and the deploy fails with a confusing "source not found" error.
 
-### Two Implementation Patterns
+Code changes in `functions/` are **not** picked up until you rebuild and redeploy. There is no hot reload for deployed functions.
 
-**Greenfield**: Start from `sanity init --template sanity-labs/starters/email-marketing`. Full three-tier model, all plugins wired.
+### Verifying a deploy
 
-**Brownfield**: Add email marketing to an existing Studio. See [references/add-to-existing-studio.md](references/add-to-existing-studio.md).
+```bash
+npx sanity functions list                # confirm names + last deploy time
+npx sanity functions logs on-promotion-approved --tail
+```
 
-## Jobs to Be Done
+The names should match the blueprint exactly — `on-promotion-approved`, `import-resend-segments`, `scheduled-import-resend-segments`. If you see anything else, the blueprint is stale; rebuild and redeploy.
 
-### 1. Set up a campaign and generate variants
+## Runbooks
 
-- Create a campaign document with: title, store, urgencyStage, segments (array of refs), primaryMessage, toneTraits, previewContext (token → sample value map), startDate, endDate
-- Use GenerateVariantsAction on the campaign → creates N promotion documents (one per segment)
-- Each promotion has: campaign ref, segment ref, subjectLine, preheader, disruptor, emailSlots array, campaignPerformance (readOnly)
+### Send fails — promotion approved but no email arrives
 
-**Entry point**: `studio/plugins/campaign/documentActions/GenerateVariantsAction.tsx` (placeholder → real agent.action.generate() call)
+1. **Check function logs**
 
-### 2. Refine a promotion in multi-turn loop
+   ```bash
+   npx sanity functions logs on-promotion-approved --tail
+   ```
 
-- Open a promotion document
-- Click the VariantRefinementPanel tab (bottom pane)
-- Type a refinement prompt: "Make the subject line shorter and more urgent"
-- Select fields to target: subjectLine, preheader, disruptor
-- Agent refines those fields; you accept/reject/modify field-by-field
-- Each turn preserves prior accepted changes in the live document
+   Look for: `[on-promotion-approved] RESEND_API_KEY not set`, Resend SDK errors (`from` rejected, segment not found), or thrown exceptions.
 
-**Entry point**: `studio/plugins/promotion/components/VariantRefinementPanel.tsx` (placeholder → real thread ID, agent context, field-level patching)
+2. **Check workflow state**
 
-**Context wiring**: `studio/plugins/campaign/hooks/useAgentContext.ts` serializes:
+   In Studio, open the promotion. If `workflow.state.status` is `approved` but never moved to `sent`, the function ran but threw before persisting state. The history field on `workflow.state` will show the last successful step.
 
-- Supplemental: brandVoice singleton (tone traits, style rules, legal constraints)
-- Local: campaign fields (primaryMessage, emotionalGoal, toneTraits) + segment enrichment (affinityDescription, typicalCopyTone, engagementTier) + previewContext tokens
+3. **Check `externalCampaignId`**
 
-### 3. Preview a promotion with accuracy badges
+   If it's null, `resend.broadcasts.create` failed. Common causes:
+   - `RESEND_FROM_EMAIL` references an unverified domain → Resend returns a clear error in logs
+   - `segmentId` (from `promotion.segment->externalId`) is stale or refers to a deleted Resend segment
+   - API key was rotated; old key still on function runtime
 
-- Navigate to promotion in Presentation Tool or via preview link
-- See `/v1/render/local/:id` for content ops (with Studio session)
-- See `/v1/render/klaviyo/:id?token=...` for CRM manager (with preview token)
-- Response header `X-Preview-Status` reports resolved vs. stubbed counts and accuracy %
+4. **Verify env vars on the runtime**
 
-**Rendering pipeline**:
+   ```bash
+   npx sanity functions env list on-promotion-approved
+   ```
 
-1. Fetch promotion + campaign context
-2. Build MJML from emailSlots
-3. Resolve previewContext tokens (sample data)
-4. Stub unresolved Klaviyo tags (fallback values)
-5. Render MJML → HTML
-6. Sanitize with DOMPurify (whitelist ~20 tags)
-7. Return with X-Preview-Status header
+   `RESEND_API_KEY` and `RESEND_FROM_EMAIL` must both be present.
 
-**Entry point**: `packages/render-email/src/index.ts` (renderPromotionLocal, renderPromotionKlaviyo stubs)
+5. **Recover**
 
-### 4. Dispatch a promotion to Klaviyo
+   The function is idempotent on the broadcast-create step _only if_ you reset `workflow.state.status` to `draft` (re-approving from `approved` is a no-op). Workflow:
+   - Studio: open promotion → set workflow back to `draft` → re-approve.
+   - Or patch directly: `client.patch(workflowId).set({status: 'draft'}).commit()`.
 
-- Approve a promotion (workflow.state document status → approved)
-- on-promotion-approved Function trigger fires
-- Compose KlaviyoPayload from promotion + campaign context
-- Create template in Klaviyo
-- Create campaign from template, targeting segment list
-- Send campaign (or schedule for later)
-- Log sendId in promotion; update campaignPerformance
+   If the broadcast was created in Resend but the send call failed, the broadcast lives in the Resend dashboard as a draft. You can either send it manually from there or delete it and re-approve.
 
-**Entry point**: `functions/on-promotion-approved/index.ts` (placeholder → real promotion fetch, composer, dispatcher)
+### Webhook failures — opens/clicks don't update `campaignPerformance`
 
-**ESP pattern**: Open-closed via exports: `@starter/esp-connector/klaviyo` for Klaviyo, extend with `./braze`, `./ajo` for other ESPs. Dispatcher wraps connector with retry logic, timeout, error handling.
+1. **Confirm the webhook is registered in Resend**
 
-### 5. Sync Klaviyo audiences into Sanity
+   Resend dashboard → Webhooks → endpoint should be `https://<frontend>/api/webhooks/engagement` and subscribed to at least `email.opened` and `email.clicked`.
 
-- Create a klaviyoImport document with importState = "requested"
-- Trigger: import-klaviyo Function fires
-- Fetch lists and segments from Klaviyo API
-- Create/update segment documents: externalId (Klaviyo ID), name, type, description, memberCount (readOnly)
-- CRM manager enriches each segment: affinityDescription, typicalCopyTone, engagementTier (editable layer persists across re-syncs)
-- Segments appear in campaign audience targeting
+2. **Check the route logs**
 
-**Entry point**: `functions/import-klaviyo/index.ts` (placeholder → real Klaviyo API calls, segment upserts)
+   In Vercel (or wherever the frontend runs), tail the route. 401s mean Svix verification failed. 200 with no patch means the broadcast id didn't match any promotion.
 
-### 6. Track engagement and update campaign performance
+3. **Svix verification 401 — common causes**
+   - `RESEND_WEBHOOK_SECRET` not set, or set to the API key by mistake (it should start with `whsec_`)
+   - Body parsed before verification — Svix requires the raw request body. The route calls `request.text()` first; do not refactor it to use `request.json()` and re-stringify.
+   - Wrong webhook secret. Resend generates one secret _per webhook endpoint_. Re-copy from the dashboard and update `RESEND_WEBHOOK_SECRET`.
 
-- Klaviyo sends webhook for: opened, clicked, bounced, unsubscribed
-- engagement-log-back Function receives event
-- Maps Klaviyo campaignId to Sanity promotion ID
-- Increments campaignPerformance counters (openRate, CTR, conversionRate)
-- Patches promotion document
+4. **200 but no update — the broadcast id doesn't match**
 
-**Entry point**: `functions/engagement-log-back/index.ts` (placeholder → real webhook verify, promotion fetch, patch)
+   The route looks up the promotion via `*[_type == "promotion" && externalCampaignId == $id][0]._id`, where `$id` is `event.data.broadcast_id`. If `externalCampaignId` was never persisted (send-flow failure above), the webhook silently no-ops. Fix the send flow first.
 
-**Dashboard**: `apps/campaign-dashboard/` queries promotions, aggregates performance by segment, shows cycle time and risk (deadline approaching).
+5. **Replay**
 
-## Security & Operations
+   Resend dashboard → Webhooks → endpoint → Logs → click an event → Replay. The route is idempotent on opens/clicks because they only increment, but replays will double-count. Avoid replaying for individual events; use replay for verification fixes only.
 
-### 7-Layer Defense for Preview Service
+### Segment sync stuck or stale
 
-1. **Transport** — HTTPS only, HSTS header enforced
-2. **Auth (3 paths)**
-   - Studio session: browser cookie + `createStudioAgent` auth inheritance
-   - Preview tokens: @sanity/preview-url-secret, time-bounded, per-link
-   - Webhook signatures: Klaviyo HMAC-SHA256, timestamp validation
-3. **Input validation** — Whitelist document IDs (Sanity format), enum status values
-4. **Render-time** — DOMPurify sanitization, MJML validation, Handlebars syntax preserved
-5. **Output headers** — CSP, X-Content-Type-Options, X-Frame-Options, Permissions-Policy, HSTS
-6. **Rate limiting** — Per-IP token bucket (100 req/min default), 429 w/ Retry-After
-7. **Audit logging** — Timestamp, method, path, status, IP, duration (PII redacted)
+1. **Check current state**
 
-See [references/security.md](references/security.md) for threat model and configuration checklist.
+   ```groq
+   *[_type == "espImport"][0]{importState, lastImportedAt, importErrorMessage, segmentCount}
+   ```
 
-### Testing Strategy
+   States: `idle`, `requested`, `importing`, `imported`, `error`.
 
-- **Unit**: MJML rendering, stub handling, sanitization, middleware composition, rate limiting
-- **Integration**: Preview routes with auth, error handling, response headers
-- **Load**: k6/Artillery for preview service capacity planning
+2. **Manual re-sync from Studio**
 
-See [references/testing.md](references/testing.md) for test examples.
+   Sidebar → Resend → Sync / Import → click **Sync with Resend**. This patches `importState = 'requested'`, which fires `import-resend-segments`.
 
-## Customization
+3. **Cron is silent** (scheduled function not firing)
 
-### Brand Voice
+   ```bash
+   npx sanity functions logs scheduled-import-resend-segments --tail
+   ```
 
-Replace `studio/schemaTypes/reference-data/brandVoice.ts` fields:
+   No output for >5 min means the cron isn't running. Check the blueprint:
+   - The scheduled function needs `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` injected via the blueprint's `env: {…}` (it doesn't get these from a triggering doc).
+   - The robot token resource must be present and referenced as `robotToken: '$.resources.email-marketing-robot.token'`.
+   - Redeploy: `cd functions && pnpm run build && cd .. && npx sanity blueprints deploy`.
 
-- toneTraits: array of tags (e.g., "authoritative", "witty", "empathetic")
-- writingStyleRules: array of strings (e.g., "avoid passive voice", "use Oxford comma")
-- prohibitedWords: words to avoid in generated copy
-- emailGuidelines: subject line patterns, CTA vocabulary, urgency framing
-- legalConstraints: required disclaimers, opt-out language
+4. **Sync failed — `importState` is `error`**
 
-Editors maintain this singleton document in Studio. All AI generation pulls from it via `@sanity/agent-context`.
+   `importErrorMessage` on the doc has the message. Common causes:
+   - `RESEND_API_KEY` missing or invalid on the function runtime
+   - Resend rate limit hit during pagination of `contacts.list` → re-sync usually clears it
+   - A transient Resend API error → click Sync again
 
-### Add New ESP (e.g., Braze)
+5. **Enrichment fields disappeared after sync**
 
-1. Create `packages/esp-connector/src/braze/` with BrazeConnector + payload types
-2. Export from `packages/esp-connector/src/index.ts`
-3. Update `functions/on-promotion-approved/` to accept ESP selection (or hardcode)
-4. Wire webhook handler in `functions/engagement-log-back/`
+   This is a regression — sync is supposed to use a _partial_ patch on synced fields only (`externalId`, `name`, `memberCount`, `isActive`). If `affinityDescription`/`typicalCopyTone`/`engagementTier` are wiped, the function is using `createOrReplace` instead of `client.patch().set({...syncedFields})`. Fix in `functions/import-resend-segments/index.ts` and redeploy.
 
-No changes to campaign, promotion, or reference-data schemas. Pattern is extensible.
+### Adding a new segment in Resend
 
-### Segment Enrichment
+1. Create the segment in Resend dashboard, add contacts.
+2. Either click **Sync with Resend** in Studio, or wait up to 5 minutes for the cron.
+3. The new `segment` document appears under sidebar → Resend → Segments. CRM manager fills in the enrichment fields.
+4. Segment is now selectable in `campaign.segments`.
 
-Two-layer segments keep your sync idempotent. After importing from Klaviyo, enrichment fields persist:
+### Rotating the Resend API key
 
-- affinityDescription: free-text summary of segment behavior
-- typicalCopyTone: tags (e.g., "value-conscious", "tech-savvy", "luxury-focused")
-- engagementTier: enum (low, mid, high, vip)
+```bash
+npx sanity functions env add on-promotion-approved RESEND_API_KEY re_new_key
+npx sanity functions env add import-resend-segments RESEND_API_KEY re_new_key
+# Update frontend/.env locally and on the deploy target (Vercel etc.)
+```
 
-These become part of local context for AI generation (via @sanity/agent-context). If Klaviyo updates the synced layer (name, memberCount), enrichment fields are untouched.
+No redeploy required for env-only changes — runtimes pick up new env on the next invocation. Test by triggering a sync and verifying logs.
+
+## Monitoring campaign performance
+
+`promotion.campaignPerformance` is the canonical record:
+
+```ts
+{
+  openRate: number,           // incremented per email.opened webhook
+  clickThroughRate: number,   // incremented per email.clicked webhook
+  // bounceCount: not currently stored — see ESP-NOTES.md
+  // conversionRate: no Resend source — see ESP-NOTES.md
+}
+```
+
+To watch a campaign live: open the promotion in Studio. The campaign-grid view (`studio/plugins/campaign/components/CampaignGridView.tsx`) shows performance per segment.
+
+For ad-hoc checks:
+
+```groq
+*[_type == "promotion" && campaign._ref == $campaignId]{
+  segment->{name},
+  externalCampaignId,
+  campaignPerformance,
+  workflow->{status, sentAt}
+}
+```
+
+Cross-check against Resend dashboard → Broadcasts → click the broadcast → Analytics. Numbers will lag webhook ingestion by a few seconds; sustained drift means webhooks aren't landing — see "Webhook failures" above.
+
+## Functional gaps
+
+Resend is not a behavioral marketing platform. The starter does not implement, and cannot easily implement:
+
+- **Behavioral / dynamic segments** — Resend Segments are static lists. Filter logic must run in Sanity Functions.
+- **Flows / journeys / triggered automations** — out of scope for Resend.
+- **Conversion attribution** — there's no `Placed Order` event from Resend webhooks. The `conversionRate` field has no source.
+- **Server-side template render API** — preview must be rendered locally.
+- **A/B testing of subject lines or send times** — not in Resend.
+
+Full guidance and workarounds: [`docs/ESP-NOTES.md`](../../docs/ESP-NOTES.md).
+
+## Useful commands
+
+```bash
+# Functions
+npx sanity functions list
+npx sanity functions logs on-promotion-approved --tail
+npx sanity functions env list on-promotion-approved
+npx sanity functions env add <fn-name> <KEY> <value>
+
+# Blueprint
+npx sanity blueprints deploy            # from project root
+npx sanity blueprints list
+
+# Local
+cd functions && pnpm run build          # rebuild before deploy
+pnpm typecheck                          # all workspaces
+pnpm bootstrap                          # full setup on a fresh env
+```
 
 ## References
 
-- [references/architecture.md](references/architecture.md) — project map and file entry points
-- [references/security.md](references/security.md) — 7-layer defense, threat model, config checklist
-- [references/testing.md](references/testing.md) — unit/integration/load testing examples
-- [references/add-to-existing-studio.md](references/add-to-existing-studio.md) — brownfield: add email marketing to existing Sanity project
-- [README.md](../../README.md) — quick start, environment variables, Klaviyo API key setup
+- `resend-integration` skill — architectural view of the Resend integration
+- `swap-esp-resend` skill — historical record of the ESP migration to Resend
+- `docs/ARCHITECTURE.md` — full system architecture
+- `docs/ESP-NOTES.md` — functional gaps and workarounds
+- `docs/SECURITY.md` — preview service defense layers
+- `sanity.blueprint.ts` — function trigger config (read this when triggers misbehave)

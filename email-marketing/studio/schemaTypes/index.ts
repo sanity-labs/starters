@@ -8,7 +8,7 @@ import {
   emailFooter,
 } from '../plugins/promotion/schemaTypes/emailBlocks'
 import {workflowState} from './workflow.state'
-import {klaviyoImport} from './klaviyoImport'
+import {espImport} from './espImport'
 import {product} from './product'
 
 import {urgencyStage} from './reference-data/urgencyStage'
@@ -24,7 +24,7 @@ export const schemaTypes = [
   emailDivider,
   emailFooter,
   workflowState,
-  klaviyoImport,
+  espImport,
   product,
   urgencyStage,
   segment,

@@ -6,8 +6,8 @@
  *  2. Import seed data (ndjson)
  *  3. Deploy blueprint (functions)
  *  4. Run typegen (schema extract + type generation)
- *  5. Prompt for Klaviyo API key (optional)
- *  6. Trigger Klaviyo import (if key was provided)
+ *  5. Prompt for Resend API key + from-address (optional)
+ *  6. Trigger Resend segment import (if key was provided)
  *
  * Usage:
  *   pnpm bootstrap          (from studio/)
@@ -113,31 +113,57 @@ heading('Run typegen')
 sanity('schema', 'extract')
 sanity('typegen', 'generate')
 
-// ── 5. Klaviyo API key ──────────────────────────────────────────────────────
+// ── 5. Resend API key + from-address ────────────────────────────────────────
 
-heading('Klaviyo API key')
+heading('Resend API key')
 
-const klaviyoKey = prompt('Enter your Klaviyo API key (or press Enter to skip): ')
+const resendKey = prompt('Enter your Resend API key (re_…) (or press Enter to skip): ')
 
-if (klaviyoKey) {
-  const functions = ['import-klaviyo', 'on-promotion-approved']
+if (resendKey) {
+  const functions = ['import-resend-segments', 'on-promotion-approved']
   for (const fn of functions) {
-    run('pnpm', ['exec', 'sanity', 'functions', 'env', 'add', fn, 'KLAVIYO_API_KEY', klaviyoKey], {
+    run('pnpm', ['exec', 'sanity', 'functions', 'env', 'add', fn, 'RESEND_API_KEY', resendKey], {
       cwd: rootDir,
     })
   }
-  console.log('Set KLAVIYO_API_KEY on import-klaviyo and on-promotion-approved functions')
+  console.log('Set RESEND_API_KEY on import-resend-segments and on-promotion-approved functions')
 
-  // ── 6. Import lists & segments from Klaviyo ─────────────────────────────────
-  // Trigger the import-klaviyo function by setting importState to "requested".
+  const fromEmail = prompt(
+    'Enter your verified Resend from-address (e.g. "Brand <updates@example.com>") (or press Enter to skip): ',
+  )
 
-  heading('Import lists & segments from Klaviyo')
+  if (fromEmail) {
+    run(
+      'pnpm',
+      [
+        'exec',
+        'sanity',
+        'functions',
+        'env',
+        'add',
+        'on-promotion-approved',
+        'RESEND_FROM_EMAIL',
+        fromEmail,
+      ],
+      {cwd: rootDir},
+    )
+    console.log('Set RESEND_FROM_EMAIL on on-promotion-approved')
+  } else {
+    console.log(
+      'No from-address entered — set it later with:\n  npx sanity functions env add on-promotion-approved RESEND_FROM_EMAIL "Brand <updates@example.com>"',
+    )
+  }
 
-  await client.patch('klaviyoImport').set({importState: 'requested'}).commit()
-  console.log('Triggered Klaviyo import — lists and segments will sync in the background')
+  // ── 6. Import segments from Resend ──────────────────────────────────────────
+  // Trigger the import-resend-segments function by setting importState to "requested".
+
+  heading('Import segments from Resend')
+
+  await client.patch('espImport').set({importState: 'requested'}).commit()
+  console.log('Triggered Resend segment import — segments will sync in the background')
 } else {
   console.log(
-    'No key entered — set it later with:\n  npx sanity functions env add import-klaviyo KLAVIYO_API_KEY <key>\n  npx sanity functions env add on-promotion-approved KLAVIYO_API_KEY <key>',
+    'No key entered — set it later with:\n  npx sanity functions env add import-resend-segments RESEND_API_KEY <key>\n  npx sanity functions env add on-promotion-approved RESEND_API_KEY <key>\n  npx sanity functions env add on-promotion-approved RESEND_FROM_EMAIL "Brand <updates@example.com>"',
   )
 }
 

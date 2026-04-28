@@ -65,16 +65,16 @@ export const structure: StructureResolver = (S) =>
         .child(S.documentTypeList('product').title('Products')),
       S.divider(),
       S.listItem()
-        .title('Klaviyo')
+        .title('Resend')
         .icon(SyncIcon)
         .child(
           S.list()
-            .title('Klaviyo')
+            .title('Resend')
             .items([
               S.listItem()
                 .title('Sync / Import')
                 .icon(SyncIcon)
-                .child(S.document().documentId('klaviyoImport').schemaType('klaviyoImport')),
+                .child(S.document().documentId('espImport').schemaType('espImport')),
               S.listItem()
                 .title('Segments')
                 .icon(FilterIcon)

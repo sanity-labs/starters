@@ -25,7 +25,7 @@ export default defineCliConfig({
       './schemaTypes/**/*.{ts,tsx}',
       '../frontend/app/**/*.{ts,tsx}',
       '../frontend/sanity/**/*.{ts,tsx}',
-      '../functions/import-klaviyo/**/*.ts',
+      '../functions/import-resend-segments/**/*.ts',
       '../functions/on-promotion-approved/**/*.ts',
     ],
     generates: '../packages/sanity-types/sanity.types.ts',

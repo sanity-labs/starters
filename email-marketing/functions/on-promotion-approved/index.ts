@@ -1,7 +1,7 @@
 import {documentEventHandler} from '@sanity/functions'
 import {createClient} from '@sanity/client'
 import {defineQuery} from 'groq'
-import {ApiKeySession, CampaignsApi, TemplatesApi} from 'klaviyo-api'
+import {Resend} from 'resend'
 
 const PROMOTION_QUERY = defineQuery(`
   *[_id == $id][0]{
@@ -91,7 +91,7 @@ function renderBlockHtml(block: EmailBlock): string {
     }
     case 'emailFooter': {
       const unsubText = block.unsubscribeText ?? 'Unsubscribe'
-      return `<div style="padding:24px;text-align:center;font-size:11px;color:#aaa;">${block.legalText ? `<p style="margin:0 0 8px;">${block.legalText}</p>` : ''}<a href="{{ unsubscribe_url }}" style="color:#aaa;">${unsubText}</a></div>`
+      return `<div style="padding:24px;text-align:center;font-size:11px;color:#aaa;">${block.legalText ? `<p style="margin:0 0 8px;">${block.legalText}</p>` : ''}<a href="{{{RESEND_UNSUBSCRIBE_URL}}}" style="color:#aaa;">${unsubText}</a></div>`
     }
     default:
       return ''
@@ -119,7 +119,7 @@ function buildHtml(promotion: {
   <div style="max-width:600px;margin:0 auto;background:#fff;">
     ${promotion.disruptor ? `<div style="background:#111;color:#fff;text-align:center;padding:8px;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;">${promotion.disruptor}</div>` : ''}
     ${blockHtml}
-    ${!hasFooter ? `<div style="padding:24px;text-align:center;font-size:11px;color:#aaa;"><a href="{{ unsubscribe_url }}" style="color:#aaa;">Unsubscribe</a></div>` : ''}
+    ${!hasFooter ? `<div style="padding:24px;text-align:center;font-size:11px;color:#aaa;"><a href="{{{RESEND_UNSUBSCRIBE_URL}}}" style="color:#aaa;">Unsubscribe</a></div>` : ''}
   </div>
 </body>
 </html>`
@@ -135,9 +135,12 @@ export const handler = documentEventHandler(async ({context, event}) => {
     return
   }
 
-  const apiKey = process.env.KLAVIYO_API_KEY
-  if (!apiKey) {
-    console.error('[on-promotion-approved] KLAVIYO_API_KEY not set')
+  const apiKey = process.env.RESEND_API_KEY
+  const fromEmail = process.env.RESEND_FROM_EMAIL
+  if (!apiKey || !fromEmail) {
+    console.error(
+      '[on-promotion-approved] RESEND_API_KEY or RESEND_FROM_EMAIL not set. Run: sanity functions env add RESEND_API_KEY <key> && sanity functions env add RESEND_FROM_EMAIL "Brand <updates@example.com>"',
+    )
     return
   }
 
@@ -145,82 +148,36 @@ export const handler = documentEventHandler(async ({context, event}) => {
     const promotion = await client.fetch(PROMOTION_QUERY, {id: promotionRef})
     if (!promotion) throw new Error(`Promotion ${promotionRef} not found`)
 
-    const session = new ApiKeySession(apiKey)
-    const templatesApi = new TemplatesApi(session)
-    const campaignsApi = new CampaignsApi(session)
-
-    const label = `${promotion.campaignTitle ?? 'Campaign'} — ${promotion.segmentName ?? 'Base'} — ${Date.now()}`
+    const resend = new Resend(apiKey)
     const html = buildHtml(promotion)
+    const label = `${promotion.campaignTitle ?? 'Campaign'} — ${promotion.segmentName ?? 'Base'} — ${Date.now()}`
 
-    // Create template
-    const templateResult = await templatesApi.createTemplate({
-      data: {
-        type: 'template',
-        attributes: {name: label, editorType: 'CODE', html},
-      },
-    })
-    const templateId = templateResult.body.data?.id
-    if (!templateId) throw new Error('Failed to create Klaviyo template')
-
-    // Create campaign with inline message definition
-    const campaignResult = await campaignsApi.createCampaign({
-      data: {
-        type: 'campaign',
-        attributes: {
-          name: label,
-          audiences: {
-            included: promotion.segmentExternalId ? [promotion.segmentExternalId] : [],
-            excluded: [],
-          },
-          campaignMessages: {
-            data: [
-              {
-                type: 'campaign-message',
-                attributes: {
-                  definition: {
-                    channel: 'email',
-                    label,
-                    content: {
-                      subject: promotion.subjectLine ?? '',
-                      previewText: promotion.preheader ?? '',
-                      fromEmail: 'hello@example.com',
-                      fromLabel: promotion.campaignTitle ?? '',
-                      replyToEmail: 'hello@example.com',
-                    },
-                  },
-                },
-              },
-            ],
-          },
-        },
-      },
-    })
-    const klaviyoCampaignId = campaignResult.body.data?.id
-    if (!klaviyoCampaignId) throw new Error('Failed to create Klaviyo campaign')
-
-    // Get campaign message ID
-    const messagesResult = await campaignsApi.getMessageIdsForCampaign(klaviyoCampaignId)
-    const messageId = messagesResult.body.data?.[0]?.id
-    if (!messageId) throw new Error('Failed to get campaign message ID')
-
-    // Assign template to campaign message
-    await campaignsApi.assignTemplateToCampaignMessage({
-      data: {
-        type: 'campaign-message',
-        id: messageId,
-        relationships: {
-          template: {
-            data: {type: 'template', id: templateId},
-          },
-        },
-      },
+    // Resend has no separate "template" concept. Create the broadcast directly with html.
+    // Note: preheader is not a top-level Resend field — see docs/ESP-NOTES.md.
+    if (!promotion.segmentExternalId) {
+      throw new Error(`Promotion ${promotionRef} has no segment with externalId`)
+    }
+    const broadcast = await resend.broadcasts.create({
+      segmentId: promotion.segmentExternalId,
+      name: label,
+      from: fromEmail,
+      subject: promotion.subjectLine ?? '',
+      html,
+      previewText: promotion.preheader ?? undefined,
     })
 
-    // Send
-    await campaignsApi.createCampaignSendJob({
-      data: {type: 'campaign-send-job', id: klaviyoCampaignId},
-    })
+    if (broadcast.error) {
+      throw new Error(`Resend broadcasts.create failed: ${broadcast.error.message}`)
+    }
+    const broadcastId = broadcast.data?.id
+    if (!broadcastId) throw new Error('Failed to create Resend broadcast: no id returned')
 
+    const sendResult = await resend.broadcasts.send(broadcastId)
+    if (sendResult.error) {
+      throw new Error(`Resend broadcasts.send failed: ${sendResult.error.message}`)
+    }
+
+    // Persist on the workflow.state
     await client
       .patch(wfId)
       .set({status: 'sent', sentAt: new Date().toISOString()})
@@ -234,18 +191,13 @@ export const handler = documentEventHandler(async ({context, event}) => {
       ])
       .commit()
 
-    console.log(
-      `[on-promotion-approved] Sent ${promotionRef} via Klaviyo campaign ${klaviyoCampaignId}`,
-    )
+    // Persist broadcast id on the promotion for engagement-webhook correlation
+    await client.patch(promotionRef).set({externalCampaignId: broadcastId}).commit()
+
+    console.log(`[on-promotion-approved] Sent ${promotionRef} via Resend broadcast ${broadcastId}`)
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
-    // Log the Klaviyo response body if available (axios-style errors)
-    const responseBody =
-      error && typeof error === 'object' && 'response' in error
-        ? JSON.stringify((error as {response?: {data?: unknown}}).response?.data, null, 2)
-        : undefined
     console.error(`[on-promotion-approved] Failed: ${message}`)
-    if (responseBody) console.error(`[on-promotion-approved] Response body: ${responseBody}`)
     await client
       .patch(wfId)
       .set({status: 'error'})

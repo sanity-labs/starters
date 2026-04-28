@@ -15,8 +15,8 @@ const testDefinitions = [
     await page.waitForSelector('[data-testid="navmenu"]')
   }),
 
-  When('I navigate to the Klaviyo sync section', async ({playwright: {page}}) => {
-    await page.goto(`${STUDIO_URL}/structure/klaviyoImport`)
+  When('I navigate to the Resend sync section', async ({playwright: {page}}) => {
+    await page.goto(`${STUDIO_URL}/structure/espImport`)
     await page.waitForSelector('[data-testid="form-view"]', {timeout: 10_000})
   }),
 
@@ -25,7 +25,7 @@ const testDefinitions = [
   }),
 
   When('I click the sync button', async ({playwright: {page}}) => {
-    await page.getByRole('button', {name: /sync with klaviyo/i}).click()
+    await page.getByRole('button', {name: /sync with resend/i}).click()
   }),
 
   Then('a confirmation dialog appears', async ({playwright: {page}}) => {
@@ -61,7 +61,7 @@ const testDefinitions = [
 
   Given('segments exist in the dataset', async () => {
     const count = await sanityClient.fetch<number>(`count(*[_type == "segment"])`)
-    if (count === 0) throw new Error('No segments — run Klaviyo sync first')
+    if (count === 0) throw new Error('No segments — run Resend sync first')
   }),
 
   When('I open a segment document', async ({playwright: {page}}) => {

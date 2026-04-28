@@ -89,30 +89,33 @@ if (Date.now() > claims.exp * 1000) return res.status(401).send('Token expired')
 
 **Revocation:** Keep a deny-list (Redis) of revoked JTIs; check on every request.
 
-#### Path C: Webhook Signature (HMAC-SHA256)
+#### Path C: Webhook Signature (Svix)
 
-**Usage:** Inbound engagement webhooks from ESP.
+**Usage:** Inbound engagement webhooks from Resend (Svix-signed).
 
 **Implementation:**
 
 ```typescript
-import crypto from 'crypto'
+import {Resend} from 'resend'
 
-function verifyKlaviyoSignature(body, signature, apiKey) {
-  const timestamp = req.headers['x-klaviyo-request-timestamp'] // Unix seconds
-  if (Math.abs(Date.now() / 1000 - timestamp) > 300) {
-    throw new Error('Timestamp outside 5-minute window')
-  }
+const resend = new Resend(process.env.RESEND_API_KEY!)
 
-  const data = `${timestamp}.${body}` // String concatenation
-  const hash = crypto.createHmac('sha256', apiKey).update(data).digest('base64')
-
-  // Use timingSafeEqual to prevent timing attacks
-  return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(signature))
+async function verifyResendWebhook(req: Request) {
+  const rawBody = await req.text()
+  resend.webhooks.verify({
+    payload: rawBody,
+    headers: {
+      'svix-id': req.headers.get('svix-id') ?? '',
+      'svix-timestamp': req.headers.get('svix-timestamp') ?? '',
+      'svix-signature': req.headers.get('svix-signature') ?? '',
+    },
+    webhookSecret: process.env.RESEND_WEBHOOK_SECRET!,
+  })
+  return JSON.parse(rawBody)
 }
 ```
 
-**Note:** Each ESP has different signature algorithms. Implement per-ESP.
+**Note:** Verify on the **raw** request body, not parsed JSON. Svix rejects payloads older than 5 minutes by default. If you swap ESPs, the signature scheme will change — see [docs/ESP-NOTES.md](./ESP-NOTES.md).
 
 #### No Fallback
 
@@ -158,7 +161,6 @@ const promo = await client.fetch(`*[_id == "${promotionId}"][0]`) // SQL injecti
 ```typescript
 const ALLOWED_ORIGINS = [
   'cdn.sanity.io',
-  'images.klaviyo.com',
   'my-dam.aem.adobe.com', // Configured
 ]
 

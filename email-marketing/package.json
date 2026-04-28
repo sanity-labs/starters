@@ -2,14 +2,14 @@
   "name": "email-marketing",
   "version": "1.0.0",
   "private": true,
-  "description": "An email marketing starter with Klaviyo integration, AI-powered email generation, and campaign management. Built with Sanity Studio, Next.js 16, and Sanity Functions.",
+  "description": "An email marketing starter with Resend integration, AI-powered email generation, and campaign management. Built with Sanity Studio, Next.js 16, and Sanity Functions.",
   "keywords": [
     "AI",
     "Campaign Management",
     "Email Generation",
     "Email Marketing",
-    "Klaviyo",
     "Next.js",
+    "Resend",
     "Sanity"
   ],
   "homepage": "https://github.com/sanity-labs/starters/tree/main/email-marketing#readme",

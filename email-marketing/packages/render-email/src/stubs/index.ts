@@ -1,25 +1,20 @@
 import type {PreviewStatus, RenderContext} from '../types'
 
-export const KLAVIYO_STUBS = {
-  unsubscribe_url: '{{ unsubscribe_url }}',
-  'profile.email': '{{ profile.email }}',
-  'profile.first_name': '{{ profile.first_name }}',
-  'profile.last_name': '{{ profile.last_name }}',
+export const RESEND_STUBS = {
+  RESEND_UNSUBSCRIBE_URL: '{{{RESEND_UNSUBSCRIBE_URL}}}',
 }
 
 export const FALLBACK_STUBS = {
-  unsubscribe_url: 'https://manage.klaviyo.com/unsubscribe',
-  'profile.email': 'subscriber@example.com',
-  'profile.first_name': 'John',
-  'profile.last_name': 'Doe',
+  RESEND_UNSUBSCRIBE_URL: 'https://resend.com/unsubscribe',
 }
 
-export function stubKlaviyoTags(html: string): {html: string; resolved: Record<string, boolean>} {
+export function stubResendTags(html: string): {html: string; resolved: Record<string, boolean>} {
   const resolved: Record<string, boolean> = {}
   let output = html
 
   for (const [key, fallback] of Object.entries(FALLBACK_STUBS)) {
-    const pattern = new RegExp(`{{\\s*${key}\\s*}}`, 'g')
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const pattern = new RegExp(`\\{\\{\\{\\s*${escapedKey}\\s*\\}\\}\\}`, 'g')
     if (pattern.test(html)) {
       output = output.replace(pattern, fallback)
       resolved[key] = false

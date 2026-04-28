@@ -22,7 +22,7 @@
  *
  * Stubs & accuracy metadata:
  * ```ts
- * import { buildPreviewStatus, stubKlaviyoTags } from '@starter/render-email/stubs'
+ * import { buildPreviewStatus, stubResendTags } from '@starter/render-email/stubs'
  * ```
  *
  * Sanitization:
@@ -46,7 +46,7 @@ export type {
 } from './types'
 
 import mjml from 'mjml'
-import {stubKlaviyoTags} from './stubs'
+import {stubResendTags} from './stubs'
 
 type Block = {
   _type?: string | null
@@ -189,7 +189,7 @@ function renderFooterMjml(block: Block): string {
   }
   const unsubText = block.unsubscribeText ?? 'Unsubscribe'
   parts.push(`<mj-text font-size="11px" color="#aaaaaa" align="center">
-          <a href="{{ unsubscribe_url }}" style="color:#aaaaaa;text-decoration:none;">${esc(unsubText)}</a>
+          <a href="{{{RESEND_UNSUBSCRIBE_URL}}}" style="color:#aaaaaa;text-decoration:none;">${esc(unsubText)}</a>
         </mj-text>`)
   return `<mj-section background-color="#ffffff" padding="24px">
       <mj-column>${parts.join('\n        ')}</mj-column>
@@ -242,7 +242,7 @@ function buildMjml(promotion: PromotionInput): string {
         ? `<mj-section background-color="#ffffff" padding="24px">
       <mj-column>
         <mj-text font-size="11px" color="#aaaaaa" align="center">
-          <a href="{{ unsubscribe_url }}" style="color:#aaaaaa;text-decoration:none;">Unsubscribe</a>
+          <a href="{{{RESEND_UNSUBSCRIBE_URL}}}" style="color:#aaaaaa;text-decoration:none;">Unsubscribe</a>
         </mj-text>
       </mj-column>
     </mj-section>`
@@ -263,7 +263,7 @@ function resolveTokens(html: string, tokens: Record<string, string>): string {
 /**
  * Render a promotion to HTML for local preview.
  * Resolves personalization tokens from previewContext sample data.
- * Remaining Klaviyo tags are replaced with safe fallback values.
+ * Remaining Resend merge tags are replaced with safe fallback values.
  */
 export async function renderPromotionLocal(
   promotion: PromotionInput,
@@ -276,16 +276,16 @@ export async function renderPromotionLocal(
   }
 
   const {html} = await mjml(mjmlContent)
-  const {html: stubbed} = stubKlaviyoTags(html)
+  const {html: stubbed} = stubResendTags(html)
   return stubbed
 }
 
 /**
- * Render a promotion to HTML for Klaviyo dispatch.
- * Klaviyo Handlebars tokens ({{ unsubscribe_url }}, {{ profile.first_name }}, etc.)
- * are preserved as-is — Klaviyo resolves them at send time.
+ * Render a promotion to HTML for Resend dispatch.
+ * Resend merge tags ({{{RESEND_UNSUBSCRIBE_URL}}}, etc.) are preserved as-is —
+ * Resend substitutes them at send time.
  */
-export async function renderPromotionKlaviyo(
+export async function renderPromotion(
   promotion: PromotionInput,
   _adapter?: unknown,
 ): Promise<string> {

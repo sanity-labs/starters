@@ -297,7 +297,7 @@ function PromotionTile({promotion: p, client, agentClient, schemaId, onRefresh}:
           <Flex align="center" gap={2}>
             <Button
               as="a"
-              href={`${previewUrl}/api/preview/klaviyo/${p._id}`}
+              href={`${previewUrl}/api/preview/resend/${p._id}`}
               target="_blank"
               rel="noopener noreferrer"
               icon={LaunchIcon}

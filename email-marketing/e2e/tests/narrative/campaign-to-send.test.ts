@@ -70,7 +70,7 @@ const testDefinitions = [
     },
   ),
 
-  Then('the on-promotion-approved function dispatches to Klaviyo', async () => {
+  Then('the on-promotion-approved function dispatches via Resend', async () => {
     // Blueprint function is async — verify via workflow state
     await new Promise((r) => setTimeout(r, 5_000))
     const wf = await sanityClient.fetch<{status: string} | null>(
@@ -129,8 +129,8 @@ const testDefinitions = [
     await expect(page.locator('text=/draft|in-review|approved|sent/i').first()).toBeVisible()
   }),
 
-  When('I navigate to the Klaviyo sync section', async ({playwright: {page}}) => {
-    await page.goto(`${STUDIO_URL}/structure/klaviyoImport`)
+  When('I navigate to the Resend sync section', async ({playwright: {page}}) => {
+    await page.goto(`${STUDIO_URL}/structure/espImport`)
     await page.waitForSelector('[data-testid="form-view"]', {timeout: 10_000})
   }),
 

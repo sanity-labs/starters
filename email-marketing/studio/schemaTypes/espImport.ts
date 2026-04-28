@@ -1,10 +1,10 @@
 import {defineField, defineType} from 'sanity'
 import {SyncIcon} from '@sanity/icons'
-import {KlaviyoImportDescription} from '../components/KlaviyoImportDescription'
+import {EspImportDescription} from '../components/EspImportDescription'
 
-export const klaviyoImport = defineType({
-  name: 'klaviyoImport',
-  title: 'Klaviyo Import',
+export const espImport = defineType({
+  name: 'espImport',
+  title: 'Resend Import',
   type: 'document',
   icon: SyncIcon,
   fields: [
@@ -12,7 +12,7 @@ export const klaviyoImport = defineType({
       name: 'description',
       title: 'Description',
       type: 'string',
-      components: {input: KlaviyoImportDescription},
+      components: {input: EspImportDescription},
       readOnly: true,
     }),
     defineField({
@@ -63,7 +63,7 @@ export const klaviyoImport = defineType({
       segmentCount: 'segmentCount',
     },
     prepare: ({importState, listCount, segmentCount}) => ({
-      title: 'Klaviyo Import',
+      title: 'Resend Import',
       subtitle:
         importState === 'imported'
           ? `${listCount ?? 0} lists, ${segmentCount ?? 0} segments`

@@ -42,7 +42,7 @@ const testDefinitions = [
 
   Given('the campaign has segments and a primary message', async ({playwright: {page}}) => {
     const segment = await sanityClient.fetch<{_id: string} | null>(`*[_type == "segment"][0]{_id}`)
-    if (!segment) throw new Error('No segments available — run Klaviyo sync first')
+    if (!segment) throw new Error('No segments available — run Resend sync first')
     await sanityClient
       .patch(currentCampaignId!)
       .set({

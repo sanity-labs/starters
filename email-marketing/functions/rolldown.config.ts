@@ -2,9 +2,9 @@ import {defineConfig} from 'rolldown'
 
 export default [
   defineConfig({
-    input: {index: 'import-klaviyo/index.ts'},
+    input: {index: 'import-resend-segments/index.ts'},
     output: {
-      dir: 'dist/import-klaviyo',
+      dir: 'dist/import-resend-segments',
       cleanDir: true,
       codeSplitting: false,
       minify: true,
@@ -24,9 +24,9 @@ export default [
     platform: 'node',
   }),
   defineConfig({
-    input: {index: 'scheduled-import-klaviyo/index.ts'},
+    input: {index: 'scheduled-import-resend-segments/index.ts'},
     output: {
-      dir: 'dist/scheduled-import-klaviyo',
+      dir: 'dist/scheduled-import-resend-segments',
       cleanDir: true,
       codeSplitting: false,
       minify: true,
