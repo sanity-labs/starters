@@ -2,8 +2,13 @@ import {useEffect, useState} from 'react'
 import {useClient} from 'sanity'
 import {defineQuery} from 'groq'
 
+// Prefer the draft so unpublished edits to the brief are honored;
+// fall back to the published version when no draft exists.
 const CAMPAIGN_CONTEXT_QUERY = defineQuery(`
-  *[_type == "campaign" && (_id == $id || _id == $draftId)][0]{
+  coalesce(
+    *[_id == $draftId][0],
+    *[_id == $id][0]
+  ){
     title,
     primaryMessage,
     supportingMessage,
@@ -64,12 +69,27 @@ export interface SegmentContext {
   engagementTier?: string
 }
 
+export interface BuiltInstruction {
+  instruction: string
+  instructionParams: Record<string, {type: 'constant'; value: string}>
+}
+
 export function buildInstruction(
   campaign: CampaignBrief | null,
   brandVoice: BrandVoiceContext | null,
   segment: SegmentContext | null,
-): string {
+): BuiltInstruction {
   const lines: string[] = []
+  const instructionParams: Record<string, {type: 'constant'; value: string}> = {}
+  let paramCounter = 0
+
+  // Pass user-supplied text through instructionParams so a literal "$" in the
+  // copy (e.g. "Save $50") isn't parsed as a template variable by the agent.
+  const param = (value: string): string => {
+    const key = `v${paramCounter++}`
+    instructionParams[key] = {type: 'constant', value}
+    return `$${key}`
+  }
 
   lines.push(`You are writing a promotional email.`)
 
@@ -85,52 +105,54 @@ export function buildInstruction(
   lines.push(`A typical email: header → 1–3 sections with dividers between them → CTA → footer.`)
 
   if (campaign?.primaryMessage) {
-    lines.push(`\n## Campaign Brief\n${campaign.primaryMessage}`)
+    lines.push(`\n## Campaign Brief\n${param(campaign.primaryMessage)}`)
   }
   if (campaign?.supportingMessage) {
-    lines.push(campaign.supportingMessage)
+    lines.push(param(campaign.supportingMessage))
   }
   if (campaign?.valueProposition) {
-    lines.push(`**Offer:** ${campaign.valueProposition}`)
+    lines.push(`**Offer:** ${param(campaign.valueProposition)}`)
   }
   if (campaign?.emotionalGoal) {
-    lines.push(`**Emotional goal:** ${campaign.emotionalGoal}`)
+    lines.push(`**Emotional goal:** ${param(campaign.emotionalGoal)}`)
   }
   if (campaign?.toneTraits?.length) {
-    lines.push(`**Tone:** ${campaign.toneTraits.join(', ')}`)
+    lines.push(`**Tone:** ${param(campaign.toneTraits.join(', '))}`)
   }
   if (campaign?.urgencyTitle) {
-    const tone = campaign.urgencyCopyTone ? ` — ${campaign.urgencyCopyTone}` : ''
-    lines.push(`**Urgency stage:** ${campaign.urgencyTitle}${tone}`)
+    const tone = campaign.urgencyCopyTone ? ` — ${param(campaign.urgencyCopyTone)}` : ''
+    lines.push(`**Urgency stage:** ${param(campaign.urgencyTitle)}${tone}`)
   }
 
   if (brandVoice) {
     lines.push(`\n## Brand Voice`)
     if (brandVoice.toneTraits?.length) {
-      lines.push(`Traits: ${brandVoice.toneTraits.join(', ')}`)
+      lines.push(`Traits: ${param(brandVoice.toneTraits.join(', '))}`)
     }
     if (brandVoice.writingStyleRules?.length) {
-      lines.push(`Style rules:\n${brandVoice.writingStyleRules.map((r) => `- ${r}`).join('\n')}`)
+      lines.push(
+        `Style rules:\n${brandVoice.writingStyleRules.map((r) => `- ${param(r)}`).join('\n')}`,
+      )
     }
     if (brandVoice.prohibitedWords?.length) {
-      lines.push(`Avoid these words: ${brandVoice.prohibitedWords.join(', ')}`)
+      lines.push(`Avoid these words: ${param(brandVoice.prohibitedWords.join(', '))}`)
     }
     if (brandVoice.emailGuidelines) {
-      lines.push(brandVoice.emailGuidelines)
+      lines.push(param(brandVoice.emailGuidelines))
     }
     if (brandVoice.legalConstraints) {
-      lines.push(`Legal requirements: ${brandVoice.legalConstraints}`)
+      lines.push(`Legal requirements: ${param(brandVoice.legalConstraints)}`)
     }
   }
 
   if (segment) {
-    lines.push(`\n## Target Audience: ${segment.name ?? 'Unknown segment'}`)
-    if (segment.affinityDescription) lines.push(segment.affinityDescription)
+    lines.push(`\n## Target Audience: ${param(segment.name ?? 'Unknown segment')}`)
+    if (segment.affinityDescription) lines.push(param(segment.affinityDescription))
     if (segment.typicalCopyTone?.length) {
-      lines.push(`Copy tone: ${segment.typicalCopyTone.join(', ')}`)
+      lines.push(`Copy tone: ${param(segment.typicalCopyTone.join(', '))}`)
     }
     if (segment.engagementTier) {
-      lines.push(`Engagement tier: ${segment.engagementTier}`)
+      lines.push(`Engagement tier: ${param(segment.engagementTier)}`)
     }
   }
 
@@ -138,25 +160,29 @@ export function buildInstruction(
     lines.push(`\n## Available Personalization Tokens`)
     for (const token of campaign.previewContext.tokens) {
       if (token.key) {
-        lines.push(
-          `- {{${token.key}}}${token.description ? ` — ${token.description}` : ''} (sample: "${token.sample ?? ''}")`,
-        )
+        const description = token.description ? ` — ${param(token.description)}` : ''
+        lines.push(`- {{${token.key}}}${description} (sample: "${param(token.sample ?? '')}")`)
       }
     }
     lines.push(`Use these tokens naturally in the copy where appropriate.`)
   }
 
-  return lines.join('\n')
+  return {instruction: lines.join('\n'), instructionParams}
 }
 
 export function fetchCampaignContext(
   client: ReturnType<typeof useClient>,
   campaignId: string,
 ): Promise<CampaignBrief | null> {
-  return client.fetch<CampaignBrief | null>(CAMPAIGN_CONTEXT_QUERY, {
-    id: campaignId,
-    draftId: `drafts.${campaignId}`,
-  })
+  // perspective: 'raw' so the draft is visible to the coalesce in the query.
+  return client.fetch<CampaignBrief | null>(
+    CAMPAIGN_CONTEXT_QUERY,
+    {
+      id: campaignId,
+      draftId: `drafts.${campaignId}`,
+    },
+    {perspective: 'raw'},
+  )
 }
 
 export function fetchBrandVoice(
@@ -186,7 +212,7 @@ export function useAgentContext(campaignId: string, segmentId?: string): string 
       segmentId ? fetchSegmentContext(client, segmentId) : Promise.resolve(null),
     ]).then(([campaign, brandVoice, segment]) => {
       if (!cancelled) {
-        setInstruction(buildInstruction(campaign, brandVoice, segment))
+        setInstruction(buildInstruction(campaign, brandVoice, segment).instruction)
       }
     })
 

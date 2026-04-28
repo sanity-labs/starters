@@ -195,7 +195,7 @@ function PromotionTile({promotion: p, client, agentClient, schemaId, onRefresh}:
         fetchBrandVoice(client),
         fetchSegmentContext(client, segmentId),
       ])
-      const instruction = buildInstruction(campaignBrief, brandVoice, segment)
+      const {instruction, instructionParams} = buildInstruction(campaignBrief, brandVoice, segment)
       const promotionId = `promotion-${campaignId}-${segmentId}`
 
       // Generate via AI agent
@@ -211,6 +211,7 @@ function PromotionTile({promotion: p, client, agentClient, schemaId, onRefresh}:
         },
         schemaId,
         instruction,
+        instructionParams,
         target: [
           {path: 'subjectLine'},
           {path: 'preheader'},
