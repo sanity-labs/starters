@@ -148,6 +148,22 @@ Reusable content block with position, asset reference, and editable text.
 4. CRM manager configures journeys/triggers in ESP referencing segment IDs.
 5. Send happens in ESP.
 
+### Workflow 5b: Scheduled Klaviyo Sync
+
+Background sync of Klaviyo lists and segments, no manual click required.
+
+1. `scheduled-import-klaviyo` Function fires on cron (`every 5 minutes`).
+2. Function reads the `klaviyoImport` singleton; if `importState` is `idle`, `imported`, or `error`, it patches it to `"requested"`.
+3. Patch triggers the existing `import-klaviyo` document Function (delta filter on `importState == "requested"`), which performs the actual Klaviyo API calls.
+4. If `importState` is already `requested` or `importing`, the scheduled run is a no-op (skip log).
+5. Studio surfaces sync state via the `LastSyncedBadge` on the `klaviyoImport` document — shows "Syncing…", "Sync failed", or "Synced N min ago".
+
+**Auth model:**
+
+- `defineRobotToken` in `sanity.blueprint.ts` provisions an editor-scoped robot for the project.
+- The robot token is referenced from the function via `robotToken: '$.resources.email-marketing-robot.token'` and arrives at runtime as `context.clientOptions.token`.
+- Project ID and dataset are not auto-populated for scheduled functions (no triggering document context). They are read from `process.env.SANITY_STUDIO_PROJECT_ID` and `process.env.SANITY_STUDIO_DATASET`, injected via the blueprint's `env: {...}` block (sourced from the root `.env` at deploy time using `dotenv/config`).
+
 ### Workflow 6: Engagement Log-Back
 
 1. ESP webhook fires on engagement events (open, click, conversion).
