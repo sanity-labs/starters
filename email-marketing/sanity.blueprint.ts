@@ -31,6 +31,7 @@ export default defineBlueprint({
     defineDocumentFunction({
       name: 'import-resend-segments',
       src: 'functions/dist/import-resend-segments',
+      project: SANITY_STUDIO_PROJECT_ID,
       event: {
         on: ['update'],
         filter: '_type == "espImport" && importState == "requested"',
@@ -40,6 +41,7 @@ export default defineBlueprint({
     defineScheduledFunction({
       name: 'scheduled-import-resend-segments',
       src: 'functions/dist/scheduled-import-resend-segments',
+      project: SANITY_STUDIO_PROJECT_ID,
       event: {expression: 'every 5 minutes'},
       robotToken: '$.resources.email-marketing-robot.token',
       env: {
@@ -50,11 +52,23 @@ export default defineBlueprint({
     defineDocumentFunction({
       name: 'on-promotion-approved',
       src: 'functions/dist/on-promotion-approved',
+      project: SANITY_STUDIO_PROJECT_ID,
       timeout: 60,
       event: {
         on: ['create', 'update'],
         filter: '_type == "workflow.state" && status == "approved"',
         projection: '{_id, status, promotionId}',
+      },
+    }),
+    defineDocumentFunction({
+      name: 'on-promotion-test-send',
+      src: 'functions/dist/on-promotion-test-send',
+      project: SANITY_STUDIO_PROJECT_ID,
+      timeout: 60,
+      event: {
+        on: ['update'],
+        filter: '_type == "promotion" && testSend.status == "requested"',
+        projection: '{_id, testSend}',
       },
     }),
   ],

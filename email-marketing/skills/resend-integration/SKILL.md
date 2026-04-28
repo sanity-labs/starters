@@ -200,6 +200,28 @@ Triggered when `workflow.state` for a promotion transitions to `"approved"`.
 - Don't try to create a "template" first — Resend has no stored-template concept.
 - Don't pass a top-level `preheader` — Resend has no field for it. Put preheader content in the HTML itself.
 
+### 4. `on-promotion-test-send` — send a test email
+
+**File:** `functions/on-promotion-test-send/index.ts`
+
+Triggered when `promotion.testSend.status` is set to `"requested"` (by the "Send test email" Studio document action on a promotion).
+
+**Workflow:**
+
+1. Fetch promotion (no segment, no campaign — just the promotion content)
+2. Build HTML via the same renderer as `on-promotion-approved`
+3. `resend.emails.send({from: process.env.RESEND_FROM_EMAIL, to: process.env.RESEND_TEST_TO ?? 'delivered@resend.dev', subject: '[TEST] ' + subjectLine, html})` — **transactional** send, single recipient, no Segment, no Broadcast
+4. Patch `promotion.testSend`: `status = 'sent'`, `sentAt`, `sentTo`. On failure: `status = 'error'`, `errorMessage`.
+
+**Why this exists:**
+
+- Verifies the rendering + Resend SDK path end-to-end without firing a real Broadcast.
+- Default recipient `delivered@resend.dev` is a Resend simulation address — it logs in the dashboard but doesn't deliver. Useful in CI / staging.
+- Other simulation addresses: `bounced@resend.dev`, `complained@resend.dev`, `suppressed@resend.dev`, with `+label` support (e.g. `delivered+signup@resend.dev`).
+- For a real inbox test, set `RESEND_TEST_TO=you@yourdomain.com` after verifying your domain.
+
+**Caveat:** Sending from `onboarding@resend.dev` (the sandbox `from`) only allows delivery to the Resend account owner's email. To target the simulation addresses, set `RESEND_FROM_EMAIL` to a verified-domain address.
+
 ## Preview
 
 Resend has **no server-side render API**. Preview is generated locally via `@react-email/render` in `frontend/app/api/preview/resend/[id]/route.ts`:

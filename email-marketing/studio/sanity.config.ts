@@ -13,6 +13,7 @@ import {GenerateVariantsAction} from './plugins/campaign'
 import {
   ApproveAction,
   ResendAction,
+  SendTestAction,
   RefinementInspector,
   PreviewStatusInspector,
   WorkflowStateBadge,
@@ -101,7 +102,12 @@ export default defineConfig({
         return [GenerateVariantsAction, ...prev]
       }
       if (schemaType === 'promotion') {
-        return [ApproveAction, ResendAction, ...prev.filter(({action}) => action !== 'publish')]
+        return [
+          ApproveAction,
+          ResendAction,
+          SendTestAction,
+          ...prev.filter(({action}) => action !== 'publish'),
+        ]
       }
       if (schemaType === 'segment') {
         return prev.filter(({action}) => action !== 'delete' && action !== 'duplicate')

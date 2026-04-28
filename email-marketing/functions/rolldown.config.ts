@@ -34,4 +34,15 @@ export default [
     },
     platform: 'node',
   }),
+  defineConfig({
+    input: {index: 'on-promotion-test-send/index.ts'},
+    output: {
+      dir: 'dist/on-promotion-test-send',
+      cleanDir: true,
+      codeSplitting: false,
+      minify: true,
+      comments: false,
+    },
+    platform: 'node',
+  }),
 ]

@@ -70,6 +70,25 @@ export const promotion = defineType({
       ],
       description: 'Engagement metrics written back by ESP webhook (read-only).',
     }),
+    defineField({
+      name: 'testSend',
+      title: 'Test Send',
+      type: 'object',
+      readOnly: true,
+      fields: [
+        defineField({
+          name: 'status',
+          type: 'string',
+          options: {list: ['requested', 'sending', 'sent', 'error']},
+        }),
+        defineField({name: 'requestedAt', type: 'datetime'}),
+        defineField({name: 'sentAt', type: 'datetime'}),
+        defineField({name: 'sentTo', type: 'string'}),
+        defineField({name: 'errorMessage', type: 'text', rows: 2}),
+      ],
+      description:
+        'Status of the most recent "Send test email" action. Sends a transactional email to RESEND_TEST_TO (defaults to delivered@resend.dev — Resend\'s simulation address) so you can verify the integration without sending to a real audience.',
+    }),
   ],
   preview: {
     select: {
