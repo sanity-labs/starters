@@ -25,7 +25,7 @@ export const handler = scheduledEventHandler(async ({context}) => {
       projectId,
       dataset,
       token,
-      apiHost: context.clientOptions?.apiHost,
+      ...(context.clientOptions?.apiHost ? {apiHost: context.clientOptions.apiHost} : {}),
       apiVersion: '2026-04-08',
       useCdn: false,
     })
