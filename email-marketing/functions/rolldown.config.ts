@@ -23,4 +23,15 @@ export default [
     },
     platform: 'node',
   }),
+  defineConfig({
+    input: {index: 'scheduled-import-klaviyo/index.ts'},
+    output: {
+      dir: 'dist/scheduled-import-klaviyo',
+      cleanDir: true,
+      codeSplitting: false,
+      minify: true,
+      comments: false,
+    },
+    platform: 'node',
+  }),
 ]

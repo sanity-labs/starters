@@ -69,7 +69,8 @@ Email marketing starter that connects Sanity Studio to Klaviyo. Compose emails w
 - `functions/` — Sanity Functions
   - `functions/on-promotion-approved/index.ts` — Renders HTML, creates Klaviyo template + campaign, triggers send
   - `functions/import-klaviyo/index.ts` — Syncs lists & segments from Klaviyo into Sanity
-- `sanity.blueprint.ts` — Function triggers (delta filters)
+  - `functions/scheduled-import-klaviyo/index.ts` — Cron trigger that flips `klaviyoImport.importState` to `"requested"` every 12 hours (midnight and noon Pacific time), causing `import-klaviyo` to run on a schedule
+- `sanity.blueprint.ts` — Function triggers (delta filters), scheduled-function cron, and robot token resource. Uses `dotenv/config` to read `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` from `.env` at deploy time and inject them into the scheduled function's runtime env
 - `packages/` — Shared packages: `render-email/` (@starter/render-email), `eslint-config/`, `sanity-types/`, `tsconfig/`
 - `e2e/` — Playwright end-to-end tests
 - `docs/` — ARCHITECTURE.md, SECURITY.md, TESTING.md
@@ -78,7 +79,8 @@ Email marketing starter that connects Sanity Studio to Klaviyo. Compose emails w
 
 - **Email rendering exists in two places**: `frontend/app/promotions/[id]/` renders React components for live preview; `functions/on-promotion-approved/` renders standalone HTML for Klaviyo via `@starter/render-email`
 - **ApproveAction and ResendAction** replace the default publish action for `promotion` documents, gated by `workflow.state`
-- **Blueprint triggers**: `import-klaviyo` fires on `klaviyoImport` documents when `importState == "requested"`; `on-promotion-approved` fires on `workflow.state` documents when `status == "approved"`
+- **Blueprint triggers**: `import-klaviyo` fires on `klaviyoImport` documents when `importState == "requested"`; `on-promotion-approved` fires on `workflow.state` documents when `status == "approved"`; `scheduled-import-klaviyo` fires every 12 hours (midnight and noon Pacific time, `America/Los_Angeles`)
+- **Scheduled function auth**: scheduled functions don't get a triggering-document context, so `context.clientOptions.projectId` and `dataset` are not auto-populated. The blueprint reads them from `.env` at deploy time and injects them via `env: {...}`. Token comes from the robot token (`defineRobotToken` + `robotToken: '$.resources.email-marketing-robot.token'`).
 - **Klaviyo API key** is set as a function runtime environment variable (`sanity functions env add`), not stored in `.env` files (the frontend also uses `KLAVIYO_API_KEY` in its `.env` for the Klaviyo preview route)
 - **Lists and segments** are read-only in Sanity — managed in Klaviyo, synced into Sanity for campaign targeting
 
