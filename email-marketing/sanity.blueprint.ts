@@ -41,7 +41,7 @@ export default defineBlueprint({
       name: 'scheduled-import-klaviyo',
       src: 'functions/dist/scheduled-import-klaviyo',
       // Fires at midnight and noon Pacific time
-      event: {expression: 'every 12 hours'},
+      event: {expression: '0 0,12 * * *'},
       timezone: 'America/Los_Angeles',
       robotToken: '$.resources.email-marketing-robot.token',
       env: {
