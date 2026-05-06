@@ -8,6 +8,7 @@ import {structure} from './structure'
 import {assist} from './plugins/assist'
 import {ImportFromKlaviyoAction} from './components/ImportFromKlaviyoAction'
 import {OpenKlaviyoAction} from './components/OpenKlaviyoAction'
+import {LastSyncedBadge} from './plugins/klaviyo'
 import {GenerateVariantsAction} from './plugins/campaign'
 import {
   ApproveAction,
@@ -110,6 +111,9 @@ export default defineConfig({
     badges: (prev, {schemaType}): DocumentBadgeComponent[] => {
       if (schemaType === 'promotion') {
         return [WorkflowStateBadge, SegmentBadge, ...prev]
+      }
+      if (schemaType === 'klaviyoImport') {
+        return [LastSyncedBadge]
       }
       return prev
     },
