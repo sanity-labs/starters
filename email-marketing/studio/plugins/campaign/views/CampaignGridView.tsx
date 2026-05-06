@@ -151,9 +151,17 @@ function PromotionTile({promotion: p, client, agentClient, schemaId, onRefresh}:
   const handleDelete = useCallback(async () => {
     setBusy('delete')
     try {
-      await client.delete(`wf-${p._id}`).catch(() => {})
-      await client.delete(p._id)
+      // Find any workflow.state docs referencing this promotion (id naming convention is not stable)
+      const wfIds = await client.fetch<string[]>(
+        `*[_type == "workflow.state" && promotionId._ref == $id]._id`,
+        {id: p._id},
+      )
+      for (const wfId of wfIds) {
+        await client.delete(wfId).catch(() => {})
+        await client.delete(`drafts.${wfId}`).catch(() => {})
+      }
       await client.delete(`drafts.${p._id}`).catch(() => {})
+      await client.delete(p._id)
       setDialogOpen(false)
       onRefresh()
     } catch (err) {
@@ -169,10 +177,17 @@ function PromotionTile({promotion: p, client, agentClient, schemaId, onRefresh}:
       const segmentId = p.segmentRef
       if (!campaignId || !segmentId) return
 
-      // Delete existing promotion + workflow
-      await client.delete(`wf-${p._id}`).catch(() => {})
-      await client.delete(p._id)
+      // Delete existing promotion + any referencing workflow.state docs
+      const wfIds = await client.fetch<string[]>(
+        `*[_type == "workflow.state" && promotionId._ref == $id]._id`,
+        {id: p._id},
+      )
+      for (const wfId of wfIds) {
+        await client.delete(wfId).catch(() => {})
+        await client.delete(`drafts.${wfId}`).catch(() => {})
+      }
       await client.delete(`drafts.${p._id}`).catch(() => {})
+      await client.delete(p._id)
 
       // Build instruction from context
       const [campaignBrief, brandVoice, segment] = await Promise.all([
@@ -180,7 +195,7 @@ function PromotionTile({promotion: p, client, agentClient, schemaId, onRefresh}:
         fetchBrandVoice(client),
         fetchSegmentContext(client, segmentId),
       ])
-      const instruction = buildInstruction(campaignBrief, brandVoice, segment)
+      const {instruction, instructionParams} = buildInstruction(campaignBrief, brandVoice, segment)
       const promotionId = `promotion-${campaignId}-${segmentId}`
 
       // Generate via AI agent
@@ -196,6 +211,7 @@ function PromotionTile({promotion: p, client, agentClient, schemaId, onRefresh}:
         },
         schemaId,
         instruction,
+        instructionParams,
         target: [
           {path: 'subjectLine'},
           {path: 'preheader'},

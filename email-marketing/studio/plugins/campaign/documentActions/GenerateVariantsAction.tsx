@@ -15,8 +15,13 @@ import {
   fetchSegmentContext,
 } from '../hooks/useAgentContext'
 
+// Prefer the draft so unpublished edits to "Target Segments" are honored;
+// fall back to the published version when no draft exists.
 const CAMPAIGN_SEGMENTS_QUERY = defineQuery(`
-  *[_type == "campaign" && (_id == $id || _id == $draftId)][0]{
+  coalesce(
+    *[_id == $draftId][0],
+    *[_id == $id][0]
+  ){
     "segmentIds": segments[]._ref
   }
 `)
@@ -50,10 +55,14 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
       }
 
       const [campaignData, campaignBrief, brandVoice] = await Promise.all([
-        client.fetch<{segmentIds: string[]} | null>(CAMPAIGN_SEGMENTS_QUERY, {
-          id: campaignId,
-          draftId: `drafts.${campaignId}`,
-        }),
+        client.fetch<{segmentIds: string[]} | null>(
+          CAMPAIGN_SEGMENTS_QUERY,
+          {
+            id: campaignId,
+            draftId: `drafts.${campaignId}`,
+          },
+          {perspective: 'raw'},
+        ),
         fetchCampaignContext(client, campaignId),
         fetchBrandVoice(client),
       ])
@@ -68,7 +77,11 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
         setProgress(`Generating promotion ${i + 1} of ${segmentIds.length}: ${segmentName}...`)
 
         const promotionId = `promotion-${campaignId}-${segmentId}`
-        const instruction = buildInstruction(campaignBrief, brandVoice, segment)
+        const {instruction, instructionParams} = buildInstruction(
+          campaignBrief,
+          brandVoice,
+          segment,
+        )
 
         await agentClient.agent.action.generate({
           targetDocument: {
@@ -82,6 +95,7 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
           },
           schemaId,
           instruction,
+          instructionParams,
           target: [
             {path: 'subjectLine'},
             {path: 'preheader'},
