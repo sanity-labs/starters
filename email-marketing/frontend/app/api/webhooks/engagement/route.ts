@@ -28,6 +28,7 @@ const client = createClient({
   apiVersion: '2026-04-08',
   token: process.env.SANITY_API_WRITE_TOKEN,
   useCdn: false,
+  requestTagPrefix: 'kit.email-marketing',
 })
 
 const PROMOTION_BY_KLAVIYO_CAMPAIGN_QUERY = defineQuery(`
@@ -62,10 +63,18 @@ export async function POST(request: Request): Promise<Response> {
     const campaignId = event.data?.attributes?.campaign_id
     if (!campaignId) continue
 
-    const promotionId = await client.fetch(PROMOTION_BY_KLAVIYO_CAMPAIGN_QUERY, {id: campaignId})
+    const promotionId = await client.fetch(
+      PROMOTION_BY_KLAVIYO_CAMPAIGN_QUERY,
+      {id: campaignId},
+      {tag: 'webhook.engagement.fetch'},
+    )
     if (!promotionId) continue
 
-    const current = await client.fetch(CURRENT_PERFORMANCE_QUERY, {id: promotionId})
+    const current = await client.fetch(
+      CURRENT_PERFORMANCE_QUERY,
+      {id: promotionId},
+      {tag: 'webhook.engagement.fetch'},
+    )
     const performance = current ?? {openRate: 0, clickThroughRate: 0, conversionRate: 0}
 
     const metricType = event.data?.type
@@ -77,7 +86,10 @@ export async function POST(request: Request): Promise<Response> {
       performance.conversionRate = (performance.conversionRate ?? 0) + 1
     }
 
-    await client.patch(promotionId).set({campaignPerformance: performance}).commit()
+    await client
+      .patch(promotionId)
+      .set({campaignPerformance: performance})
+      .commit({tag: 'webhook.engagement.write'})
   }
 
   return new Response(null, {status: 200})

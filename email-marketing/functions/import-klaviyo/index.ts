@@ -81,12 +81,17 @@ async function fetchAllSegments(apiKey: string): Promise<KlaviyoItem[]> {
 export const handler = documentEventHandler(async ({context, event}) => {
   // Document functions get projectId, dataset, and a token pre-wired on
   // context.clientOptions, so we just spread it into createClient.
-  const client = createClient({...context.clientOptions, apiVersion: '2026-04-08', useCdn: false})
+  const client = createClient({
+    ...context.clientOptions,
+    apiVersion: '2026-04-08',
+    useCdn: false,
+    requestTagPrefix: 'kit.email-marketing',
+  })
   const docId = event.data._id
 
   // Mark the import as in-progress so the Studio UI can show a spinner and so
   // the scheduled function knows to skip if it fires while we're working.
-  await client.patch(docId).set({importState: 'importing'}).commit()
+  await client.patch(docId).set({importState: 'importing'}).commit({tag: 'fn.import-klaviyo.patch'})
 
   try {
     // The Klaviyo API key is set as a function runtime env var via
@@ -120,7 +125,11 @@ export const handler = documentEventHandler(async ({context, event}) => {
     const EXISTING_SEGMENTS_QUERY = defineQuery(
       `*[_type == "segment" && defined(externalId) && isTest != true]{_id}`,
     )
-    const existingSegments = await client.fetch(EXISTING_SEGMENTS_QUERY)
+    const existingSegments = await client.fetch(
+      EXISTING_SEGMENTS_QUERY,
+      {},
+      {tag: 'fn.import-klaviyo.fetch'},
+    )
 
     const klaviyoSegmentIds = new Set(segments.map((s) => `klaviyo-segment-${s.id}`))
     const segmentsToDelete = existingSegments
@@ -141,7 +150,7 @@ export const handler = documentEventHandler(async ({context, event}) => {
       }),
     )
 
-    await tx.commit()
+    await tx.commit({tag: 'fn.import-klaviyo.write'})
 
     console.log(`[import-klaviyo] Imported ${segments.length} segments`)
   } catch (error) {

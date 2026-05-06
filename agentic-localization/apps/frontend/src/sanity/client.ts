@@ -5,4 +5,5 @@ export const client = createClient({
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET!,
   apiVersion: '2025-05-01',
   useCdn: true,
+  requestTagPrefix: 'kit.agentic-localization',
 })

@@ -39,6 +39,7 @@ const client = createClient({
   token: process.env.SANITY_API_READ_TOKEN,
   useCdn: false,
   perspective: 'previewDrafts',
+  requestTagPrefix: 'kit.email-marketing',
 })
 
 const PROMOTION_RENDER_QUERY = defineQuery(`
@@ -111,7 +112,11 @@ export async function GET(
   const apiKey = process.env.KLAVIYO_API_KEY
   const wantsJson = request.headers.get('accept')?.includes('application/json')
 
-  const promotion = await client.fetch(PROMOTION_RENDER_QUERY, {id})
+  const promotion = await client.fetch(
+    PROMOTION_RENDER_QUERY,
+    {id},
+    {tag: 'preview.klaviyo.render'},
+  )
   if (!promotion) return new Response('Not Found', {status: 404})
 
   const {renderPromotionKlaviyo} = await import('@starter/render-email')

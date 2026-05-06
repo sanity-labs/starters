@@ -6,6 +6,7 @@ export const sanityConfig = {
   dataset: import.meta.env.SANITY_APP_DATASET || 'production',
   projectId: import.meta.env.SANITY_APP_PROJECT_ID,
   useCdn: false,
+  requestTagPrefix: 'kit.agentic-localization',
 }
 
 // Client instance for non-React contexts (utility functions, etc.)

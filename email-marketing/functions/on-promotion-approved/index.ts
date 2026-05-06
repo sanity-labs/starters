@@ -126,7 +126,12 @@ function buildHtml(promotion: {
 }
 
 export const handler = documentEventHandler(async ({context, event}) => {
-  const client = createClient({...context.clientOptions, apiVersion: '2026-04-08', useCdn: false})
+  const client = createClient({
+    ...context.clientOptions,
+    apiVersion: '2026-04-08',
+    useCdn: false,
+    requestTagPrefix: 'kit.email-marketing',
+  })
   const wfId = event.data._id
   const promotionRef = (event.data as {promotionId?: {_ref?: string}}).promotionId?._ref
 
@@ -142,7 +147,11 @@ export const handler = documentEventHandler(async ({context, event}) => {
   }
 
   try {
-    const promotion = await client.fetch(PROMOTION_QUERY, {id: promotionRef})
+    const promotion = await client.fetch(
+      PROMOTION_QUERY,
+      {id: promotionRef},
+      {tag: 'fn.promotion-approved.fetch'},
+    )
     if (!promotion) throw new Error(`Promotion ${promotionRef} not found`)
 
     const session = new ApiKeySession(apiKey)

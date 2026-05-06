@@ -194,11 +194,22 @@ The `internationalizedArray` plugin is configured inside `createL10n()` in
 
 ```ts
 internationalizedArray({
-  languages: (client) => client.fetch<Language[]>(SUPPORTED_LANGUAGES_QUERY),
+  languages: (client) =>
+    client.fetch<Language[]>(SUPPORTED_LANGUAGES_QUERY, {}, {tag: 'plugin.languages'}),
   defaultLanguages: [defaultLanguage],
   fieldTypes: ['string', 'text'],
 })
 ```
+
+### Request Tags
+
+The starter sets `requestTagPrefix: 'kit.agentic-localization'` on every
+`createClient({...})` and adds per-call `tag: '<area>.<action>'` options
+(e.g. `tag: 'translate.style-guide'`) so traffic shows up in Sanity request
+logs as `kit.agentic-localization.translate.style-guide`. Keep this scheme when
+extending — or override `requestTagPrefix` in your own client config if you
+prefer your own attribution. See
+[Request tags](https://www.sanity.io/docs/apis-and-sdks/js-client-request-tags).
 
 To support additional value types (e.g., `blockContent`), add them to the
 `fieldTypes` array. Then use `internationalizedArrayBlockContent` as the field

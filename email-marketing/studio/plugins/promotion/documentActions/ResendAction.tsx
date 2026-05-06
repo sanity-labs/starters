@@ -19,15 +19,21 @@ export const ResendAction: DocumentActionComponent = (props) => {
   useEffect(() => {
     const query = `*[_type == "workflow.state" && promotionId._ref == $id][0].status`
     const params = {id: promotionId}
-    client.fetch<string | null>(query, params).then(setWorkflowStatus)
-    const subscription = client.listen(query, params, {visibility: 'query'}).subscribe(() => {
-      client.fetch<string | null>(query, params).then((status) => {
-        setWorkflowStatus(status)
-        if (status === 'sent') {
-          setState((prev) => (prev === 'sending' ? 'done' : prev))
-        }
+    client
+      .fetch<string | null>(query, params, {tag: 'promotion.resend.fetch'})
+      .then(setWorkflowStatus)
+    const subscription = client
+      .listen(query, params, {visibility: 'query', tag: 'promotion.resend.listen'})
+      .subscribe(() => {
+        client
+          .fetch<string | null>(query, params, {tag: 'promotion.resend.fetch'})
+          .then((status) => {
+            setWorkflowStatus(status)
+            if (status === 'sent') {
+              setState((prev) => (prev === 'sending' ? 'done' : prev))
+            }
+          })
       })
-    })
     return () => subscription.unsubscribe()
   }, [client, promotionId])
 
@@ -35,9 +41,11 @@ export const ResendAction: DocumentActionComponent = (props) => {
     setState('sending')
 
     try {
-      const wfDoc = await client.fetch<{_id: string; status: string} | null>(WORKFLOW_STATE_QUERY, {
-        id: promotionId,
-      })
+      const wfDoc = await client.fetch<{_id: string; status: string} | null>(
+        WORKFLOW_STATE_QUERY,
+        {id: promotionId},
+        {tag: 'promotion.resend.fetch'},
+      )
 
       if (!wfDoc) {
         setErrorMsg('Workflow state not found')
@@ -56,7 +64,7 @@ export const ResendAction: DocumentActionComponent = (props) => {
             timestamp: new Date().toISOString(),
           },
         ])
-        .commit()
+        .commit({tag: 'promotion.resend.write'})
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : String(err))
       setState('error')

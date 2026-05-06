@@ -73,7 +73,7 @@ export async function writeAnalysisCache(
     result,
     preTranslations,
   }
-  await client.patch(metadataId).set({staleAnalysis: cache}).commit()
+  await client.patch(metadataId).set({staleAnalysis: cache}).commit({tag: 'stale.cache.update'})
 }
 
 /**
@@ -122,5 +122,5 @@ export async function writeReviewProgress(
     .setIfMissing({'staleAnalysis.reviewProgress': []})
     .unset([`staleAnalysis.reviewProgress[_key=="${progressKey}"]`])
     .append('staleAnalysis.reviewProgress', [entry])
-    .commit({autoGenerateArrayKeys: true})
+    .commit({autoGenerateArrayKeys: true, tag: 'stale.ai.apply'})
 }

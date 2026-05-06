@@ -37,7 +37,7 @@ export function useTranslationContext() {
         .fetch<StyleGuide | null>(
           STYLE_GUIDE_FOR_LOCALE_QUERY,
           {localeCode: targetLocaleTag},
-          {perspective: perspectiveStack},
+          {perspective: perspectiveStack, tag: 'translate.style-guide'},
         )
         .catch(() => null)
 

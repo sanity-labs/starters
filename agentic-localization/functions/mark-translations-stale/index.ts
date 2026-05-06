@@ -70,6 +70,7 @@ export const handler = documentEventHandler<StaleEventData>(async ({context, eve
     ...context.clientOptions,
     apiVersion: '2025-05-16',
     useCdn: false,
+    requestTagPrefix: 'kit.agentic-localization',
   })
 
   // Strip drafts./versions. prefix to get the published ID for reference matching.
@@ -77,10 +78,14 @@ export const handler = documentEventHandler<StaleEventData>(async ({context, eve
   const metadataId = getTranslationMetadataId(publishedId)
 
   // Find the translation.metadata document that references this base-language doc.
-  const metadata = await client.fetch<MetadataDoc | null>(METADATA_FOR_DOCUMENT_QUERY, {
-    metadataId,
-    publishedId,
-  })
+  const metadata = await client.fetch<MetadataDoc | null>(
+    METADATA_FOR_DOCUMENT_QUERY,
+    {
+      metadataId,
+      publishedId,
+    },
+    {tag: 'fn.mark-stale.fetch'},
+  )
 
   if (!metadata) {
     console.log(`[StaleDetection] No translation.metadata found referencing "${publishedId}"`)
@@ -130,7 +135,7 @@ export const handler = documentEventHandler<StaleEventData>(async ({context, eve
   }
 
   try {
-    await patch.commit()
+    await patch.commit({tag: 'fn.mark-stale.patch'})
     console.log(
       `[StaleDetection] Successfully marked ${entriesToMark.length} locale(s) as stale: ${entriesToMark.map((e) => e.language).join(', ')}`,
     )

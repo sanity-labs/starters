@@ -23,6 +23,6 @@ export async function isUniqueOtherThanLanguage(slug: string, context: SlugValid
     slug.current == $slug &&
     language == $language
   ][0]._id)`
-  const result = await client.fetch(query, params)
+  const result = await client.fetch(query, params, {tag: 'validation.slug-unique'})
   return result
 }

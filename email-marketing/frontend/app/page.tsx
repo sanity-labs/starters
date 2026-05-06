@@ -22,7 +22,10 @@ function formatDate(d: string | null | undefined) {
 }
 
 export default async function HomePage() {
-  const {data: campaigns} = await sanityFetch({query: allCampaignsQuery})
+  const {data: campaigns} = await sanityFetch({
+    query: allCampaignsQuery,
+    requestTag: 'campaigns.list',
+  })
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-12">

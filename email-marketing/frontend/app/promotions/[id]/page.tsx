@@ -20,6 +20,7 @@ export default async function PromotionPreviewPage({params}: {params: Promise<{i
   const {data: promotion} = await sanityFetch({
     query: promotionByIdQuery,
     params: {id},
+    requestTag: 'promotions.byId',
   })
 
   if (!promotion) notFound()

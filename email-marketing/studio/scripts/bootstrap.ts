@@ -133,12 +133,34 @@ if (klaviyoKey) {
 
   heading('Import lists & segments from Klaviyo')
 
-  await client.patch('klaviyoImport').set({importState: 'requested'}).commit()
+  await client
+    .patch('klaviyoImport')
+    .set({importState: 'requested'})
+    .commit({tag: 'bootstrap.klaviyo.trigger'})
   console.log('Triggered Klaviyo import — lists and segments will sync in the background')
 } else {
   console.log(
     'No key entered — set it later with:\n  npx sanity functions env add import-klaviyo KLAVIYO_API_KEY <key>\n  npx sanity functions env add on-promotion-approved KLAVIYO_API_KEY <key>',
   )
+}
+
+// ── 7. Install marker ───────────────────────────────────────────────────────
+// Emit one tagged request so each install shows up in Sanity request logs.
+// CLI subprocesses above don't flow through @sanity/client and can't be tagged.
+
+try {
+  const {createClient} = await import('@sanity/client')
+  const installClient = createClient({
+    projectId: projectId!,
+    dataset: dataset!,
+    apiVersion: '2026-04-08',
+    useCdn: false,
+    token: client.config().token,
+    requestTagPrefix: 'kit.email-marketing',
+  })
+  await installClient.fetch('true', {}, {tag: 'bootstrap.install'})
+} catch {
+  // Marker is best-effort — never block bootstrap
 }
 
 console.log('\n✓ Bootstrap complete\n')

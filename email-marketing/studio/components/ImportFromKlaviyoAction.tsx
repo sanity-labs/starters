@@ -53,8 +53,13 @@ export function ImportFromKlaviyoAction(
     setPolling(true)
 
     const draftId = `drafts.${id}`
-    await client.createIfNotExists({_id: draftId, _type: type} as any)
-    await client.patch(draftId).set({importState: 'requested'}).commit()
+    await client.createIfNotExists({_id: draftId, _type: type} as any, {
+      tag: 'klaviyo.import.write',
+    })
+    await client
+      .patch(draftId)
+      .set({importState: 'requested'})
+      .commit({tag: 'klaviyo.import.write'})
     publish.execute()
 
     let elapsed = 0
@@ -73,6 +78,7 @@ export function ImportFromKlaviyoAction(
         const result = await client.fetch<ImportResult | null>(
           `*[_id == $id][0]{importState, segmentCount, importErrorMessage}`,
           {id},
+          {tag: 'klaviyo.import.poll'},
         )
 
         if (!result) return

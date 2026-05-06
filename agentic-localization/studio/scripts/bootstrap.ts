@@ -201,4 +201,23 @@ sanity('migration', 'run', 'seed-locales', '--no-dry-run', '--no-confirm')
 heading('Import sample data')
 sanity('dataset', 'import', 'sample-data.ndjson', dataset!, '--replace')
 
+// ── 8. Install marker ────────────────────────────────────────────────────────
+// Emits one tagged request so each install shows up in Sanity request logs.
+// CLI subprocesses above don't flow through @sanity/client and can't be tagged.
+
+try {
+  const {createClient} = await import('@sanity/client')
+  const installClient = createClient({
+    projectId: projectId!,
+    dataset: dataset!,
+    apiVersion: '2026-01-01',
+    useCdn: false,
+    token: client.config().token,
+    requestTagPrefix: 'kit.agentic-localization',
+  })
+  await installClient.fetch('true', {}, {tag: 'bootstrap.install'})
+} catch {
+  // Marker is best-effort — never block bootstrap
+}
+
 console.log('\n✓ Bootstrap complete\n')

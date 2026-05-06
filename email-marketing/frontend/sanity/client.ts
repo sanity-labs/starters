@@ -5,6 +5,7 @@ export const client = createClient({
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
   apiVersion: '2026-04-08',
   useCdn: true,
+  requestTagPrefix: 'kit.email-marketing',
   stega: {
     studioUrl: process.env.NEXT_PUBLIC_SANITY_STUDIO_URL || '/studio',
   },

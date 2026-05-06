@@ -50,7 +50,7 @@ export function OverviewView() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    client.fetch<Stats>(QUERY).then((data) => {
+    client.fetch<Stats>(QUERY, {}, {tag: 'insights.overview'}).then((data) => {
       setStats(data)
       setLoading(false)
     })

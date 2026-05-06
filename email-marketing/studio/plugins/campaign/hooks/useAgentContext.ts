@@ -181,21 +181,29 @@ export function fetchCampaignContext(
       id: campaignId,
       draftId: `drafts.${campaignId}`,
     },
-    {perspective: 'raw'},
+    {perspective: 'raw', tag: 'campaign.ctx.campaign'},
   )
 }
 
 export function fetchBrandVoice(
   client: ReturnType<typeof useClient>,
 ): Promise<BrandVoiceContext | null> {
-  return client.fetch<BrandVoiceContext | null>(BRAND_VOICE_QUERY)
+  return client.fetch<BrandVoiceContext | null>(
+    BRAND_VOICE_QUERY,
+    {},
+    {tag: 'campaign.ctx.brand-voice'},
+  )
 }
 
 export function fetchSegmentContext(
   client: ReturnType<typeof useClient>,
   segmentId: string,
 ): Promise<SegmentContext | null> {
-  return client.fetch<SegmentContext | null>(SEGMENT_CONTEXT_QUERY, {id: segmentId})
+  return client.fetch<SegmentContext | null>(
+    SEGMENT_CONTEXT_QUERY,
+    {id: segmentId},
+    {tag: 'campaign.ctx.segment'},
+  )
 }
 
 export function useAgentContext(campaignId: string, segmentId?: string): string | null {

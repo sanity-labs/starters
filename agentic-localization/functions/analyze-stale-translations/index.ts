@@ -170,16 +170,22 @@ export const handler = documentEventHandler<AnalyzeStaleEventData>(async ({conte
     ...context.clientOptions,
     apiVersion: '2025-05-16',
     useCdn: false,
+    requestTagPrefix: 'kit.agentic-localization',
   })
 
   const agentClient = createClient({
     ...context.clientOptions,
     apiVersion: 'vX',
     useCdn: false,
+    requestTagPrefix: 'kit.agentic-localization',
   })
 
   // Step 1: Read full metadata doc
-  const metadata = await client.fetch<MetadataDoc | null>(METADATA_QUERY, {metadataId})
+  const metadata = await client.fetch<MetadataDoc | null>(
+    METADATA_QUERY,
+    {metadataId},
+    {tag: 'fn.analyze-stale.fetch'},
+  )
 
   if (!metadata) {
     console.log(`[AnalyzeStale] Metadata doc not found: ${metadataId}`)
@@ -246,10 +252,12 @@ export const handler = documentEventHandler<AnalyzeStaleEventData>(async ({conte
     const [histResponse, current] = await Promise.all([
       client.request<{documents?: Array<Record<string, unknown>>}>({
         url: `/data/history/${dataset}/documents/${publishedSourceId}?revision=${sourceRevision}`,
+        tag: 'fn.analyze-stale.fetch',
       }),
       client.fetch<null | Record<string, unknown>>(
         `*[_id == $id || _id == $draftId] | order(_id asc)[0]`,
         {draftId: `drafts.${publishedSourceId}`, id: publishedSourceId},
+        {tag: 'fn.analyze-stale.fetch'},
       ),
     ])
     historicalDoc = histResponse?.documents?.[0] ?? null
@@ -404,7 +412,11 @@ export const handler = documentEventHandler<AnalyzeStaleEventData>(async ({conte
     // Fetch glossary data once (shared across all locales)
     let glossaries: Glossary[] = []
     try {
-      glossaries = await client.fetch<Glossary[]>(GLOSSARIES_QUERY)
+      glossaries = await client.fetch<Glossary[]>(
+        GLOSSARIES_QUERY,
+        {},
+        {tag: 'fn.analyze-stale.fetch'},
+      )
     } catch {
       console.warn(`[AnalyzeStale] Failed to fetch glossaries — continuing without`)
     }
@@ -428,6 +440,7 @@ export const handler = documentEventHandler<AnalyzeStaleEventData>(async ({conte
               {
                 localeCode: localeId,
               },
+              {tag: 'fn.analyze-stale.fetch'},
             )
             styleGuide = assembleStyleGuide(
               relevantGlossaries,

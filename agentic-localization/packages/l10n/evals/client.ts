@@ -8,5 +8,6 @@ export function getClient() {
     apiVersion: 'vX',
     token: getUserToken(),
     useCdn: false,
+    requestTagPrefix: 'kit.agentic-localization',
   })
 }
