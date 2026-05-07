@@ -60,6 +60,12 @@ The starter supports two complementary translation approaches:
   only specific fields need translation (e.g., person bios). Auto-detected by
   the inspector via schema walk.
 
+`localizedSchemaTypes` is optional. Field-level-only setups can call
+`createL10n()` with no options (or `localizedSchemaTypes: []`) — when the array
+is empty, `createL10n()` skips registering `@sanity/document-internationalization`
+entirely (it throws if given an empty `schemaTypes`). The field-level inspector,
+publish gate, and translation matrix still work in this mode.
+
 Key field-level entry points:
 
 - `packages/l10n/src/translations/FieldTranslationContent.tsx` — field x locale
@@ -88,11 +94,18 @@ without help.
 
 ### 2. Add a content type to the l10n system
 
+For **document-level** translations (one document per locale):
+
 - Add the type name to `localizedSchemaTypes` in `studio/sanity.config.ts`
 - Run `pnpm exec sanity schema deploy` from `studio/`
 - Update the function event filter in `sanity.blueprint.ts` if the new type
   should trigger stale detection
 - Redeploy functions: `pnpm exec sanity blueprints deploy`
+
+For **field-level** translations (the default in this repo): no registration is
+needed. Use `internationalizedArrayText`/`internationalizedArrayString` field
+types — the inspector auto-discovers them. `localizedSchemaTypes` can be
+omitted from `createL10n()` entirely.
 
 ### 3. Create or modify style guides
 

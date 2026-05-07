@@ -1,6 +1,12 @@
-import {definePlugin, type DocumentActionComponent, type SchemaTypeDefinition} from 'sanity'
-import {documentInternationalization, type Language} from '@sanity/document-internationalization'
-import {internationalizedArray} from 'sanity-plugin-internationalized-array'
+import {
+  definePlugin,
+  type DocumentActionComponent,
+  type SchemaTypeDefinition,
+} from 'sanity'
+import {
+  documentInternationalization,
+  type Language,
+} from '@sanity/document-internationalization'
 
 import {localeTranslation} from './schemas/localeTranslation'
 import {glossaryEntry} from './schemas/glossaryEntry'
@@ -19,16 +25,35 @@ import {createTranslationInspector} from './translations/createTranslationPanePl
 import {createFieldTranslationPublishGate} from './translations/useFieldTranslationPublishGate'
 
 interface L10nOptions {
-  localizedSchemaTypes: readonly string[]
+  localizedSchemaTypes?: readonly string[]
   defaultLanguage?: string
 }
 
-export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L10nOptions) {
+export function createL10n({
+  localizedSchemaTypes = [],
+  defaultLanguage = 'en-US',
+}: L10nOptions = {}) {
   const translationInspector = createTranslationInspector({
     internationalizedTypes: [...localizedSchemaTypes],
     defaultLanguage,
     languageField: languageFieldName,
   })
+
+  // `@sanity/document-internationalization` throws if `schemaTypes` is empty,
+  // so only register it when at least one doc-level type is configured.
+  // Field-level-only setups can omit `localizedSchemaTypes` entirely.
+  const docInternationalizationPlugins =
+    localizedSchemaTypes.length > 0
+      ? [
+          documentInternationalization({
+            hideLanguageFilter: (ctx) =>
+              localizedSchemaTypes.includes(ctx.schemaType),
+            supportedLanguages: (client) =>
+              client.fetch<Language[]>(SUPPORTED_LANGUAGES_QUERY),
+            schemaTypes: [...localizedSchemaTypes],
+          }),
+        ]
+      : []
 
   return {
     plugin: definePlugin({
@@ -77,7 +102,9 @@ export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L1
           // system types to be safe.
           if (localizedSchemaTypes.includes(context.schemaType)) return prev
           return prev.map((action) =>
-            action.action === 'publish' ? createFieldTranslationPublishGate(action) : action,
+            action.action === 'publish'
+              ? createFieldTranslationPublishGate(action)
+              : action,
           )
         },
         // Replace the plain locale badge from @sanity/document-internationalization
@@ -89,20 +116,10 @@ export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L1
             ? [...prev.filter((badge) => badge.name !== ''), LocaleBadge]
             : prev,
       },
-      plugins: [
-        documentInternationalization({
-          hideLanguageFilter: (ctx) => localizedSchemaTypes.includes(ctx.schemaType),
-          supportedLanguages: (client) => client.fetch<Language[]>(SUPPORTED_LANGUAGES_QUERY),
-          schemaTypes: [...localizedSchemaTypes],
-        }),
-        internationalizedArray({
-          languages: (client) => client.fetch<Language[]>(SUPPORTED_LANGUAGES_QUERY),
-          defaultLanguages: [defaultLanguage],
-          fieldTypes: ['string', 'text'],
-        }),
-      ],
+      plugins: docInternationalizationPlugins,
     })(),
-    injectLanguageField: (types: SchemaTypeDefinition[]) => (prev: SchemaTypeDefinition[]) =>
-      injectLanguageField(localizedSchemaTypes)([...prev, ...types]),
+    injectLanguageField:
+      (types: SchemaTypeDefinition[]) => (prev: SchemaTypeDefinition[]) =>
+        injectLanguageField(localizedSchemaTypes)([...prev, ...types]),
   }
 }
