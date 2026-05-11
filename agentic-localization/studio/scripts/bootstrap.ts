@@ -96,7 +96,9 @@ if (existsSync(studioEnv)) {
 
 heading('Resolve organization ID')
 
-const client = getCliClient({apiVersion: '2025-01-01'})
+const client = getCliClient({apiVersion: '2025-01-01'}).withConfig({
+  requestTagPrefix: 'kit.agentic-localization',
+})
 const {projectId, dataset} = client.config()
 
 const project = await client.request<{organizationId?: string}>({
@@ -206,16 +208,7 @@ sanity('dataset', 'import', 'sample-data.ndjson', dataset!, '--replace')
 // CLI subprocesses above don't flow through @sanity/client and can't be tagged.
 
 try {
-  const {createClient} = await import('@sanity/client')
-  const installClient = createClient({
-    projectId: projectId!,
-    dataset: dataset!,
-    apiVersion: '2026-01-01',
-    useCdn: false,
-    token: client.config().token,
-    requestTagPrefix: 'kit.agentic-localization',
-  })
-  await installClient.fetch('true', {}, {tag: 'bootstrap.install'})
+  await client.fetch('true', {}, {tag: 'bootstrap.install'})
 } catch {
   // Marker is best-effort — never block bootstrap
 }

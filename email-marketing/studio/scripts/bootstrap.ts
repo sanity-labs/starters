@@ -21,7 +21,9 @@ import {getCliClient} from 'sanity/cli'
 const dir = import.meta.dirname!
 const rootDir = resolve(dir, '../..')
 
-const client = getCliClient({apiVersion: '2026-04-08'})
+const client = getCliClient({apiVersion: '2026-04-08'}).withConfig({
+  requestTagPrefix: 'kit.email-marketing',
+})
 const {projectId, dataset} = client.config()
 
 function run(cmd: string, args: string[], options?: {cwd?: string}) {
@@ -149,16 +151,7 @@ if (klaviyoKey) {
 // CLI subprocesses above don't flow through @sanity/client and can't be tagged.
 
 try {
-  const {createClient} = await import('@sanity/client')
-  const installClient = createClient({
-    projectId: projectId!,
-    dataset: dataset!,
-    apiVersion: '2026-04-08',
-    useCdn: false,
-    token: client.config().token,
-    requestTagPrefix: 'kit.email-marketing',
-  })
-  await installClient.fetch('true', {}, {tag: 'bootstrap.install'})
+  await client.fetch('true', {}, {tag: 'bootstrap.install'})
 } catch {
   // Marker is best-effort — never block bootstrap
 }

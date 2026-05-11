@@ -20,6 +20,7 @@
 import {execFileSync} from 'node:child_process'
 import {copyFileSync, existsSync, readFileSync, writeFileSync} from 'node:fs'
 import {resolve} from 'node:path'
+import {getCliClient} from 'sanity/cli'
 
 const dir = __dirname
 const root = resolve(dir, '../..')
@@ -380,12 +381,7 @@ try {
 // The CLI subprocesses above don't flow through @sanity/client and can't be tagged.
 
 try {
-  const {createClient} = await import('@sanity/client')
-  const installClient = createClient({
-    projectId: projectId!,
-    dataset: dataset!,
-    apiVersion: '2026-01-01',
-    useCdn: false,
+  const installClient = getCliClient({apiVersion: '2026-01-01'}).withConfig({
     requestTagPrefix: 'kit.ai-shopping-assistant',
   })
   await installClient.fetch('true', {}, {tag: 'bootstrap.install'})
