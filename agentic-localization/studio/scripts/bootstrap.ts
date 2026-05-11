@@ -96,13 +96,13 @@ if (existsSync(studioEnv)) {
 
 heading('Resolve organization ID')
 
-const client = getCliClient({apiVersion: '2025-01-01'}).withConfig({
-  requestTagPrefix: 'kit.agentic-localization',
-})
+let client = getCliClient({apiVersion: '2025-01-01'})
+client = client.withConfig({requestTagPrefix: `${client.config().requestTagPrefix}.agentic-localization`})
 const {projectId, dataset} = client.config()
 
 const project = await client.request<{organizationId?: string}>({
   uri: `/projects/${projectId}`,
+  tag: 'get-project',
 })
 
 if (project.organizationId) {
@@ -210,5 +210,6 @@ try {
 } catch {
   // best-effort — never block bootstrap
 }
+
 
 console.log('\n✓ Bootstrap complete\n')

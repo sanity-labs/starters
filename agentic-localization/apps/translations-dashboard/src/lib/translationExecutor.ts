@@ -120,7 +120,7 @@ export async function executeTranslation({
       _type: documentType,
       createdBy: currentUserId,
       language: language.id,
-    })
+    }, {tag: 'write-draft'})
     finalDocId = draftId
 
     if (metadataId) {
@@ -143,7 +143,7 @@ export async function executeTranslation({
         language: language.id,
       },
       publishedId,
-    })
+    }, {tag: 'write-to-release'})
     finalDocId = versionId
 
     if (metadataId && targetRelease) {
@@ -160,6 +160,7 @@ export async function executeTranslation({
       const releaseDoc = await client.fetch<{metadata?: {title?: string}; name?: string}>(
         `*[_id == $releaseId][0]{ name, metadata }`,
         {releaseId: `_.releases.${targetRelease}`},
+        {tag: 'resolve-release-name'},
       )
       releaseName = releaseDoc?.metadata?.title || releaseDoc?.name || targetRelease
     } catch (err) {

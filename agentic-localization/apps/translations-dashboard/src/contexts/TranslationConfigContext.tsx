@@ -29,7 +29,6 @@ export type TranslationConfigContextType = {
   defaultLanguage: null | string
   getLanguages: (client: SanityClient) => Promise<LanguageData[]>
   languages: LanguageData[]
-  sanityClientConfig: {apiVersion: string; dataset: string; projectId: string; useCdn: boolean}
   setDefaultLanguage: (language: null | string) => void
   setLanguages: (languages: LanguageData[]) => void
   supportedTypes: string[]
@@ -41,7 +40,6 @@ const TranslationConfigContext = createContext<TranslationConfigContextType | un
 export interface TranslationConfigProviderProps {
   children: ReactNode
   config: SanityConfigWithSupportedLanguages
-  sanityConfig: SanityConfig
   translationsConfig: TranslationsConfig
 }
 
@@ -54,7 +52,6 @@ interface SanityConfigWithSupportedLanguages extends SanityConfig {
 export function TranslationConfigProvider({
   children,
   config,
-  sanityConfig: sanityProjectConfig,
   translationsConfig: rawTranslationsConfig,
 }: TranslationConfigProviderProps) {
   const translationsConfig = useMemo(
@@ -62,17 +59,7 @@ export function TranslationConfigProvider({
     [rawTranslationsConfig],
   )
 
-  const sanityClientConfig = useMemo(
-    () => ({
-      apiVersion: 'vX',
-      dataset: sanityProjectConfig.dataset ?? 'production',
-      projectId: sanityProjectConfig.projectId ?? '',
-      useCdn: false,
-    }),
-    [sanityProjectConfig],
-  )
-
-  const client = useClient(sanityClientConfig)
+  const client = useClient({apiVersion: '2025-05-01'})
 
   const getLanguages = useCallback(
     async (c: SanityClient): Promise<LanguageData[]> => {
@@ -82,7 +69,7 @@ export function TranslationConfigProvider({
       if (typeof config.supportedLanguages === 'function') {
         return await config.supportedLanguages(c)
       }
-      const data = await c.fetch(config.supportedLanguages)
+      const data = await c.fetch(config.supportedLanguages, {}, {tag: 'list-locales'})
       return data
     },
     [config],
@@ -111,20 +98,12 @@ export function TranslationConfigProvider({
       defaultLanguage,
       getLanguages,
       languages,
-      sanityClientConfig,
       setDefaultLanguage,
       setLanguages,
       supportedTypes: config.schemaTypes,
       translationsConfig,
     }),
-    [
-      defaultLanguage,
-      getLanguages,
-      languages,
-      sanityClientConfig,
-      config.schemaTypes,
-      translationsConfig,
-    ],
+    [defaultLanguage, getLanguages, languages, config.schemaTypes, translationsConfig],
   )
 
   return (

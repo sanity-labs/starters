@@ -85,13 +85,13 @@ export const handler = documentEventHandler(async ({context, event}) => {
     ...context.clientOptions,
     apiVersion: '2026-04-08',
     useCdn: false,
-    requestTagPrefix: 'kit.email-marketing',
+    requestTagPrefix: 'fn.email-marketing.import-klaviyo',
   })
   const docId = event.data._id
 
   // Mark the import as in-progress so the Studio UI can show a spinner and so
   // the scheduled function knows to skip if it fires while we're working.
-  await client.patch(docId).set({importState: 'importing'}).commit({tag: 'fn.import-klaviyo.patch'})
+  await client.patch(docId).set({importState: 'importing'}).commit({tag: 'set-importing'})
 
   try {
     // The Klaviyo API key is set as a function runtime env var via
@@ -128,7 +128,7 @@ export const handler = documentEventHandler(async ({context, event}) => {
     const existingSegments = await client.fetch(
       EXISTING_SEGMENTS_QUERY,
       {},
-      {tag: 'fn.import-klaviyo.fetch'},
+      {tag: 'get-existing-segments'},
     )
 
     const klaviyoSegmentIds = new Set(segments.map((s) => `klaviyo-segment-${s.id}`))
@@ -150,7 +150,7 @@ export const handler = documentEventHandler(async ({context, event}) => {
       }),
     )
 
-    await tx.commit({tag: 'fn.import-klaviyo.write'})
+    await tx.commit({tag: 'write-segments'})
 
     console.log(`[import-klaviyo] Imported ${segments.length} segments`)
   } catch (error) {

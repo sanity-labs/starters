@@ -21,9 +21,8 @@ import {getCliClient} from 'sanity/cli'
 const dir = import.meta.dirname!
 const rootDir = resolve(dir, '../..')
 
-const client = getCliClient({apiVersion: '2026-04-08'}).withConfig({
-  requestTagPrefix: 'kit.email-marketing',
-})
+let client = getCliClient({apiVersion: '2026-04-08'})
+client = client.withConfig({requestTagPrefix: `${client.config().requestTagPrefix}.email-marketing`})
 const {projectId, dataset} = client.config()
 
 function run(cmd: string, args: string[], options?: {cwd?: string}) {
@@ -126,7 +125,7 @@ if (klaviyoKey) {
   await client
     .patch('klaviyoImport')
     .set({importState: 'requested'})
-    .commit({tag: 'bootstrap.klaviyo.trigger'})
+    .commit({tag: 'trigger-klaviyo-import'})
   console.log('Triggered Klaviyo import — lists and segments will sync in the background')
 } else {
   console.log(
@@ -141,5 +140,6 @@ try {
 } catch {
   // best-effort — never block bootstrap
 }
+
 
 console.log('\n✓ Bootstrap complete\n')

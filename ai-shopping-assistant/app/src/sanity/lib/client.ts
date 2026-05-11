@@ -5,5 +5,5 @@ export const client = createClient({
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
   apiVersion: '2026-03-05',
   useCdn: true,
-  requestTagPrefix: 'kit.ai-shopping-assistant',
+  requestTagPrefix: 'frontend.ai-shopping-assistant',
 })

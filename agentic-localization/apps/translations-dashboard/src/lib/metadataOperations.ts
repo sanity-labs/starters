@@ -31,7 +31,7 @@ export async function fetchOrCreateMetadata(
   const publishedId = getPublishedId(baseDocumentId)
   const fetched = await client.fetch<MetadataDoc | null>(METADATA_WITH_TRANSLATIONS_QUERY, {
     documentId: publishedId,
-  })
+  }, {tag: 'load-metadata'})
 
   if (fetched) return fetched
 
@@ -42,11 +42,11 @@ export async function fetchOrCreateMetadata(
     _type: 'translation.metadata',
     schemaTypes: [documentType],
     translations: [sourceRef],
-  })
+  }, {tag: 'init-translation'})
   // Re-fetch to get backend-generated _key values on array items
   return (await client.fetch<MetadataDoc>(METADATA_WITH_TRANSLATIONS_QUERY, {
     documentId: publishedId,
-  }))!
+  }, {tag: 'load-metadata'}))!
 }
 
 /**
@@ -82,7 +82,7 @@ export async function patchMetadataTranslation(
   }
   patch = patch.append('translations', [translationReference])
 
-  await patch.commit({autoGenerateArrayKeys: true})
+  await patch.commit({autoGenerateArrayKeys: true, tag: 'link-locale'})
 }
 
 /**
@@ -106,5 +106,5 @@ export async function writeWorkflowState(
         updatedAt: new Date().toISOString(),
       },
     ])
-    .commit({autoGenerateArrayKeys: true})
+    .commit({autoGenerateArrayKeys: true, tag: 'request-review'})
 }

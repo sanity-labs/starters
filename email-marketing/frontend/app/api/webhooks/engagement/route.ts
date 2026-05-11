@@ -28,7 +28,7 @@ const client = createClient({
   apiVersion: '2026-04-08',
   token: process.env.SANITY_API_WRITE_TOKEN,
   useCdn: false,
-  requestTagPrefix: 'kit.email-marketing',
+  requestTagPrefix: 'frontend.email-marketing',
 })
 
 const PROMOTION_BY_KLAVIYO_CAMPAIGN_QUERY = defineQuery(`

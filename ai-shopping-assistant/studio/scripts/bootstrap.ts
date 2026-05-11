@@ -379,13 +379,14 @@ try {
 // ── Install marker ───────────────────────────────────────────────────────────
 
 try {
-  const installClient = getCliClient({apiVersion: '2026-01-01'}).withConfig({
-    requestTagPrefix: 'kit.ai-shopping-assistant',
-  })
-  await installClient.fetch('true', {}, {tag: 'bootstrap.install'})
+  const installClient = getCliClient({apiVersion: '2026-01-01'})
+  await installClient
+    .withConfig({requestTagPrefix: `${installClient.config().requestTagPrefix}.ai-shopping-assistant`})
+    .fetch('true', {}, {tag: 'bootstrap.install'})
 } catch {
   // best-effort — never block bootstrap
 }
+
 
 // ── Summary ──────────────────────────────────────────────────────────────────
 

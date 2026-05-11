@@ -6,7 +6,6 @@ import {useClient} from '@sanity/sdk-react'
 import {Button, Card, Flex, Stack, Text} from '@sanity/ui'
 import {useEffect, useMemo, useState} from 'react'
 
-import {useApp} from '../../contexts/AppContext'
 import {useAllTranslationStatuses} from '../../contexts/TranslationStatusContext'
 import {useReleases} from '../../hooks/useReleases'
 import {useReleaseSelection} from '../../hooks/useReleaseSelection'
@@ -48,8 +47,7 @@ const TranslationsList = ({
   existingTranslations,
   metadataId,
 }: TranslationsListProps) => {
-  const {sanityClientConfig} = useApp()
-  const client = useClient(sanityClientConfig)
+  const client = useClient({apiVersion: '2025-05-01'})
   const {releases} = useReleases()
   const [allTranslationStates, setAllTranslationStates] = useState<Map<string, TranslationState>>(
     new Map(),
@@ -161,7 +159,7 @@ const TranslationsList = ({
             }
           }`,
           {documentId: baseDocumentId, publishedDocId},
-          {perspective: 'raw'},
+          {perspective: 'raw', tag: 'view-translations'},
         )
 
         // Build a map of language -> all translation states

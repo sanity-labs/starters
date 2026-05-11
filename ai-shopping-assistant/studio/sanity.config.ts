@@ -1,5 +1,6 @@
 import {AGENT_CONTEXT_SCHEMA_TYPE_NAME, agentContextPlugin} from '@sanity/agent-context/studio'
 import {visionTool} from '@sanity/vision'
+import {createClient} from '@sanity/client'
 import {defineConfig} from 'sanity'
 import {type ListItemBuilder, type StructureBuilder, structureTool} from 'sanity/structure'
 
@@ -12,6 +13,9 @@ export default defineConfig({
 
   projectId: process.env.SANITY_STUDIO_PROJECT_ID!,
   dataset: process.env.SANITY_STUDIO_DATASET!,
+
+  unstable_clientFactory: (options) =>
+    createClient({...options, requestTagPrefix: `${options.requestTagPrefix}.ai-shopping-assistant`}),
 
   plugins: [
     structureTool({

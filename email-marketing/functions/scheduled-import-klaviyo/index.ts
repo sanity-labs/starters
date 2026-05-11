@@ -40,12 +40,14 @@ export const handler = scheduledEventHandler(async ({context}) => {
     token,
     apiVersion: '2026-04-08',
     useCdn: false,
+    requestTagPrefix: 'fn.email-marketing.scheduled-import',
   })
 
   try {
     console.log(`[scheduled-import-klaviyo] Reading current state of ${KLAVIYO_IMPORT_ID}`)
     const current = await client.getDocument<{importState?: string; lastImportedAt?: string}>(
       KLAVIYO_IMPORT_ID,
+      {tag: 'get-import-state'},
     )
 
     if (!current) {
@@ -67,7 +69,10 @@ export const handler = scheduledEventHandler(async ({context}) => {
     // Flipping importState to "requested" is the actual trigger. The
     // import-klaviyo document function has a blueprint filter that listens
     // for this exact transition, then does the real Klaviyo API work.
-    await client.patch(KLAVIYO_IMPORT_ID).set({importState: 'requested'}).commit()
+    await client
+      .patch(KLAVIYO_IMPORT_ID)
+      .set({importState: 'requested'})
+      .commit({tag: 'request-import'})
     console.log(
       `[scheduled-import-klaviyo] Success: patched importState=requested in ${Date.now() - startedAt}ms — import-klaviyo function will now run`,
     )

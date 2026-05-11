@@ -130,7 +130,7 @@ export const handler = documentEventHandler(async ({context, event}) => {
     ...context.clientOptions,
     apiVersion: '2026-04-08',
     useCdn: false,
-    requestTagPrefix: 'kit.email-marketing',
+    requestTagPrefix: 'fn.email-marketing.on-promotion-approved',
   })
   const wfId = event.data._id
   const promotionRef = (event.data as {promotionId?: {_ref?: string}}).promotionId?._ref
@@ -150,7 +150,7 @@ export const handler = documentEventHandler(async ({context, event}) => {
     const promotion = await client.fetch(
       PROMOTION_QUERY,
       {id: promotionRef},
-      {tag: 'fn.promotion-approved.fetch'},
+      {tag: 'get-promotion'},
     )
     if (!promotion) throw new Error(`Promotion ${promotionRef} not found`)
 
@@ -241,7 +241,7 @@ export const handler = documentEventHandler(async ({context, event}) => {
           timestamp: new Date().toISOString(),
         },
       ])
-      .commit()
+      .commit({tag: 'set-sent'})
 
     console.log(
       `[on-promotion-approved] Sent ${promotionRef} via Klaviyo campaign ${klaviyoCampaignId}`,
@@ -267,6 +267,6 @@ export const handler = documentEventHandler(async ({context, event}) => {
           error: message,
         },
       ])
-      .commit()
+      .commit({tag: 'set-error'})
   }
 })

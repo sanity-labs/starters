@@ -170,21 +170,21 @@ export const handler = documentEventHandler<AnalyzeStaleEventData>(async ({conte
     ...context.clientOptions,
     apiVersion: '2025-05-16',
     useCdn: false,
-    requestTagPrefix: 'kit.agentic-localization',
+    requestTagPrefix: 'fn.agentic-localization.analyze-stale',
   })
 
   const agentClient = createClient({
     ...context.clientOptions,
     apiVersion: 'vX',
     useCdn: false,
-    requestTagPrefix: 'kit.agentic-localization',
+    requestTagPrefix: 'fn.agentic-localization.analyze-stale',
   })
 
   // Step 1: Read full metadata doc
   const metadata = await client.fetch<MetadataDoc | null>(
     METADATA_QUERY,
     {metadataId},
-    {tag: 'fn.analyze-stale.fetch'},
+    {tag: 'get-metadata'},
   )
 
   if (!metadata) {
@@ -252,12 +252,12 @@ export const handler = documentEventHandler<AnalyzeStaleEventData>(async ({conte
     const [histResponse, current] = await Promise.all([
       client.request<{documents?: Array<Record<string, unknown>>}>({
         url: `/data/history/${dataset}/documents/${publishedSourceId}?revision=${sourceRevision}`,
-        tag: 'fn.analyze-stale.fetch',
+        tag: 'get-history',
       }),
       client.fetch<null | Record<string, unknown>>(
         `*[_id == $id || _id == $draftId] | order(_id asc)[0]`,
         {draftId: `drafts.${publishedSourceId}`, id: publishedSourceId},
-        {tag: 'fn.analyze-stale.fetch'},
+        {tag: 'get-source-doc'},
       ),
     ])
     historicalDoc = histResponse?.documents?.[0] ?? null
@@ -415,7 +415,7 @@ export const handler = documentEventHandler<AnalyzeStaleEventData>(async ({conte
       glossaries = await client.fetch<Glossary[]>(
         GLOSSARIES_QUERY,
         {},
-        {tag: 'fn.analyze-stale.fetch'},
+        {tag: 'get-glossaries'},
       )
     } catch {
       console.warn(`[AnalyzeStale] Failed to fetch glossaries — continuing without`)
@@ -440,7 +440,7 @@ export const handler = documentEventHandler<AnalyzeStaleEventData>(async ({conte
               {
                 localeCode: localeId,
               },
-              {tag: 'fn.analyze-stale.fetch'},
+              {tag: 'get-style-guide'},
             )
             styleGuide = assembleStyleGuide(
               relevantGlossaries,

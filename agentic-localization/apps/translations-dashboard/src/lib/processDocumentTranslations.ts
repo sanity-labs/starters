@@ -116,7 +116,7 @@ export async function processDocumentTranslationsWithProgress(
         .patch(metadataDoc._id)
         .setIfMissing({translations: []})
         .insert('before', 'translations[0]', [sourceReference])
-        .commit({autoGenerateArrayKeys: true})
+        .commit({autoGenerateArrayKeys: true, tag: 'link-source'})
     }
 
     await processWithConcurrencyLimit(
@@ -169,7 +169,7 @@ export async function processDocumentTranslationsWithProgress(
                 _type: documentType,
                 createdBy: currentUser?.id,
                 language: locale.id,
-              })
+              }, {tag: 'write-draft'})
               finalDocId = draftId
             } else {
               const versionId = `versions.${targetRelease}.${publishedId}`
@@ -183,13 +183,14 @@ export async function processDocumentTranslationsWithProgress(
                   language: locale.id,
                 },
                 publishedId: publishedId,
-              })
+              }, {tag: 'write-to-release'})
               finalDocId = versionId
 
               try {
                 const releaseDoc = await client.fetch<{metadata?: {title?: string}; name?: string}>(
                   `*[_id == $releaseId][0]{ name, metadata }`,
                   {releaseId: `_.releases.${targetRelease}`},
+                  {tag: 'resolve-release-name'},
                 )
                 releaseName = releaseDoc?.metadata?.title || releaseDoc?.name || targetRelease
               } catch (err) {
@@ -209,7 +210,7 @@ export async function processDocumentTranslationsWithProgress(
               patch = patch.unset([`translations[language=="${locale.id}"]`])
             }
             patch = patch.append('translations', [translationReference])
-            await patch.commit({autoGenerateArrayKeys: true})
+            await patch.commit({autoGenerateArrayKeys: true, tag: 'link-locale'})
 
             await writeWorkflowState(client, metadataDoc._id, locale.id)
 

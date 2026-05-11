@@ -2,6 +2,7 @@ import './App.css'
 
 import type {TranslationsConfig} from '@starter/l10n'
 
+import {createClient} from '@sanity/client'
 import {type SanityConfig} from '@sanity/sdk'
 import {SanityApp} from '@sanity/sdk-react'
 import {BrowserRouter, Route, Routes} from 'react-router-dom'
@@ -16,9 +17,13 @@ import DashboardRoute from './routes/DashboardRoute'
 import TranslationsRoute from './routes/TranslationsRoute'
 import SanityUI from './SanityUI'
 
-const SANITY_PROJECT_CONFIG: SanityConfig = {
+const SANITY_CONFIG: SanityConfig = {
   dataset: import.meta.env.SANITY_APP_DATASET || 'production',
   projectId: import.meta.env.SANITY_APP_PROJECT_ID,
+  auth: {
+    clientFactory: (config) =>
+      createClient({...config, requestTagPrefix: `${config.requestTagPrefix}.agentic-localization`}),
+  },
 }
 
 /**
@@ -33,8 +38,6 @@ const TRANSLATIONS_CONFIG: TranslationsConfig = {
 }
 
 function App() {
-  const sanityConfigs: SanityConfig[] = [SANITY_PROJECT_CONFIG]
-
   const appConfig = {
     defaultLanguage: TRANSLATIONS_CONFIG.defaultLanguage ?? 'en-US',
     schemaTypes: [...TRANSLATIONS_CONFIG.internationalizedTypes],
@@ -48,10 +51,9 @@ function App() {
       <title>Translations Dashboard</title>
       <div className="w-[900px]">
         <SanityUI>
-          <SanityApp config={sanityConfigs} fallback={<DashboardSkeleton />}>
+          <SanityApp config={SANITY_CONFIG} fallback={<DashboardSkeleton />}>
             <AppContextProvider
               config={appConfig}
-              sanityConfig={SANITY_PROJECT_CONFIG}
               translationsConfig={TRANSLATIONS_CONFIG}
             >
               <ErrorBoundary featureName="Translations Dashboard">

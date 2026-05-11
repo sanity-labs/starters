@@ -70,7 +70,7 @@ export const handler = documentEventHandler<StaleEventData>(async ({context, eve
     ...context.clientOptions,
     apiVersion: '2025-05-16',
     useCdn: false,
-    requestTagPrefix: 'kit.agentic-localization',
+    requestTagPrefix: 'fn.agentic-localization.mark-stale',
   })
 
   // Strip drafts./versions. prefix to get the published ID for reference matching.
@@ -84,7 +84,7 @@ export const handler = documentEventHandler<StaleEventData>(async ({context, eve
       metadataId,
       publishedId,
     },
-    {tag: 'fn.mark-stale.fetch'},
+    {tag: 'get-translation-metadata'},
   )
 
   if (!metadata) {
@@ -135,7 +135,7 @@ export const handler = documentEventHandler<StaleEventData>(async ({context, eve
   }
 
   try {
-    await patch.commit({tag: 'fn.mark-stale.patch'})
+    await patch.commit({tag: 'mark-stale'})
     console.log(
       `[StaleDetection] Successfully marked ${entriesToMark.length} locale(s) as stale: ${entriesToMark.map((e) => e.language).join(', ')}`,
     )

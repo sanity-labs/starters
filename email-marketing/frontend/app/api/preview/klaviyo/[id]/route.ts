@@ -39,7 +39,7 @@ const client = createClient({
   token: process.env.SANITY_API_READ_TOKEN,
   useCdn: false,
   perspective: 'previewDrafts',
-  requestTagPrefix: 'kit.email-marketing',
+  requestTagPrefix: 'frontend.email-marketing',
 })
 
 const PROMOTION_RENDER_QUERY = defineQuery(`
