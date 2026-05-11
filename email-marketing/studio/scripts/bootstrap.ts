@@ -70,43 +70,31 @@ heading('Deploy blueprint')
 run('pnpm', ['--filter', '@starter/functions', 'run', 'build'], {cwd: rootDir})
 
 const blueprintConfig = resolve(rootDir, '.sanity/blueprint.config.json')
-if (!existsSync(blueprintConfig)) {
-  try {
-    execFileSync(
-      'pnpm',
-      [
-        'exec',
-        'sanity',
-        'blueprints',
-        'init',
-        '--stack-name',
-        'production',
-        '--project-id',
-        projectId!,
-      ],
-      {cwd: rootDir, stdio: 'pipe'},
-    )
-  } catch {
-    // Stack already exists — link local config to it
-    console.log('Stack already exists — linking local config')
-    run(
-      'pnpm',
-      [
-        'exec',
-        'sanity',
-        'blueprints',
-        'config',
-        '--edit',
-        '--project-id',
-        projectId!,
-        '--stack',
-        'production',
-      ],
-      {cwd: rootDir},
-    )
-  }
+if (existsSync(blueprintConfig)) {
+  console.log('Blueprint already initialized — skipping init + promote')
+} else {
+  run(
+    'pnpm',
+    [
+      'exec',
+      'sanity',
+      'blueprints',
+      'init',
+      '--stack-name',
+      'production',
+      '--project-id',
+      projectId!,
+      '--blueprint-type',
+      'ts',
+    ],
+    {cwd: rootDir},
+  )
+  run(
+    'pnpm',
+    ['exec', 'sanity', 'blueprints', 'promote', '--force', '--new-stack-name', `${projectId}-prod`],
+    {cwd: rootDir},
+  )
 }
-
 run('pnpm', ['exec', 'sanity', 'blueprints', 'deploy'], {cwd: rootDir})
 
 // ── 4. Run typegen ──────────────────────────────────────────────────────────
