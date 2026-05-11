@@ -110,10 +110,7 @@ interface FilterOptions {
   priceRange: {min: number | null; max: number | null}
 }
 
-function getActiveFilterLabels(
-  filters: ProductFiltersInput,
-  options: FilterOptions,
-): string[] {
+function getActiveFilterLabels(filters: ProductFiltersInput, options: FilterOptions): string[] {
   const labels: string[] = []
 
   if (filters.category?.length) {

@@ -4,12 +4,12 @@ This guide is for AI agents working on this repo. Each top-level directory is a 
 
 ## Quick Reference
 
-| Task | Command |
-| --- | --- |
-| Install root DX tools | `pnpm install` |
+| Task                     | Command                        |
+| ------------------------ | ------------------------------ |
+| Install root DX tools    | `pnpm install`                 |
 | Install a starter's deps | `cd <starter> && pnpm install` |
-| Format code | `npx oxfmt .` |
-| Run a starter locally | `cd <starter> && pnpm dev` |
+| Format code              | `npx oxfmt .`                  |
+| Run a starter locally    | `cd <starter> && pnpm dev`     |
 
 ## Repo Structure
 

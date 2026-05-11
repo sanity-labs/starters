@@ -4,19 +4,19 @@ Ecommerce starter with a Claude chatbot that uses Context MCP for structured acc
 
 ## When to Load Files
 
-| Task                        | Load These Files                                                                                                 |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| MCP connection setup        | `app/src/app/api/chat/route.ts` (lines 97-111)                                                                  |
-| System prompt from Sanity   | `app/src/app/api/chat/route.ts` (lines 43-80, 107-120), `studio/schemaTypes/documents/agentConfig.ts`           |
-| Client-side tool handling   | `app/src/components/chat/Chat.tsx` (lines 93-161), `app/src/lib/client-tools.ts`                                |
-| Page context capture        | `app/src/lib/capture-context.ts`                                                                                 |
-| Custom markdown rendering   | `app/src/components/chat/message/remarkDirectives.ts`, `app/src/components/chat/message/Product.tsx`             |
-| Studio plugin setup         | `studio/sanity.config.ts`                                                                                        |
-| Schema design patterns      | `studio/schemaTypes/documents/product.ts`, `studio/schemaTypes/index.ts`                                         |
-| Sanity client/queries       | `app/src/sanity/lib/client.ts`, `app/src/sanity/queries/`                                                        |
-| Conversation classification | `sanity.blueprint.ts`, `functions/agent-conversation/index.ts`, `app/src/lib/save-conversation.ts` |
+| Task                        | Load These Files                                                                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| MCP connection setup        | `app/src/app/api/chat/route.ts` (lines 97-111)                                                                                                         |
+| System prompt from Sanity   | `app/src/app/api/chat/route.ts` (lines 43-80, 107-120), `studio/schemaTypes/documents/agentConfig.ts`                                                  |
+| Client-side tool handling   | `app/src/components/chat/Chat.tsx` (lines 93-161), `app/src/lib/client-tools.ts`                                                                       |
+| Page context capture        | `app/src/lib/capture-context.ts`                                                                                                                       |
+| Custom markdown rendering   | `app/src/components/chat/message/remarkDirectives.ts`, `app/src/components/chat/message/Product.tsx`                                                   |
+| Studio plugin setup         | `studio/sanity.config.ts`                                                                                                                              |
+| Schema design patterns      | `studio/schemaTypes/documents/product.ts`, `studio/schemaTypes/index.ts`                                                                               |
+| Sanity client/queries       | `app/src/sanity/lib/client.ts`, `app/src/sanity/queries/`                                                                                              |
+| Conversation classification | `sanity.blueprint.ts`, `functions/agent-conversation/index.ts`, `app/src/lib/save-conversation.ts`                                                     |
 | Agent Insights tool         | `studio/agent-insights-tool/agentInsightsPlugin.ts`, `studio/agent-insights-tool/OverviewView.tsx`, `studio/agent-insights-tool/ConversationsView.tsx` |
-| Environment variables       | `app/.env.example`                                                                                               |
+| Environment variables       | `app/.env.example`                                                                                                                                     |
 
 ## File Map
 

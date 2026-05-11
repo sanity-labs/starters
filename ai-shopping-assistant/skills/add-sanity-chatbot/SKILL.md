@@ -133,7 +133,7 @@ You are a helpful assistant for this website.
 - Use initial_context first to understand available content types
 - Use groq_query to find specific content
 - Use schema_explorer when you need field details
-`;
+`
 ```
 
 For more prompt examples (e-commerce, docs, support), see the system prompts guide in the reference skill.

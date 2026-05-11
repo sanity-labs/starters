@@ -78,7 +78,11 @@ const emptySubscribe = () => () => {}
 export function Chat(props: ChatProps) {
   // Defer rendering until after hydration — loadMessages() reads sessionStorage
   // which isn't available on the server, causing a hydration mismatch.
-  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false)
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  )
 
   if (!mounted) return null
 
@@ -307,77 +311,87 @@ function ChatInner(props: ChatProps) {
 
       {/* Messages */}
       <div className="relative flex-1 overflow-hidden">
-      {showScrollButton && (
-        <button
-          type="button"
-          onClick={scrollToBottom}
-          className="absolute cursor-pointer top-2 left-1/2 z-10 -translate-x-1/2 rounded-full bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg transition-all hover:bg-neutral-800"
-        >
-          <ArrowDown className="mr-1 inline h-3 w-3" />
-          New messages
-        </button>
-      )}
-      <div ref={scrollContainerRef} onScroll={handleScroll} className="h-full overflow-y-auto p-4">
-        {messages.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-center text-sm text-neutral-400">
-            <p>Ask me anything about our products.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {messages.map((message) => (
-              <div key={message.id} className="space-y-2">
-                {/* Tool calls (debug only) */}
-                {debug &&
-                  (message.parts ?? []).filter(isToolUIPart).map((part, i) => (
-                    <div key={`${message.id}-tool-${i}`} className="flex justify-start">
-                      <div className="max-w-[80%]">
-                        <ToolCall
-                          toolName={getToolName(part)}
-                          state={part.state}
-                          input={part.input}
-                          output={'output' in part ? part.output : undefined}
-                        />
-                      </div>
-                    </div>
-                  ))}
-
-                {/* Message text */}
-                <Message message={message} />
-              </div>
-            ))}
-
-            {showLoader && (
-              <div className="flex justify-start">
-                <div className="max-w-[80%] rounded-2xl bg-neutral-100 px-4 py-2 text-sm text-neutral-900">
-                  <Loader />
-                </div>
-              </div>
-            )}
-
-            {error && (
-              <div className="flex justify-start">
-                <div className="flex flex-col gap-2 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
-                  <span>Something went wrong.</span>
-                  <button
-                    type="button"
-                    onClick={() => regenerate()}
-                    className="w-fit rounded bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700"
-                  >
-                    Try again
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
+        {showScrollButton && (
+          <button
+            type="button"
+            onClick={scrollToBottom}
+            className="absolute cursor-pointer top-2 left-1/2 z-10 -translate-x-1/2 rounded-full bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg transition-all hover:bg-neutral-800"
+          >
+            <ArrowDown className="mr-1 inline h-3 w-3" />
+            New messages
+          </button>
         )}
-      </div>
+        <div
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="h-full overflow-y-auto p-4"
+        >
+          {messages.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-center text-sm text-neutral-400">
+              <p>Ask me anything about our products.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {messages.map((message) => (
+                <div key={message.id} className="space-y-2">
+                  {/* Tool calls (debug only) */}
+                  {debug &&
+                    (message.parts ?? []).filter(isToolUIPart).map((part, i) => (
+                      <div key={`${message.id}-tool-${i}`} className="flex justify-start">
+                        <div className="max-w-[80%]">
+                          <ToolCall
+                            toolName={getToolName(part)}
+                            state={part.state}
+                            input={part.input}
+                            output={'output' in part ? part.output : undefined}
+                          />
+                        </div>
+                      </div>
+                    ))}
+
+                  {/* Message text */}
+                  <Message message={message} />
+                </div>
+              ))}
+
+              {showLoader && (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%] rounded-2xl bg-neutral-100 px-4 py-2 text-sm text-neutral-900">
+                    <Loader />
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <div className="flex justify-start">
+                  <div className="flex flex-col gap-2 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <span>Something went wrong.</span>
+                    <button
+                      type="button"
+                      onClick={() => regenerate()}
+                      className="w-fit rounded bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Input */}
       <div className="border-t border-neutral-200 p-4">
-        <ChatInput ref={inputRef} input={input} setInput={setInput} onSubmit={handleSubmit} disabled={isLoading} />
+        <ChatInput
+          ref={inputRef}
+          input={input}
+          setInput={setInput}
+          onSubmit={handleSubmit}
+          disabled={isLoading}
+        />
       </div>
     </div>
   )

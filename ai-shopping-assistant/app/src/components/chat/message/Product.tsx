@@ -47,9 +47,7 @@ function fetchProduct(id: string): Promise<ProductData | null> {
   const existing = fetchCache.get(id)
   if (existing) return existing
 
-  const promise = client
-    .fetch<ProductData | null>(QUERY, {id})
-    .catch(() => null)
+  const promise = client.fetch<ProductData | null>(QUERY, {id}).catch(() => null)
 
   fetchCache.set(id, promise)
   return promise
@@ -104,8 +102,7 @@ export function Product(props: DocumentProps) {
   }
 
   const hasDiscount =
-    product.price?.compareAtPrice &&
-    product.price.compareAtPrice > (product.price.amount ?? 0)
+    product.price?.compareAtPrice && product.price.compareAtPrice > (product.price.amount ?? 0)
 
   return (
     <Link

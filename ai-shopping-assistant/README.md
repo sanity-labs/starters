@@ -127,6 +127,8 @@ ai-shopping-assistant/
 
 ## How the Chatbot Works
 
+> **[View the architecture diagram (PDF)](.github/agent-context-architecture.pdf)** for a visual overview of the full request flow.
+
 1. **User sends a message** in the chat widget (`Chat.tsx` uses the [Vercel AI SDK's](https://sdk.vercel.ai/docs) `useChat` hook)
 2. **API route receives the message** (`app/src/app/api/chat/route.ts`) along with the user's current page context
 3. **MCP client connects to the Content Lake** to discover available tools (`groq_query`, `schema_explorer`, `initial_context`) scoped to your content
