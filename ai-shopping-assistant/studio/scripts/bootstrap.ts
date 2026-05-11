@@ -377,8 +377,6 @@ try {
 }
 
 // ── Install marker ───────────────────────────────────────────────────────────
-// Emit one tagged request so each install shows up in Sanity request logs.
-// The CLI subprocesses above don't flow through @sanity/client and can't be tagged.
 
 try {
   const installClient = getCliClient({apiVersion: '2026-01-01'}).withConfig({
@@ -386,7 +384,7 @@ try {
   })
   await installClient.fetch('true', {}, {tag: 'bootstrap.install'})
 } catch {
-  // Marker is best-effort — never block bootstrap
+  // best-effort — never block bootstrap
 }
 
 // ── Summary ──────────────────────────────────────────────────────────────────

@@ -589,12 +589,12 @@ const agentConfig = await client.fetch<{systemPrompt: string} | null>(
 
 ### Request tags
 
-The reference client at `app/src/sanity/lib/client.ts` hard-codes
-`requestTagPrefix: 'kit.ai-shopping-assistant'` so the starter's traffic remains
-attributable in Sanity request logs even when used via this skill. Per-call
-options take a `tag: '<area>.<action>'` (e.g. `tag: 'chat.agent-config'`) and
-the final logged tag is `kit.ai-shopping-assistant.chat.agent-config`. Override
-`requestTagPrefix` in your own client config if you prefer your own attribution.
+The reference client at `app/src/sanity/lib/client.ts` sets
+`requestTagPrefix: 'kit.ai-shopping-assistant'` and per-call options take a
+`tag: '<area>.<action>'` (e.g. `tag: 'chat.agent-config'`), producing the
+combined tag `kit.ai-shopping-assistant.chat.agent-config` — handy for filtering
+your own request logs. Change or remove `requestTagPrefix` in your client config
+to use whatever tagging scheme you prefer.
 See [Request tags](https://www.sanity.io/docs/apis-and-sdks/js-client-request-tags).
 
 ### Custom Content Rendering

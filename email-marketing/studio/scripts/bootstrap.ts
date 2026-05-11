@@ -147,13 +147,11 @@ if (klaviyoKey) {
 }
 
 // ── 7. Install marker ───────────────────────────────────────────────────────
-// Emit one tagged request so each install shows up in Sanity request logs.
-// CLI subprocesses above don't flow through @sanity/client and can't be tagged.
 
 try {
   await client.fetch('true', {}, {tag: 'bootstrap.install'})
 } catch {
-  // Marker is best-effort — never block bootstrap
+  // best-effort — never block bootstrap
 }
 
 console.log('\n✓ Bootstrap complete\n')

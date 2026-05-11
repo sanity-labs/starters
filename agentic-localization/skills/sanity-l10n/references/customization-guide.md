@@ -205,10 +205,10 @@ internationalizedArray({
 
 The starter sets `requestTagPrefix: 'kit.agentic-localization'` on every
 `createClient({...})` and adds per-call `tag: '<area>.<action>'` options
-(e.g. `tag: 'translate.style-guide'`) so traffic shows up in Sanity request
-logs as `kit.agentic-localization.translate.style-guide`. Keep this scheme when
-extending — or override `requestTagPrefix` in your own client config if you
-prefer your own attribution. See
+(e.g. `tag: 'translate.style-guide'`), producing combined tags like
+`kit.agentic-localization.translate.style-guide` — handy for filtering your own
+request logs. Keep this scheme when extending, or change `requestTagPrefix` in
+your client config to use whatever tagging scheme you prefer. See
 [Request tags](https://www.sanity.io/docs/apis-and-sdks/js-client-request-tags).
 
 To support additional value types (e.g., `blockContent`), add them to the
