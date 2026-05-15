@@ -46,8 +46,8 @@ export const useSelectiveTranslation = (
   selectedRelease: null | string,
   metadataId?: string,
 ): UseSelectiveTranslationReturn => {
-  const {sanityClientConfig, translationsConfig} = useTranslationConfig()
-  const client = useClient(sanityClientConfig)
+  const {translationsConfig} = useTranslationConfig()
+  const client = useClient({apiVersion: '2025-05-01'})
   const currentUser = useCurrentUser()
   const {updateLocaleStatus} = useTranslationStatusContext()
   const translate = useAgentTranslate()

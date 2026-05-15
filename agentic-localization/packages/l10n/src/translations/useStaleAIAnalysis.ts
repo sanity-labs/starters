@@ -181,11 +181,12 @@ export function useStaleAIAnalysis(
         const [histResponse, currentDoc] = await Promise.all([
           client.request<{documents?: Array<Record<string, unknown>>}>({
             url: `/data/history/${dataset}/documents/${sourceDocPublishedId}?revision=${sourceRevision}`,
+            tag: 'stale.ai.history',
           }),
           client.fetch<Record<string, unknown> | null>(
             `*[_id == $id][0]`,
             {id: sourceDocPublishedId},
-            {perspective: perspectiveStack},
+            {perspective: perspectiveStack, tag: 'stale.ai.live'},
           ),
         ])
 

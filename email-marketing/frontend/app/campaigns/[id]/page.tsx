@@ -19,6 +19,7 @@ export default async function CampaignPage({params}: {params: Promise<{id: strin
   const {data: promotions} = await sanityFetch({
     query: promotionsByCampaignQuery,
     params: {campaignId: id},
+    requestTag: 'campaigns.promotions',
   })
 
   if (!promotions) notFound()

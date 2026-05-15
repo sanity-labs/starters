@@ -13,7 +13,6 @@ import {
 } from 'react'
 
 import {BATCH_METADATA_STATUS_QUERY} from '../queries/metadataQueries'
-import {useApp} from './AppContext'
 
 // Status for a single language within a metadata document
 export type LanguageStatus = {
@@ -76,8 +75,7 @@ export function TranslationStatusProvider({
   fallbackLocaleMap,
   localeIds,
 }: TranslationStatusProviderProps) {
-  const {sanityClientConfig} = useApp()
-  const client = useClient(sanityClientConfig)
+  const client = useClient({apiVersion: '2025-05-01'})
   const [statusCache, setStatusCache] = useState<StatusCache>(new Map())
   const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set())
   const pendingIds = useRef<Set<string>>(new Set())
@@ -118,7 +116,7 @@ export function TranslationStatusProvider({
               }
             > | null
           }>
-        >(BATCH_METADATA_STATUS_QUERY, {metadataIds}, {perspective: 'raw'})
+        >(BATCH_METADATA_STATUS_QUERY, {metadataIds}, {perspective: 'raw', tag: 'load-status'})
 
         // Process results into the cache format
         const newEntries = new Map<string, MetadataStatuses>()

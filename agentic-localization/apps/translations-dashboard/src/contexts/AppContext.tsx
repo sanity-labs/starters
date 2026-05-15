@@ -2,7 +2,7 @@
  * AppContext — composition root for the three focused contexts.
  *
  * All consumers should migrate to the specific hooks:
- *   - `useTranslationConfig()` for config, languages, sanityClientConfig
+ *   - `useTranslationConfig()` for config, languages
  *   - `useSelection()` for selected documents, types, batch mode, status
  *   - `useTranslationProgress()` for translation progress, creation status, batch status
  *
@@ -28,7 +28,6 @@ export type {LanguageData} from './TranslationConfigContext'
 interface AppContextProviderProps {
   children: ReactNode
   config: SanityConfigWithSupportedLanguages
-  sanityConfig: SanityConfig
   translationsConfig: TranslationsConfig
 }
 
@@ -41,13 +40,11 @@ interface SanityConfigWithSupportedLanguages extends SanityConfig {
 export function AppContextProvider({
   children,
   config,
-  sanityConfig,
   translationsConfig,
 }: AppContextProviderProps) {
   return (
     <TranslationConfigProvider
       config={config}
-      sanityConfig={sanityConfig}
       translationsConfig={translationsConfig}
     >
       <SelectionProvider initialDocumentType={config.schemaTypes[0] || 'article'}>

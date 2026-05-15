@@ -3,7 +3,6 @@ import {useToast} from '@sanity/ui'
 import {useCallback, useState} from 'react'
 import {getPublishedId} from 'sanity'
 
-import {useApp} from '../contexts/AppContext'
 import {buildMetadataDocument} from '../lib/metadata'
 import {DOC_LANGUAGE_QUERY} from '../queries/documentQueries'
 
@@ -15,8 +14,7 @@ type BulkSetDocumentLanguageParams = {
 }
 
 export const useBulkSetDocumentLanguage = () => {
-  const {sanityClientConfig} = useApp()
-  const client = useClient(sanityClientConfig)
+  const client = useClient({apiVersion: '2025-05-01'})
 
   const toast = useToast()
   const [isBulkSettingLanguage, setIsBulkSettingLanguage] = useState(false)
@@ -67,7 +65,7 @@ export const useBulkSetDocumentLanguage = () => {
 
           try {
             // 1. Check if document already has language set
-            const existingDoc = await client.fetch(DOC_LANGUAGE_QUERY, {docId})
+            const existingDoc = await client.fetch(DOC_LANGUAGE_QUERY, {docId}, {tag: 'check-language'})
 
             if (existingDoc?.language) {
               console.log(`⏭️  Skipping ${docId} - already has language: ${existingDoc.language}`)
@@ -75,19 +73,19 @@ export const useBulkSetDocumentLanguage = () => {
             }
 
             // 2. Set the language field on the document
-            await client.patch(docId).set({language: languageId}).commit()
+            await client.patch(docId).set({language: languageId}).commit({tag: 'assign-language'})
 
             // 3. Create the metadata document
             const metadataDocument = buildMetadataDocument(docId, languageId, documentType)
 
             // 4. Create metadata document
-            await client.create(metadataDocument)
+            await client.create(metadataDocument, {tag: 'init-translation'})
 
             await client.action({
               actionType: 'sanity.action.document.publish',
               draftId: docId,
               publishedId: getPublishedId(docId),
-            })
+            }, {tag: 'publish-language'})
 
             successCount++
             console.log(`✅ Set language for document ${i + 1}/${documentIds.length}: ${docId}`)

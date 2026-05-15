@@ -32,14 +32,14 @@ type TranslationProgressCallback = (
 ) => void
 
 export const useBatchTranslationsWithProgress = () => {
-  const {sanityClientConfig, translationsConfig} = useTranslationConfig()
+  const {translationsConfig} = useTranslationConfig()
   const {
     batchTranslationStatus,
     isBatchTranslating,
     setBatchTranslationStatus,
     setIsBatchTranslating,
   } = useTranslationProgress()
-  const client = useClient(sanityClientConfig)
+  const client = useClient({apiVersion: '2025-05-01'})
   const currentUser = useCurrentUser()
   const {updateLocaleStatus} = useTranslationStatusContext()
   const translate = useAgentTranslate()
@@ -74,7 +74,7 @@ export const useBatchTranslationsWithProgress = () => {
           hasMetadata: boolean
           _translationStatus: 'fully translated' | 'none' | 'partial'
         }>
-      >(BATCH_VALIDATE_DOCUMENTS_QUERY, {documentIds})
+      >(BATCH_VALIDATE_DOCUMENTS_QUERY, {documentIds}, {tag: 'assess-eligibility'})
 
       const invalidDocuments = documents.filter((doc) => !doc.language || !doc.hasMetadata)
 

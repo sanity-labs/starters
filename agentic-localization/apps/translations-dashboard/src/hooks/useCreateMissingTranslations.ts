@@ -18,14 +18,13 @@ export const useCreateMissingTranslations = () => {
   const {
     creationStatus,
     isCreating,
-    sanityClientConfig,
     setCreationStatus,
     setIsCreating,
     setTranslationDocumentId,
     translationDocumentId,
     translationsConfig,
   } = useApp()
-  const client = useClient(sanityClientConfig)
+  const client = useClient({apiVersion: 'vX'})
   const currentUser = useCurrentUser()
 
   const createMissingTranslations = useCallback(
@@ -59,6 +58,7 @@ export const useCreateMissingTranslations = () => {
         const fetchedMetadata = await client.fetch<TranslationMetadata | null>(
           METADATA_WITH_TRANSLATIONS_QUERY,
           {documentId: getPublishedId(baseDocumentId)},
+          {tag: 'load-metadata'},
         )
 
         let metadataDoc = fetchedMetadata
@@ -68,7 +68,7 @@ export const useCreateMissingTranslations = () => {
             _type: 'translation.metadata',
             schemaTypes: [documentType],
             translations: [sourceRef],
-          })
+          }, {tag: 'init-translation'})
           metadataDoc = {
             _id: created._id,
             translations: [sourceRef],
@@ -107,7 +107,9 @@ export const useCreateMissingTranslations = () => {
           }
 
           try {
-            const result = await translateClient.agent.action.translate({
+            const result = await translateClient
+              .withConfig({requestTagPrefix: `${translateClient.config().requestTagPrefix}.create-translation`})
+              .agent.action.translate({
               documentId: baseDocumentId,
               fromLanguage: {id: baseLanguage, title: baseLanguage},
               languageFieldPath: translationsConfig.languageField,
@@ -146,7 +148,7 @@ export const useCreateMissingTranslations = () => {
                 .insert(`after`, `translations[-1]`, [newTranslationReference])
               transaction.patch(metadataPatch)
 
-              await transaction.commit({autoGenerateArrayKeys: true})
+              await transaction.commit({autoGenerateArrayKeys: true, tag: 'finalize'})
 
               // Write workflow state after transaction
               await client
@@ -161,7 +163,7 @@ export const useCreateMissingTranslations = () => {
                     updatedAt: new Date().toISOString(),
                   },
                 ])
-                .commit({autoGenerateArrayKeys: true})
+                .commit({autoGenerateArrayKeys: true, tag: 'request-review'})
 
               const publishedId = getPublishedId(result._id as DocumentId)
 
@@ -169,7 +171,7 @@ export const useCreateMissingTranslations = () => {
                 actionType: 'sanity.action.document.publish',
                 draftId: result._id,
                 publishedId: publishedId,
-              })
+              }, {tag: 'publish-translation'})
 
               if (i === missingLocales.length - 1) {
                 setIsCreating(false)
@@ -211,7 +213,7 @@ export const useCreateMissingTranslations = () => {
         if (createdTranslations.length > 0) {
           try {
             const patch = client.patch(metadataDoc._id).append('translations', createdTranslations)
-            await patch.commit()
+            await patch.commit({tag: 'link-locale'})
           } catch {
             // Silently handle metadata update errors
           }

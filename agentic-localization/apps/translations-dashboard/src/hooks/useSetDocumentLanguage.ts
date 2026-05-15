@@ -3,7 +3,6 @@ import {useToast} from '@sanity/ui'
 import {useCallback, useState} from 'react'
 import {getPublishedId, type SanityDocument} from 'sanity'
 
-import {useApp} from '../contexts/AppContext'
 import {buildMetadataDocument} from '../lib/metadata'
 
 type SetDocumentLanguageParams = {
@@ -15,8 +14,7 @@ type SetDocumentLanguageParams = {
 }
 
 export const useSetDocumentLanguage = () => {
-  const {sanityClientConfig} = useApp()
-  const client = useClient(sanityClientConfig)
+  const client = useClient({apiVersion: '2025-05-01'})
 
   const toast = useToast()
   const [isSettingLanguage, setIsSettingLanguage] = useState(false)
@@ -48,13 +46,13 @@ export const useSetDocumentLanguage = () => {
       try {
         // 1. Set the language field on the source document using client.patch
         // Note: We'll use client.patch for now since useEditDocument requires component-level usage
-        await client.patch(docId).set({language: languageId}).commit()
+        await client.patch(docId).set({language: languageId}).commit({tag: 'assign-language'})
 
         // 2. Create the metadata document
         const metadataDocument = buildMetadataDocument(docId, languageId, documentType)
 
         // 3. Create metadata document using client.create
-        await client.create(metadataDocument)
+        await client.create(metadataDocument, {tag: 'init-translation'})
 
         console.log('✅ Document language set successfully')
 
@@ -62,7 +60,7 @@ export const useSetDocumentLanguage = () => {
           actionType: 'sanity.action.document.publish',
           draftId: docId,
           publishedId: getPublishedId(docId),
-        })
+        }, {tag: 'publish-language'})
 
         toast.push({
           description: 'Created translation metadata',

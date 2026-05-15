@@ -22,11 +22,15 @@ export const ApproveAction: DocumentActionComponent = (props) => {
 
   useEffect(() => {
     const params = {id: promotionId}
-    client.fetch<string | null>(WORKFLOW_STATUS_QUERY, params).then(setWorkflowStatus)
+    client
+      .fetch<string | null>(WORKFLOW_STATUS_QUERY, params, {tag: 'promotion.approve.fetch'})
+      .then(setWorkflowStatus)
     const subscription = client
-      .listen(WORKFLOW_STATUS_QUERY, params, {visibility: 'query'})
+      .listen(WORKFLOW_STATUS_QUERY, params, {visibility: 'query', tag: 'promotion.approve.listen'})
       .subscribe(() => {
-        client.fetch<string | null>(WORKFLOW_STATUS_QUERY, params).then(setWorkflowStatus)
+        client
+          .fetch<string | null>(WORKFLOW_STATUS_QUERY, params, {tag: 'promotion.approve.fetch'})
+          .then(setWorkflowStatus)
       })
     return () => subscription.unsubscribe()
   }, [client, promotionId])
@@ -37,9 +41,11 @@ export const ApproveAction: DocumentActionComponent = (props) => {
     setState('sending')
 
     try {
-      const existingId = await client.fetch<string | null>(WORKFLOW_STATE_QUERY, {
-        id: promotionId,
-      })
+      const existingId = await client.fetch<string | null>(
+        WORKFLOW_STATE_QUERY,
+        {id: promotionId},
+        {tag: 'promotion.approve.fetch'},
+      )
 
       const wfId = existingId ?? `wf-${promotionId}`
       const now = new Date().toISOString()
@@ -56,22 +62,25 @@ export const ApproveAction: DocumentActionComponent = (props) => {
               timestamp: now,
             },
           ])
-          .commit()
+          .commit({tag: 'promotion.approve.write'})
       } else {
-        await client.createOrReplace({
-          _id: wfId,
-          _type: 'workflow.state',
-          promotionId: {_type: 'reference', _ref: promotionId},
-          status: 'approved',
-          history: [
-            {
-              _key: `h-${Date.now()}`,
-              _type: 'object',
-              status: 'approved',
-              timestamp: now,
-            },
-          ],
-        })
+        await client.createOrReplace(
+          {
+            _id: wfId,
+            _type: 'workflow.state',
+            promotionId: {_type: 'reference', _ref: promotionId},
+            status: 'approved',
+            history: [
+              {
+                _key: `h-${Date.now()}`,
+                _type: 'object',
+                status: 'approved',
+                timestamp: now,
+              },
+            ],
+          },
+          {tag: 'promotion.approve.write'},
+        )
       }
 
       setState('done')

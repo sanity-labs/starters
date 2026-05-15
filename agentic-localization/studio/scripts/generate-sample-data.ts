@@ -137,6 +137,8 @@ async function* generateDocuments() {
   // 0. Fetch locales from dataset (must be seeded first)
   const locales = await client.fetch<{code: string; title: string}[]>(
     `*[_type == "l10n.locale"]{ code, title }`,
+    {},
+    {tag: 'bootstrap.sample-data.locales'},
   )
   const targetLocales = locales.filter((l) => l.code !== SOURCE_LOCALE)
   process.stderr.write(

@@ -47,11 +47,14 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
       // Auto-publish the campaign if it only exists as a draft
       if (props.draft && !props.published) {
         setProgress('Publishing campaign...')
-        await client.action({
-          actionType: 'sanity.action.document.publish',
-          draftId: `drafts.${campaignId}`,
-          publishedId: campaignId,
-        })
+        await client.action(
+          {
+            actionType: 'sanity.action.document.publish',
+            draftId: `drafts.${campaignId}`,
+            publishedId: campaignId,
+          },
+          {tag: 'campaign.generate.publish'},
+        )
       }
 
       const [campaignData, campaignBrief, brandVoice] = await Promise.all([
@@ -61,7 +64,7 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
             id: campaignId,
             draftId: `drafts.${campaignId}`,
           },
-          {perspective: 'raw'},
+          {perspective: 'raw', tag: 'campaign.generate.segments'},
         ),
         fetchCampaignContext(client, campaignId),
         fetchBrandVoice(client),
@@ -105,26 +108,32 @@ export const GenerateVariantsAction: DocumentActionComponent = (props) => {
         })
 
         // Publish the generated draft so workflow state references resolve
-        await client.action({
-          actionType: 'sanity.action.document.publish',
-          draftId: `drafts.${promotionId}`,
-          publishedId: promotionId,
-        })
+        await client.action(
+          {
+            actionType: 'sanity.action.document.publish',
+            draftId: `drafts.${promotionId}`,
+            publishedId: promotionId,
+          },
+          {tag: 'campaign.generate.publish'},
+        )
 
-        await client.createOrReplace({
-          _id: `wf-${promotionId}`,
-          _type: 'workflow.state',
-          promotionId: {_type: 'reference', _ref: promotionId},
-          status: 'draft',
-          history: [
-            {
-              _key: `h-${Date.now()}`,
-              _type: 'object',
-              status: 'draft',
-              timestamp: new Date().toISOString(),
-            },
-          ],
-        })
+        await client.createOrReplace(
+          {
+            _id: `wf-${promotionId}`,
+            _type: 'workflow.state',
+            promotionId: {_type: 'reference', _ref: promotionId},
+            status: 'draft',
+            history: [
+              {
+                _key: `h-${Date.now()}`,
+                _type: 'object',
+                status: 'draft',
+                timestamp: new Date().toISOString(),
+              },
+            ],
+          },
+          {tag: 'campaign.generate.workflow'},
+        )
       }
 
       setProgress(`Generated ${segmentIds.length} promotion${segmentIds.length !== 1 ? 's' : ''}`)

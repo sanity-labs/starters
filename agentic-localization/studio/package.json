@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@sanity/assist": "catalog:",
+    "@sanity/client": "catalog:",
     "@sanity/icons": "catalog:",
     "@sanity/vision": "catalog:",
     "@starter/l10n": "workspace:*",

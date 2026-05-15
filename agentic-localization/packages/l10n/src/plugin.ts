@@ -92,11 +92,13 @@ export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L1
       plugins: [
         documentInternationalization({
           hideLanguageFilter: (ctx) => localizedSchemaTypes.includes(ctx.schemaType),
-          supportedLanguages: (client) => client.fetch<Language[]>(SUPPORTED_LANGUAGES_QUERY),
+          supportedLanguages: (client) =>
+            client.fetch<Language[]>(SUPPORTED_LANGUAGES_QUERY, {}, {tag: 'plugin.languages'}),
           schemaTypes: [...localizedSchemaTypes],
         }),
         internationalizedArray({
-          languages: (client) => client.fetch<Language[]>(SUPPORTED_LANGUAGES_QUERY),
+          languages: (client) =>
+            client.fetch<Language[]>(SUPPORTED_LANGUAGES_QUERY, {}, {tag: 'plugin.languages'}),
           defaultLanguages: [defaultLanguage],
           fieldTypes: ['string', 'text'],
         }),

@@ -104,7 +104,11 @@ function PreviewStatusInspectorComponent({documentId}: DocumentInspectorProps) {
   useEffect(() => {
     let cancelled = false
     Promise.all([
-      client.fetch<WorkflowState | null>(WORKFLOW_QUERY, {id: promotionId}),
+      client.fetch<WorkflowState | null>(
+        WORKFLOW_QUERY,
+        {id: promotionId},
+        {tag: 'promotion.preview.workflow'},
+      ),
       client.fetch<{
         tokens: Array<{key?: string | null; description?: string | null}> | null
         emailSlots: Array<{
@@ -115,7 +119,7 @@ function PreviewStatusInspectorComponent({documentId}: DocumentInspectorProps) {
           legalText?: string | null
           unsubscribeText?: string | null
         }> | null
-      } | null>(PREVIEW_CONTEXT_QUERY, {id: promotionId}),
+      } | null>(PREVIEW_CONTEXT_QUERY, {id: promotionId}, {tag: 'promotion.preview.context'}),
     ]).then(([wf, preview]) => {
       if (cancelled) return
       setWorkflow(wf)

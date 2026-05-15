@@ -1,8 +1,8 @@
-import {defineConfig} from 'sanity'
+import {createClient} from '@sanity/client'
+import {defineConfig, type DocumentBadgeComponent} from 'sanity'
 import {structureTool} from 'sanity/structure'
 import {visionTool} from '@sanity/vision'
 import {presentationTool, defineDocuments, defineLocations} from 'sanity/presentation'
-import {type DocumentBadgeComponent} from 'sanity'
 import {schemaTypes} from './schemaTypes'
 import {structure} from './structure'
 import {assist} from './plugins/assist'
@@ -29,6 +29,9 @@ export default defineConfig({
 
   projectId,
   dataset,
+
+  unstable_clientFactory: (options) =>
+    createClient({...options, requestTagPrefix: `${options.requestTagPrefix}.email-marketing`}),
 
   plugins: [
     assist(),

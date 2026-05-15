@@ -1,3 +1,4 @@
+import {createClient} from '@sanity/client'
 import {defineConfig} from 'sanity'
 import {structureTool, type StructureResolver} from 'sanity/structure'
 import {assist} from '@sanity/assist'
@@ -72,6 +73,9 @@ export default defineConfig({
 
   projectId,
   dataset,
+
+  unstable_clientFactory: (options) =>
+    createClient({...options, requestTagPrefix: `${options.requestTagPrefix}.agentic-localization`}),
 
   document: {
     newDocumentOptions: (prev) =>

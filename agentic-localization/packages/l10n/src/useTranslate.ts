@@ -117,6 +117,7 @@ export function useTranslate(): {translate: TranslateFn; translateBatch: Transla
           protectedPhrases: context.protectedPhrases,
         }),
       },
+      tag: 'translate.batch',
     })
   }
 

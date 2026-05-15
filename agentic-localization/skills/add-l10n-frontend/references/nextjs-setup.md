@@ -63,3 +63,10 @@ path segment on click, and persists the choice in a `NEXT_LOCALE` cookie.
 
 `generateStaticParams` in the layout queries `l10n.locale` documents to generate
 a page per locale at build time.
+
+### Request tags
+
+The reference client sets `requestTagPrefix: 'kit.agentic-localization'` — handy
+for filtering your own request logs. Change or remove `requestTagPrefix` in
+your client config to use whatever tagging scheme you prefer. See
+[Request tags](https://www.sanity.io/docs/apis-and-sdks/js-client-request-tags).

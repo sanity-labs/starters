@@ -48,8 +48,8 @@ export type RetranslateTarget = {
 // --- Hook ---
 
 export function useRetranslateStale(aggregateData: AggregateData) {
-  const {defaultLanguage, sanityClientConfig, translationsConfig} = useTranslationConfig()
-  const client = useClient(sanityClientConfig)
+  const {defaultLanguage, translationsConfig} = useTranslationConfig()
+  const client = useClient({apiVersion: 'vX'})
 
   const [isRetranslating, setIsRetranslating] = useState(false)
   const [progress, setProgress] = useState<null | RetranslateProgress>(null)
@@ -101,7 +101,9 @@ export function useRetranslateStale(aggregateData: AggregateData) {
                 continue
               }
 
-              await translateClient.agent.action.translate({
+              await translateClient
+                .withConfig({requestTagPrefix: `${translateClient.config().requestTagPrefix}.retranslate`})
+                .agent.action.translate({
                 documentId: target.baseDocId,
                 fromLanguage: {id: resolvedDefaultLanguage, title: resolvedDefaultLanguage},
                 languageFieldPath: translationsConfig.languageField,
@@ -119,6 +121,7 @@ export function useRetranslateStale(aggregateData: AggregateData) {
                 const sourceDoc = await client.fetch<{_rev: string} | null>(
                   `*[_id == $id][0]{ _rev }`,
                   {id: target.baseDocId},
+                  {tag: 'record-stale-baseline'},
                 )
 
                 await client
@@ -134,7 +137,7 @@ export function useRetranslateStale(aggregateData: AggregateData) {
                       updatedAt: new Date().toISOString(),
                     },
                   ])
-                  .commit({autoGenerateArrayKeys: true})
+                  .commit({autoGenerateArrayKeys: true, tag: 'request-review'})
               }
 
               completed++

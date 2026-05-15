@@ -17,6 +17,16 @@ For Next.js, use `createClient` from `next-sanity`. For other frameworks, use
 `@sanity/client`. See `apps/frontend/src/sanity/client.ts` for the Next.js
 version.
 
+### Request Tags
+
+The reference client at `apps/frontend/src/sanity/client.ts` sets
+`requestTagPrefix: 'kit.agentic-localization'`, and per-call options take a
+`tag: '<area>.<action>'` (e.g. `tag: 'articles.list'`), producing the combined
+tag `kit.agentic-localization.articles.list` — handy for filtering your own
+request logs. Change or remove `requestTagPrefix` in your client config to use
+whatever tagging scheme you prefer. See
+[Request tags](https://www.sanity.io/docs/apis-and-sdks/js-client-request-tags).
+
 ## Key Concepts
 
 ### The `language` field

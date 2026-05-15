@@ -67,7 +67,7 @@ export function useStaleSyncEffect(
           )
         }
 
-        await tx.commit()
+        await tx.commit({tag: 'stale.sync.patch'})
       } catch (err) {
         // Non-critical — stale will be re-detected on next render
         console.warn('[l10n:field-stale-sync] Failed to persist stale entries:', err)

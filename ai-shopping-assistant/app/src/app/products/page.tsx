@@ -57,9 +57,9 @@ export default async function ProductsPage({searchParams}: ProductsPageProps) {
   const countQuery = buildFilteredProductsCountQuery(filters)
 
   const [filterOptions, products, totalCount] = await Promise.all([
-    client.fetch(FILTER_OPTIONS_QUERY),
-    client.fetch(productsQuery, {page: currentPage}),
-    client.fetch<number>(countQuery),
+    client.fetch(FILTER_OPTIONS_QUERY, {}, {tag: 'products.filters'}),
+    client.fetch(productsQuery, {page: currentPage}, {tag: 'products.list'}),
+    client.fetch<number>(countQuery, {}, {tag: 'products.count'}),
   ])
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
@@ -110,10 +110,7 @@ interface FilterOptions {
   priceRange: {min: number | null; max: number | null}
 }
 
-function getActiveFilterLabels(
-  filters: ProductFiltersInput,
-  options: FilterOptions,
-): string[] {
+function getActiveFilterLabels(filters: ProductFiltersInput, options: FilterOptions): string[] {
   const labels: string[] = []
 
   if (filters.category?.length) {

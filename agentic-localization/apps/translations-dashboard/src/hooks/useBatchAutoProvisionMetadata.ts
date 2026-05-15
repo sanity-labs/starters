@@ -2,7 +2,6 @@ import {useClient} from '@sanity/sdk-react'
 import {useCallback} from 'react'
 import {getPublishedId} from 'sanity'
 
-import {useApp} from '../contexts/AppContext'
 import {buildMetadataDocument, METADATA_EXISTS_QUERY} from '../lib/metadata'
 
 type DocumentToProvision = {
@@ -16,8 +15,7 @@ type DocumentToProvision = {
  * that have a language set but no metadata yet
  */
 export const useBatchAutoProvisionMetadata = () => {
-  const {sanityClientConfig} = useApp()
-  const client = useClient(sanityClientConfig)
+  const client = useClient({apiVersion: '2025-05-01'})
 
   const provisionMetadataForDocuments = useCallback(
     async (
@@ -33,7 +31,7 @@ export const useBatchAutoProvisionMetadata = () => {
           // Double-check metadata doesn't exist
           const existingMetadata = await client.fetch(METADATA_EXISTS_QUERY, {
             docId: getPublishedId(doc._id),
-          })
+          }, {tag: 'check-metadata'})
 
           if (existingMetadata) {
             console.log(`✅ Metadata already exists for ${doc._id}, skipping`)
@@ -44,7 +42,7 @@ export const useBatchAutoProvisionMetadata = () => {
           // Create the metadata document
           const metadataDocument = buildMetadataDocument(doc._id, doc.language, doc.schemaType)
 
-          await client.create(metadataDocument)
+          await client.create(metadataDocument, {tag: 'init-translation'})
           successIds.push(doc._id)
 
           console.log(`✅ Auto-provisioned metadata for ${doc._id}`)

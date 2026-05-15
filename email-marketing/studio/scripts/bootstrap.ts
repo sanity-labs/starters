@@ -21,7 +21,8 @@ import {getCliClient} from 'sanity/cli'
 const dir = import.meta.dirname!
 const rootDir = resolve(dir, '../..')
 
-const client = getCliClient({apiVersion: '2026-04-08'})
+let client = getCliClient({apiVersion: '2026-04-08'})
+client = client.withConfig({requestTagPrefix: `${client.config().requestTagPrefix}.email-marketing`})
 const {projectId, dataset} = client.config()
 
 function run(cmd: string, args: string[], options?: {cwd?: string}) {
@@ -121,12 +122,24 @@ if (klaviyoKey) {
 
   heading('Import lists & segments from Klaviyo')
 
-  await client.patch('klaviyoImport').set({importState: 'requested'}).commit()
+  await client
+    .patch('klaviyoImport')
+    .set({importState: 'requested'})
+    .commit({tag: 'trigger-klaviyo-import'})
   console.log('Triggered Klaviyo import — lists and segments will sync in the background')
 } else {
   console.log(
     'No key entered — set it later with:\n  npx sanity functions env add import-klaviyo KLAVIYO_API_KEY <key>\n  npx sanity functions env add on-promotion-approved KLAVIYO_API_KEY <key>',
   )
 }
+
+// ── 7. Install marker ───────────────────────────────────────────────────────
+
+try {
+  await client.fetch('true', {}, {tag: 'bootstrap.install'})
+} catch {
+  // best-effort — never block bootstrap
+}
+
 
 console.log('\n✓ Bootstrap complete\n')

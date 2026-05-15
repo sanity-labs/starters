@@ -15,9 +15,15 @@ export const SegmentBadge: DocumentBadgeComponent = (props) => {
     if (!segmentRef || typeof segmentRef !== 'object' || !('_ref' in segmentRef)) return
     let cancelled = false
 
-    client.fetch<string | null>(SEGMENT_NAME_QUERY, {id: segmentRef._ref}).then((name) => {
-      if (!cancelled && name) setSegmentName(name)
-    })
+    client
+      .fetch<string | null>(
+        SEGMENT_NAME_QUERY,
+        {id: segmentRef._ref},
+        {tag: 'promotion.badge.segment'},
+      )
+      .then((name) => {
+        if (!cancelled && name) setSegmentName(name)
+      })
 
     return () => {
       cancelled = true

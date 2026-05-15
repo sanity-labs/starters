@@ -120,7 +120,7 @@ export function ConversationsView() {
   useEffect(() => {
     const getConversations = async () => {
       try {
-        const data = await client.fetch<Conversation[]>(QUERY)
+        const data = await client.fetch<Conversation[]>(QUERY, {}, {tag: 'insights.conversations'})
         setConversations(data)
         setLoading(false)
       } catch (error) {

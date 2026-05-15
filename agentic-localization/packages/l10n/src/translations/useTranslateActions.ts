@@ -296,7 +296,7 @@ export function useTranslateActions(
       const sourceDoc = await client.fetch<Record<string, unknown> | null>(
         SOURCE_DOC_QUERY,
         {id: publishedId},
-        {perspective: perspectiveStack, signal},
+        {perspective: perspectiveStack, signal, tag: 'translate.fetch'},
       )
       const sourceRevision = (sourceDoc?._rev as string) ?? undefined
       if (signal.aborted) return
@@ -337,24 +337,30 @@ export function useTranslateActions(
 
       if (!selectedReleaseId) {
         const draftId = getDraftId(resultPublishedId)
-        await client.createOrReplace({
-          ...result,
-          _id: draftId,
-          _type: documentType,
-          [config.languageField]: locale.localeId,
-        })
-      } else {
-        const versionId = getVersionId(resultPublishedId, selectedReleaseId)
-        await client.action({
-          actionType: 'sanity.action.document.version.create',
-          document: {
+        await client.createOrReplace(
+          {
             ...result,
-            _id: versionId,
+            _id: draftId,
             _type: documentType,
             [config.languageField]: locale.localeId,
           },
-          publishedId: resultPublishedId,
-        })
+          {tag: 'translate.write'},
+        )
+      } else {
+        const versionId = getVersionId(resultPublishedId, selectedReleaseId)
+        await client.action(
+          {
+            actionType: 'sanity.action.document.version.create',
+            document: {
+              ...result,
+              _id: versionId,
+              _type: documentType,
+              [config.languageField]: locale.localeId,
+            },
+            publishedId: resultPublishedId,
+          },
+          {tag: 'translate.publish'},
+        )
       }
 
       if (signal.aborted) return
@@ -391,7 +397,7 @@ export function useTranslateActions(
           },
         ]),
       )
-      await tx.commit({autoGenerateArrayKeys: true})
+      await tx.commit({autoGenerateArrayKeys: true, tag: 'translate.publish'})
     },
     [
       documentId,
@@ -475,7 +481,11 @@ export function useTranslateActions(
               source?: string
             }
           > | null
-        } | null>(APPROVE_METADATA_QUERY, {metadataId: effectiveMetadataId})
+        } | null>(
+          APPROVE_METADATA_QUERY,
+          {metadataId: effectiveMetadataId},
+          {tag: 'translate.fetch'},
+        )
         const existing = existingMeta?.workflowStates?.find((s) => s.language === localeId)
 
         // Use Studio operations for permission-aware metadata patch.
@@ -526,10 +536,18 @@ export function useTranslateActions(
         const publishedId = getPublishedId(documentId)
 
         const [sourceDoc, existingMeta] = await Promise.all([
-          client.fetch(DISMISS_SOURCE_REV_QUERY, {publishedId}, {perspective: perspectiveStack}),
+          client.fetch(
+            DISMISS_SOURCE_REV_QUERY,
+            {publishedId},
+            {perspective: perspectiveStack, tag: 'translate.fetch'},
+          ),
           client.fetch<{
             workflowStates: Array<LocalizedObject & {source?: string}> | null
-          } | null>(DISMISS_WORKFLOW_QUERY, {metadataId: effectiveMetadataId}),
+          } | null>(
+            DISMISS_WORKFLOW_QUERY,
+            {metadataId: effectiveMetadataId},
+            {tag: 'translate.fetch'},
+          ),
         ])
 
         const currentSourceRev = sourceDoc?._rev

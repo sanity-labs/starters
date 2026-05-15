@@ -2,7 +2,6 @@ import {useClient} from '@sanity/sdk-react'
 import {useCallback, useEffect, useRef, useState} from 'react'
 import {getPublishedId} from 'sanity'
 
-import {useApp} from '../contexts/AppContext'
 import {buildMetadataDocument, METADATA_EXISTS_QUERY} from '../lib/metadata'
 
 type AutoProvisionMetadataParams = {
@@ -22,8 +21,7 @@ export const useAutoProvisionMetadata = ({
   language,
   schemaType = 'article',
 }: AutoProvisionMetadataParams) => {
-  const {sanityClientConfig} = useApp()
-  const client = useClient(sanityClientConfig)
+  const client = useClient({apiVersion: '2025-05-01'})
 
   const [isProvisioning, setIsProvisioning] = useState(false)
   const [provisioningError, setProvisioningError] = useState<null | string>(null)
@@ -50,7 +48,7 @@ export const useAutoProvisionMetadata = ({
         // Double-check metadata doesn't exist
         const existingMetadata = await client.fetch(METADATA_EXISTS_QUERY, {
           docId: getPublishedId(docId),
-        })
+        }, {tag: 'check-metadata'})
 
         if (existingMetadata) {
           console.log('✅ Metadata already exists, skipping')
@@ -60,7 +58,7 @@ export const useAutoProvisionMetadata = ({
         // Create the metadata document
         const metadataDocument = buildMetadataDocument(docId, lang, schema)
 
-        await client.create(metadataDocument)
+        await client.create(metadataDocument, {tag: 'init-translation'})
 
         console.log('✅ Translation metadata auto-provisioned successfully')
       } catch (error) {

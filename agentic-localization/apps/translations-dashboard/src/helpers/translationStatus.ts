@@ -201,7 +201,7 @@ async function fetchTranslationsForDocument(
         }
       }`,
       {documentId, publishedId},
-      {perspective: 'raw'},
+      {perspective: 'raw', tag: 'assess-status'},
     )
 
     // Merge translations with priority: version (release) > published > draft

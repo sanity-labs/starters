@@ -75,7 +75,11 @@ export function CampaignGridView({document}: ViewProps) {
   const fetchPromotions = useCallback(() => {
     if (!cleanCampaignId) return
     client
-      .fetch<Promotion[]>(PROMOTIONS_QUERY, {id: cleanCampaignId}, {perspective: 'previewDrafts'})
+      .fetch<Promotion[]>(
+        PROMOTIONS_QUERY,
+        {id: cleanCampaignId},
+        {perspective: 'previewDrafts', tag: 'campaign.grid.list'},
+      )
       .then((results) => {
         setPromotions(results ?? [])
         setLoading(false)
@@ -155,13 +159,14 @@ function PromotionTile({promotion: p, client, agentClient, schemaId, onRefresh}:
       const wfIds = await client.fetch<string[]>(
         `*[_type == "workflow.state" && promotionId._ref == $id]._id`,
         {id: p._id},
+        {tag: 'campaign.grid.delete'},
       )
       for (const wfId of wfIds) {
-        await client.delete(wfId).catch(() => {})
-        await client.delete(`drafts.${wfId}`).catch(() => {})
+        await client.delete(wfId, {tag: 'campaign.grid.delete'}).catch(() => {})
+        await client.delete(`drafts.${wfId}`, {tag: 'campaign.grid.delete'}).catch(() => {})
       }
-      await client.delete(`drafts.${p._id}`).catch(() => {})
-      await client.delete(p._id)
+      await client.delete(`drafts.${p._id}`, {tag: 'campaign.grid.delete'}).catch(() => {})
+      await client.delete(p._id, {tag: 'campaign.grid.delete'})
       setDialogOpen(false)
       onRefresh()
     } catch (err) {
@@ -181,13 +186,14 @@ function PromotionTile({promotion: p, client, agentClient, schemaId, onRefresh}:
       const wfIds = await client.fetch<string[]>(
         `*[_type == "workflow.state" && promotionId._ref == $id]._id`,
         {id: p._id},
+        {tag: 'campaign.grid.regenerate'},
       )
       for (const wfId of wfIds) {
-        await client.delete(wfId).catch(() => {})
-        await client.delete(`drafts.${wfId}`).catch(() => {})
+        await client.delete(wfId, {tag: 'campaign.grid.regenerate'}).catch(() => {})
+        await client.delete(`drafts.${wfId}`, {tag: 'campaign.grid.regenerate'}).catch(() => {})
       }
-      await client.delete(`drafts.${p._id}`).catch(() => {})
-      await client.delete(p._id)
+      await client.delete(`drafts.${p._id}`, {tag: 'campaign.grid.regenerate'}).catch(() => {})
+      await client.delete(p._id, {tag: 'campaign.grid.regenerate'})
 
       // Build instruction from context
       const [campaignBrief, brandVoice, segment] = await Promise.all([
@@ -221,27 +227,33 @@ function PromotionTile({promotion: p, client, agentClient, schemaId, onRefresh}:
       })
 
       // Publish the generated draft
-      await client.action({
-        actionType: 'sanity.action.document.publish',
-        draftId: `drafts.${promotionId}`,
-        publishedId: promotionId,
-      })
+      await client.action(
+        {
+          actionType: 'sanity.action.document.publish',
+          draftId: `drafts.${promotionId}`,
+          publishedId: promotionId,
+        },
+        {tag: 'campaign.grid.regenerate'},
+      )
 
       // Create workflow state
-      await client.createOrReplace({
-        _id: `wf-${promotionId}`,
-        _type: 'workflow.state',
-        promotionId: {_type: 'reference', _ref: promotionId},
-        status: 'draft',
-        history: [
-          {
-            _key: `h-${Date.now()}`,
-            _type: 'object',
-            status: 'draft',
-            timestamp: new Date().toISOString(),
-          },
-        ],
-      })
+      await client.createOrReplace(
+        {
+          _id: `wf-${promotionId}`,
+          _type: 'workflow.state',
+          promotionId: {_type: 'reference', _ref: promotionId},
+          status: 'draft',
+          history: [
+            {
+              _key: `h-${Date.now()}`,
+              _type: 'object',
+              status: 'draft',
+              timestamp: new Date().toISOString(),
+            },
+          ],
+        },
+        {tag: 'campaign.grid.regenerate'},
+      )
 
       setDialogOpen(false)
       onRefresh()

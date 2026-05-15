@@ -29,9 +29,15 @@ export const WorkflowStateBadge: DocumentBadgeComponent = (props) => {
     if (!promotionId) return
     let cancelled = false
 
-    client.fetch<string | null>(WORKFLOW_STATE_QUERY, {id: promotionId}).then((result) => {
-      if (!cancelled && result) setStatus(result)
-    })
+    client
+      .fetch<string | null>(
+        WORKFLOW_STATE_QUERY,
+        {id: promotionId},
+        {tag: 'promotion.badge.workflow'},
+      )
+      .then((result) => {
+        if (!cancelled && result) setStatus(result)
+      })
 
     return () => {
       cancelled = true

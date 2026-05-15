@@ -209,17 +209,20 @@ export function useFieldTranslateActions(
       const doc = await client.fetch<Record<string, unknown> | null>(
         `*[_id == $id][0]`,
         {id: documentId},
-        {perspective: perspectiveStack},
+        {perspective: perspectiveStack, tag: 'translate.field.fetch'},
       )
       if (!doc) throw new Error('Document not found')
 
       // Ensure the target document (draft/version) exists before patching.
       // When the inspector opens on a published document there is no draft yet.
-      await client.createIfNotExists({
-        ...doc,
-        _id: actionDocumentId,
-        _type: documentType,
-      })
+      await client.createIfNotExists(
+        {
+          ...doc,
+          _id: actionDocumentId,
+          _type: documentType,
+        },
+        {tag: 'translate.field.write'},
+      )
 
       const fieldValue = getValueAtPath(doc, field.path)
       const entries = (Array.isArray(fieldValue) ? fieldValue : []) as InternationalizedArrayItem[]
@@ -268,7 +271,7 @@ export function useFieldTranslateActions(
         .append(fieldName, [
           {_key: entryKey, _type: itemType, language: locale.id, value: translatedEntry.value},
         ])
-        .commit()
+        .commit({tag: 'translate.field.write'})
 
       // Step 4: Patch fieldTranslation.metadata with workflow state
       const publishedId = getPublishedId(documentId)
@@ -296,7 +299,7 @@ export function useFieldTranslateActions(
             },
           ]),
       )
-      await tx.commit()
+      await tx.commit({tag: 'translate.field.write'})
     },
     [client, translate, schemaId, perspectiveStack, selectedReleaseId, metadataId, documentType],
   )
@@ -321,11 +324,14 @@ export function useFieldTranslateActions(
     const doc = await client.fetch<Record<string, unknown> | null>(
       `*[_id == $id][0]`,
       {id: documentId},
-      {perspective: perspectiveStack},
+      {perspective: perspectiveStack, tag: 'translate.field.fetch'},
     )
     if (!doc) throw new Error('Document not found')
 
-    await client.createIfNotExists({...doc, _id: actionDocumentId, _type: documentType})
+    await client.createIfNotExists(
+      {...doc, _id: actionDocumentId, _type: documentType},
+      {tag: 'translate.field.write'},
+    )
 
     // Build fieldLanguageMap + collect source data per cell
     const fieldLanguageMap: FieldLanguageMapEntry[] = []
@@ -444,7 +450,7 @@ export function useFieldTranslateActions(
     }
 
     if (signal?.aborted) return
-    await tx.commit()
+    await tx.commit({tag: 'translate.field.write'})
   }
 
   // Use ref for in-flight guard to avoid re-creating translateCell on every state change.
@@ -521,7 +527,7 @@ export function useFieldTranslateActions(
                 },
               ]),
           )
-          await tx.commit({autoGenerateArrayKeys: true})
+          await tx.commit({autoGenerateArrayKeys: true, tag: 'translate.field.write'})
         } catch (err) {
           console.error(`${LOG_PREFIX} [approve ${fieldPath}:${localeId}] Failed:`, err)
         }
@@ -574,7 +580,7 @@ export function useFieldTranslateActions(
         }
 
         if (hasEntries) {
-          await tx.commit()
+          await tx.commit({tag: 'translate.field.write'})
         }
       } catch (err) {
         console.error(`${LOG_PREFIX} [approveAll] Failed:`, err)
@@ -616,7 +622,7 @@ export function useFieldTranslateActions(
                 },
               ]),
           )
-          await tx.commit()
+          await tx.commit({tag: 'translate.field.write'})
         } catch (err) {
           console.error(`${LOG_PREFIX} [dismissStale ${fieldPath}:${localeId}] Failed:`, err)
         }
