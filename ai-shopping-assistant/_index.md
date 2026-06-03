@@ -1,6 +1,6 @@
 # Content-Powered AI Shopping Assistant
 
-Ecommerce starter with a Claude chatbot that uses Context MCP for structured access to the Content Lake.
+Ecommerce starter with a Claude chatbot that uses the Sanity Context MCP server for structured access to the Content Lake.
 
 ## When to Load Files
 
@@ -123,7 +123,7 @@ skills/add-sanity-chatbot/
 
 ### MCP Connection
 
-The API route creates an MCP client connected to the Content Lake via Context MCP, which provides `groq_query`, `schema_explorer`, and `initial_context` tools scoped to the content defined in the Agent Context document.
+The API route creates an MCP client connected to the Content Lake via the Sanity Context MCP server, which provides `groq_query`, `schema_explorer`, and `initial_context` tools scoped to the content defined in the Sanity Context document.
 
 See `app/src/app/api/chat/route.ts` lines 97-111
 

@@ -13,9 +13,9 @@ cd your-project
 pnpm import-sample-data
 ```
 
-Populates your Content Lake with products, categories, brands, and an Agent Context document (slug: `default`).
+Populates your Content Lake with products, categories, brands, and a Sanity Context document (slug: `default`).
 
-> Skip this step only if you plan to create content manually — you will need to configure Agent Context yourself in step 4.
+> Skip this step only if you plan to create content manually — you will need to configure Sanity Context yourself in step 4.
 
 ## 2. Add environment variables
 
@@ -41,9 +41,9 @@ cd studio && npx sanity cors add http://localhost:3000 --credentials
 cd studio && npx sanity deploy
 ```
 
-Pick a hostname when prompted. The Agent Context MCP endpoint requires a deployed Studio.
+Pick a hostname when prompted. The Sanity Context MCP server endpoint requires a deployed Studio.
 
-> **Skipped sample data?** Open the Studio at your hostname, go to **Agents > Agent Contexts**, create and publish a document. If its slug is not `default`, set `SANITY_CONTEXT_SLUG` in `app/.env.local`.
+> **Skipped sample data?** Open the Studio at your hostname, go to **Agents > Sanity Contexts**, create and publish a document. If its slug is not `default`, set `SANITY_CONTEXT_SLUG` in `app/.env.local`.
 
 ## 5. Start development
 

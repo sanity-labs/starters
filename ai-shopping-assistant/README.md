@@ -2,7 +2,7 @@
 
 [![AI Shopping Assistant Preview](.github/sanity-agent-context-chat-preview.png)](https://ai-shopping-assistant.sanity.dev/)
 
-An ecommerce storefront with an AI shopping assistant that operates directly on your content. Built with Next.js 16, the Sanity Studio, and Claude, this starter uses [Context MCP](https://www.sanity.io/docs/ai/agent-context) to give the AI structured, schema-aware access to products in the Content Lake. The agent does not just search text; it understands your content model and reasons over it with GROQ queries.
+An ecommerce storefront with an AI shopping assistant that operates directly on your content. Built with Next.js 16, the Sanity Studio, and Claude, this starter uses [the Sanity Context MCP server](https://www.sanity.io/docs/ai/agent-context) to give the AI structured, schema-aware access to products in the Content Lake. The agent does not just search text; it understands your content model and reasons over it with GROQ queries.
 
 **[Live Demo](https://ai-shopping-assistant.sanity.dev/)**
 
@@ -15,7 +15,7 @@ An ecommerce storefront with an AI shopping assistant that operates directly on 
 - [How the Chatbot Works](#how-the-chatbot-works)
 - [Agent Document Types](#agent-document-types)
   - [Agent Configs](#agent-configs-agentconfig)
-  - [Agent Contexts](#agent-contexts-sanityagentcontext)
+  - [Sanity Contexts](#sanity-contexts-sanityagentcontext)
   - [Agent Conversations](#agent-conversations-agentconversation)
   - [Agent Insights](#agent-insights-studio-tool)
 - [Environment Variables](#environment-variables)
@@ -153,9 +153,9 @@ Stores the **system prompt** that shapes how the chatbot behaves. The API route 
 
 **Setup:** The sample data includes a default config. To customize it, open **Agents > Agent Configs** in the Studio and edit the system prompt. Changes take effect on the next chat message.
 
-### Agent Contexts (`sanity.agentContext`)
+### Sanity Contexts (`sanity.agentContext`)
 
-Controls **what content the chatbot can access** in the Content Lake. This type is provided by the `@sanity/agent-context` plugin, not defined in your schema files.
+Controls **what content the chatbot can access** in the Content Lake. This is a Sanity Context document provided by the `@sanity/context` plugin, not defined in your schema files.
 
 | Field              | Purpose                                                                                                                        |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -163,9 +163,9 @@ Controls **what content the chatbot can access** in the Content Lake. This type 
 | **Slug**           | Used to build the MCP URL that scopes the agent's access                                                                       |
 | **Content Filter** | A GROQ filter that determines which documents the agent can query. Can be configured via a simple type-selector UI or raw GROQ |
 
-**How it works:** The app constructs the MCP URL automatically from your project ID, dataset, and the `SANITY_CONTEXT_SLUG` env var (defaults to `default`). When the chatbot connects via MCP, it can only query documents matching that content filter. This gives you fine-grained control over what the agent sees.
+**How it works:** The app constructs the MCP URL automatically from your project ID, dataset, and the `SANITY_CONTEXT_SLUG` env var (defaults to `default`). When the chatbot connects via the Sanity Context MCP server, it can only query documents matching that content filter. This gives you fine-grained control over what the agent sees.
 
-**Setup:** The bootstrap command imports sample data that includes a default Agent Context document and deploys the Studio. To customize the content filter, open **Agents > Agent Contexts** in the Studio. The MCP endpoint only works with published documents and a deployed Studio.
+**Setup:** The bootstrap command imports sample data that includes a default Sanity Context document and deploys the Studio. To customize the content filter, open **Agents > Sanity Contexts** in the Studio. The MCP endpoint only works with published documents and a deployed Studio.
 
 ### Agent Conversations (`agent.conversation`)
 
@@ -212,7 +212,7 @@ A custom Studio tool that provides an analytics dashboard for monitoring chatbot
 | `NEXT_PUBLIC_SANITY_DATASET`    | Yes      | Sanity dataset name. Usually `production`                                                                       |
 | `SANITY_API_READ_TOKEN`         | Yes      | Sanity API token with **Viewer** permissions. Create at sanity.io/manage -> API -> Tokens                       |
 | `SANITY_API_WRITE_TOKEN`        | No       | Sanity API token with **Editor** permissions. Needed for saving conversations                                   |
-| `SANITY_CONTEXT_SLUG`           | No       | Slug of the Agent Context document in Studio. Defaults to `default`                                             |
+| `SANITY_CONTEXT_SLUG`           | No       | Slug of the Sanity Context document in Studio. Defaults to `default`                                            |
 | `SANITY_AGENT_CONFIG_SLUG`      | No       | Slug of the Agent Config document in Studio. Defaults to `default`                                              |
 | `ANTHROPIC_API_KEY`             | Yes      | Your Anthropic API key from [console.anthropic.com](https://console.anthropic.com)                              |
 
@@ -236,7 +236,7 @@ See [`skills/add-sanity-chatbot/SKILL.md`](skills/add-sanity-chatbot/SKILL.md) f
 
 ## Learn More
 
-- [Agent Context docs](https://www.sanity.io/docs/ai/agent-context)
+- [Sanity Context docs](https://www.sanity.io/docs/ai/agent-context)
 - [Studio docs](https://www.sanity.io/docs/sanity-studio)
 - [Vercel AI SDK docs](https://sdk.vercel.ai/docs)
 - [Anthropic API docs](https://docs.anthropic.com/)

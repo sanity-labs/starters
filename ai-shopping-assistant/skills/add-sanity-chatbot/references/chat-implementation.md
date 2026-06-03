@@ -50,7 +50,7 @@ export async function POST(req: Request) {
 
   const contextSlug = process.env.SANITY_CONTEXT_SLUG || 'default'
   const apiVersion = new Date().toISOString().slice(0, 10)
-  const mcpUrl = `https://api.sanity.io/v${apiVersion}/agent-context/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${contextSlug}`
+  const mcpUrl = `https://api.sanity.io/v${apiVersion}/context/mcp/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${contextSlug}`
 
   const mcpClient = await createMCPClient({
     transport: {
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
 
 **Key points:**
 
-- `createMCPClient` connects to Sanity Context MCP via HTTP transport
+- `createMCPClient` connects to the Sanity Context MCP server via HTTP transport
 - `mcpClient.tools()` returns the available tools (`initial_context`, `groq_query`, `schema_explorer`)
 - `convertToModelMessages(messages)` is **required** in AI SDK v6. Do not pass raw `UIMessage[]`
 - `maxSteps: 10` allows the LLM to make multiple tool calls in sequence

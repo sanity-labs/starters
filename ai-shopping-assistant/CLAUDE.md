@@ -2,14 +2,14 @@
 
 ## Overview
 
-Ecommerce starter kit with an AI shopping assistant. A Next.js 16 storefront with a Claude chatbot that uses Context MCP for structured access to the Content Lake. The chatbot can search products, answer questions, apply filters, and display rich product cards.
+Ecommerce starter kit with an AI shopping assistant. A Next.js 16 storefront with a Claude chatbot that uses the Sanity Context MCP server for structured access to the Content Lake. The chatbot can search products, answer questions, apply filters, and display rich product cards.
 
 Two main directories: `app/` (Next.js frontend) and `studio/` (Sanity Studio). They run as separate dev servers.
 
 ## Tech Stack
 
 - **Framework**: Next.js 16 (App Router), React 19
-- **Content Operating System**: Sanity (Studio v5 with `@sanity/agent-context` plugin)
+- **Content Operating System**: Sanity (Studio v5 with `@sanity/context` plugin)
 - **AI**: Anthropic Claude (via `@ai-sdk/anthropic`), Vercel AI SDK v6, MCP client (`@ai-sdk/mcp`)
 - **Styling**: Tailwind CSS 4 (app), styled-components (studio)
 - **Language**: TypeScript (strict)

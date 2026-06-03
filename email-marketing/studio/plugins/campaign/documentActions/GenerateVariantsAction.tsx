@@ -13,7 +13,7 @@ import {
   fetchCampaignContext,
   fetchBrandVoice,
   fetchSegmentContext,
-} from '../hooks/useAgentContext'
+} from '../hooks/useSanityContext'
 
 // Prefer the draft so unpublished edits to "Target Segments" are honored;
 // fall back to the published version when no draft exists.

@@ -13,7 +13,7 @@ This directory contains sample data for the ecommerce starter kit.
 - **6 materials**: Gore-Tex Pro, Thinsulate, Carbon Fiber Composite, Polycarbonate, Merino Wool, Kevlar Blend
 - **24 products**: Spread across all categories with descriptions, prices, and color variants with AI-generated images
 - **1 agent config**: Olympic-themed shopping assistant system prompt
-- **1 agent context**: Default content access configuration (all product-related types)
+- **1 Sanity Context**: Default content access configuration (all product-related types)
 
 ## Importing
 

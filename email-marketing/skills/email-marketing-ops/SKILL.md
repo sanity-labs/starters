@@ -1,6 +1,6 @@
 ---
 name: email-marketing-ops
-description: 'Build multi-variant email campaigns with AI, streaming preview, and Klaviyo dispatch. Covers three-tier document model (campaign brief → promotion artifact → email slot), batch variant generation, multi-turn refinement, @sanity/agent-context wiring, preview accuracy badges, security (7-layer defense), and engagement feedback. Supports both greenfield (new Sanity studio) and brownfield (adding to existing) patterns. Trigger on: email marketing, variant generation, campaign dashboard, Klaviyo sync, preview service, engagement metrics, segment enrichment, email dispatch, AI refinement, campaign brief, promotion artifact, email slot.'
+description: 'Build multi-variant email campaigns with AI, streaming preview, and Klaviyo dispatch. Covers three-tier document model (campaign brief → promotion artifact → email slot), batch variant generation, multi-turn refinement, @sanity/context wiring, preview accuracy badges, security (7-layer defense), and engagement feedback. Supports both greenfield (new Sanity studio) and brownfield (adding to existing) patterns. Trigger on: email marketing, variant generation, campaign dashboard, Klaviyo sync, preview service, engagement metrics, segment enrichment, email dispatch, AI refinement, campaign brief, promotion artifact, email slot.'
 ---
 
 # Email Marketing with Sanity & Klaviyo
@@ -87,7 +87,7 @@ Read [references/architecture.md](references/architecture.md) for the full entry
 
 **Entry point**: `studio/plugins/promotion/components/VariantRefinementPanel.tsx` (placeholder → real thread ID, agent context, field-level patching)
 
-**Context wiring**: `studio/plugins/campaign/hooks/useAgentContext.ts` serializes:
+**Context wiring**: `studio/plugins/campaign/hooks/useSanityContext.ts` serializes:
 
 - Supplemental: brandVoice singleton (tone traits, style rules, legal constraints)
 - Local: campaign fields (primaryMessage, emotionalGoal, toneTraits) + segment enrichment (affinityDescription, typicalCopyTone, engagementTier) + previewContext tokens
@@ -185,7 +185,7 @@ Replace `studio/schemaTypes/reference-data/brandVoice.ts` fields:
 - emailGuidelines: subject line patterns, CTA vocabulary, urgency framing
 - legalConstraints: required disclaimers, opt-out language
 
-Editors maintain this singleton document in Studio. All AI generation pulls from it via `@sanity/agent-context`.
+Editors maintain this singleton document in Studio. All AI generation pulls from it via `@sanity/context`.
 
 ### Add New ESP (e.g., Braze)
 
@@ -204,7 +204,7 @@ Two-layer segments keep your sync idempotent. After importing from Klaviyo, enri
 - typicalCopyTone: tags (e.g., "value-conscious", "tech-savvy", "luxury-focused")
 - engagementTier: enum (low, mid, high, vip)
 
-These become part of local context for AI generation (via @sanity/agent-context). If Klaviyo updates the synced layer (name, memberCount), enrichment fields are untouched.
+These become part of local context for AI generation (via @sanity/context). If Klaviyo updates the synced layer (name, memberCount), enrichment fields are untouched.
 
 ## References
 
