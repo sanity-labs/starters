@@ -21,7 +21,7 @@ interface BrowseItem {
 
 export function BrowsePanel() {
   const {data, isPending} = useQuery({query: BROWSE_QUERY})
-  const items = (data ?? []) as unknown as BrowseItem[]
+  const items = useMemo(() => (data ?? []) as unknown as BrowseItem[], [data])
 
   const [importance, setImportance] = useState<string>('all')
   const [category, setCategory] = useState<string>('all')
