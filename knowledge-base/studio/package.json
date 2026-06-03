@@ -1,0 +1,32 @@
+{
+  "name": "studio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "sanity dev",
+    "build": "sanity build",
+    "deploy": "sanity deploy",
+    "typegen": "sanity schema extract && sanity typegen generate",
+    "seed:generate": "tsx scripts/generate-seed.ts",
+    "bootstrap": "sanity exec scripts/bootstrap.ts --with-user-token",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sanity/agent-context": "catalog:",
+    "@sanity/icons": "catalog:",
+    "@sanity/ui": "catalog:",
+    "@sanity/vision": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "sanity": "catalog:",
+    "styled-components": "catalog:"
+  },
+  "devDependencies": {
+    "@starter/tsconfig": "workspace:*",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tsx": "^4.21.0",
+    "typescript": "catalog:"
+  }
+}
