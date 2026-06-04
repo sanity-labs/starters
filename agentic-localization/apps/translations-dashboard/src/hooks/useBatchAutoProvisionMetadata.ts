@@ -29,9 +29,13 @@ export const useBatchAutoProvisionMetadata = () => {
       for (const doc of documents) {
         try {
           // Double-check metadata doesn't exist
-          const existingMetadata = await client.fetch(METADATA_EXISTS_QUERY, {
-            docId: getPublishedId(doc._id),
-          }, {tag: 'check-metadata'})
+          const existingMetadata = await client.fetch(
+            METADATA_EXISTS_QUERY,
+            {
+              docId: getPublishedId(doc._id),
+            },
+            {tag: 'check-metadata'},
+          )
 
           if (existingMetadata) {
             console.log(`✅ Metadata already exists for ${doc._id}, skipping`)

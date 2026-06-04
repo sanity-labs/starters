@@ -64,11 +64,14 @@ export const useCreateMissingTranslations = () => {
         let metadataDoc = fetchedMetadata
         if (!metadataDoc) {
           const sourceRef = createReference(baseLanguage, baseDocumentId, documentType)
-          const created = await client.create({
-            _type: 'translation.metadata',
-            schemaTypes: [documentType],
-            translations: [sourceRef],
-          }, {tag: 'init-translation'})
+          const created = await client.create(
+            {
+              _type: 'translation.metadata',
+              schemaTypes: [documentType],
+              translations: [sourceRef],
+            },
+            {tag: 'init-translation'},
+          )
           metadataDoc = {
             _id: created._id,
             translations: [sourceRef],
@@ -108,15 +111,17 @@ export const useCreateMissingTranslations = () => {
 
           try {
             const result = await translateClient
-              .withConfig({requestTagPrefix: `${translateClient.config().requestTagPrefix}.create-translation`})
+              .withConfig({
+                requestTagPrefix: `${translateClient.config().requestTagPrefix}.create-translation`,
+              })
               .agent.action.translate({
-              documentId: baseDocumentId,
-              fromLanguage: {id: baseLanguage, title: baseLanguage},
-              languageFieldPath: translationsConfig.languageField,
-              schemaId: '_.schemas.default',
-              targetDocument: {operation: 'create'},
-              toLanguage: {id: locale.id, title: locale.title},
-            })
+                documentId: baseDocumentId,
+                fromLanguage: {id: baseLanguage, title: baseLanguage},
+                languageFieldPath: translationsConfig.languageField,
+                schemaId: '_.schemas.default',
+                targetDocument: {operation: 'create'},
+                toLanguage: {id: locale.id, title: locale.title},
+              })
 
             if (result) {
               const transaction = client.transaction()
@@ -167,11 +172,14 @@ export const useCreateMissingTranslations = () => {
 
               const publishedId = getPublishedId(result._id as DocumentId)
 
-              await client.action({
-                actionType: 'sanity.action.document.publish',
-                draftId: result._id,
-                publishedId: publishedId,
-              }, {tag: 'publish-translation'})
+              await client.action(
+                {
+                  actionType: 'sanity.action.document.publish',
+                  draftId: result._id,
+                  publishedId: publishedId,
+                },
+                {tag: 'publish-translation'},
+              )
 
               if (i === missingLocales.length - 1) {
                 setIsCreating(false)

@@ -22,7 +22,10 @@ const SANITY_CONFIG: SanityConfig = {
   projectId: import.meta.env.SANITY_APP_PROJECT_ID,
   auth: {
     clientFactory: (config) =>
-      createClient({...config, requestTagPrefix: `${config.requestTagPrefix}.agentic-localization`}),
+      createClient({
+        ...config,
+        requestTagPrefix: `${config.requestTagPrefix}.agentic-localization`,
+      }),
   },
 }
 
@@ -52,10 +55,7 @@ function App() {
       <div className="w-[900px]">
         <SanityUI>
           <SanityApp config={SANITY_CONFIG} fallback={<DashboardSkeleton />}>
-            <AppContextProvider
-              config={appConfig}
-              translationsConfig={TRANSLATIONS_CONFIG}
-            >
+            <AppContextProvider config={appConfig} translationsConfig={TRANSLATIONS_CONFIG}>
               <ErrorBoundary featureName="Translations Dashboard">
                 <BrowserRouter>
                   <Routes>

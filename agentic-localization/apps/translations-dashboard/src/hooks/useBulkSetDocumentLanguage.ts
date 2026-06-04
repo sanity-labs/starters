@@ -65,7 +65,11 @@ export const useBulkSetDocumentLanguage = () => {
 
           try {
             // 1. Check if document already has language set
-            const existingDoc = await client.fetch(DOC_LANGUAGE_QUERY, {docId}, {tag: 'check-language'})
+            const existingDoc = await client.fetch(
+              DOC_LANGUAGE_QUERY,
+              {docId},
+              {tag: 'check-language'},
+            )
 
             if (existingDoc?.language) {
               console.log(`⏭️  Skipping ${docId} - already has language: ${existingDoc.language}`)
@@ -81,11 +85,14 @@ export const useBulkSetDocumentLanguage = () => {
             // 4. Create metadata document
             await client.create(metadataDocument, {tag: 'init-translation'})
 
-            await client.action({
-              actionType: 'sanity.action.document.publish',
-              draftId: docId,
-              publishedId: getPublishedId(docId),
-            }, {tag: 'publish-language'})
+            await client.action(
+              {
+                actionType: 'sanity.action.document.publish',
+                draftId: docId,
+                publishedId: getPublishedId(docId),
+              },
+              {tag: 'publish-language'},
+            )
 
             successCount++
             console.log(`✅ Set language for document ${i + 1}/${documentIds.length}: ${docId}`)

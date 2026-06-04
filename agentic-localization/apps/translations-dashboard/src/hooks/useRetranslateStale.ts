@@ -102,15 +102,17 @@ export function useRetranslateStale(aggregateData: AggregateData) {
               }
 
               await translateClient
-                .withConfig({requestTagPrefix: `${translateClient.config().requestTagPrefix}.retranslate`})
+                .withConfig({
+                  requestTagPrefix: `${translateClient.config().requestTagPrefix}.retranslate`,
+                })
                 .agent.action.translate({
-                documentId: target.baseDocId,
-                fromLanguage: {id: resolvedDefaultLanguage, title: resolvedDefaultLanguage},
-                languageFieldPath: translationsConfig.languageField,
-                schemaId: '_.schemas.default',
-                targetDocument: {_id: translationRef.ref, operation: 'edit'},
-                toLanguage: {id: target.localeTag, title: target.localeName},
-              })
+                  documentId: target.baseDocId,
+                  fromLanguage: {id: resolvedDefaultLanguage, title: resolvedDefaultLanguage},
+                  languageFieldPath: translationsConfig.languageField,
+                  schemaId: '_.schemas.default',
+                  targetDocument: {_id: translationRef.ref, operation: 'edit'},
+                  toLanguage: {id: target.localeTag, title: target.localeName},
+                })
 
               // Update workflow state to needsReview after re-translation.
               // Include sourceRevision so the stale detection function knows

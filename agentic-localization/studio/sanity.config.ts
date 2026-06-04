@@ -75,7 +75,10 @@ export default defineConfig({
   dataset,
 
   unstable_clientFactory: (options) =>
-    createClient({...options, requestTagPrefix: `${options.requestTagPrefix}.agentic-localization`}),
+    createClient({
+      ...options,
+      requestTagPrefix: `${options.requestTagPrefix}.agentic-localization`,
+    }),
 
   document: {
     newDocumentOptions: (prev) =>

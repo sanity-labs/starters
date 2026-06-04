@@ -43,10 +43,7 @@ export function AppContextProvider({
   translationsConfig,
 }: AppContextProviderProps) {
   return (
-    <TranslationConfigProvider
-      config={config}
-      translationsConfig={translationsConfig}
-    >
+    <TranslationConfigProvider config={config} translationsConfig={translationsConfig}>
       <SelectionProvider initialDocumentType={config.schemaTypes[0] || 'article'}>
         <TranslationProgressProvider>{children}</TranslationProgressProvider>
       </SelectionProvider>
