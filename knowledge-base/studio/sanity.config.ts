@@ -1,4 +1,5 @@
 import {agentContextPlugin} from '@sanity/agent-context/studio'
+import {createClient} from '@sanity/client'
 import {visionTool} from '@sanity/vision'
 import {defineConfig} from 'sanity'
 import {defineDocuments, presentationTool} from 'sanity/presentation'
@@ -18,6 +19,9 @@ export default defineConfig({
 
   projectId,
   dataset,
+
+  unstable_clientFactory: (options) =>
+    createClient({...options, requestTagPrefix: `${options.requestTagPrefix}.knowledge-base`}),
 
   plugins: [
     structureTool({structure}),

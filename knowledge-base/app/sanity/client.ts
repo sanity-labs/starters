@@ -5,6 +5,7 @@ export const client = createClient({
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
   apiVersion: '2025-03-01',
   useCdn: true,
+  requestTagPrefix: 'frontend.knowledge-base',
   stega: {
     studioUrl: process.env.NEXT_PUBLIC_SANITY_STUDIO_URL || '/studio',
   },
