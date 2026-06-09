@@ -8,6 +8,10 @@ import {z} from 'zod'
 
 import {MODEL_ID, SYSTEM_PROMPT} from './constants'
 
+try {
+  process.loadEnvFile(new URL('../.env', import.meta.url))
+} catch {}
+
 // Chat proxy for the App SDK dashboard. Holds the INTERNAL read token and calls
 // the internal Agent Context (Team KB). The App SDK app is browser-only and
 // can't hold a token, so this server is the secret boundary.
