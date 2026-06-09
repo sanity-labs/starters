@@ -9,7 +9,7 @@ import {
   fetchBrandVoice,
   fetchCampaignContext,
   fetchSegmentContext,
-} from '../hooks/useAgentContext'
+} from '../hooks/useSanityContext'
 
 const previewUrl = process.env.SANITY_STUDIO_PREVIEW_URL ?? 'http://localhost:3000'
 

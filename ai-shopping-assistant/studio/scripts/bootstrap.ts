@@ -8,7 +8,7 @@
  *  4. Deploy blueprint (CORS, dataset, robot token, functions)
  *  5. Deploy schema to the Content Lake
  *  6. Import sample data (tar.gz)
- *  7. Deploy Studio (required for Agent Context MCP endpoint)
+ *  7. Deploy Studio (required for the Sanity Context MCP server endpoint)
  *  8. Set Anthropic API key on the deployed function
  *  9. Restore dependencies (blueprint deploy can disrupt node_modules)
  *
@@ -317,7 +317,7 @@ try {
 }
 
 // ── 7. Deploy Studio ────────────────────────────────────────────────────────
-// Required for the Agent Context MCP endpoint to work.
+// Required for the Sanity Context MCP server endpoint to work.
 
 heading('Deploy Studio')
 

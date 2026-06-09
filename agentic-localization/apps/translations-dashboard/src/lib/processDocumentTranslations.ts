@@ -163,27 +163,33 @@ export async function processDocumentTranslationsWithProgress(
 
             if (createAsDraft) {
               const draftId = `drafts.${publishedId}`
-              await client.createOrReplace({
-                ...processedResult,
-                _id: draftId,
-                _type: documentType,
-                createdBy: currentUser?.id,
-                language: locale.id,
-              }, {tag: 'write-draft'})
-              finalDocId = draftId
-            } else {
-              const versionId = `versions.${targetRelease}.${publishedId}`
-              await client.action({
-                actionType: 'sanity.action.document.version.create',
-                document: {
+              await client.createOrReplace(
+                {
                   ...processedResult,
-                  _id: versionId,
+                  _id: draftId,
                   _type: documentType,
                   createdBy: currentUser?.id,
                   language: locale.id,
                 },
-                publishedId: publishedId,
-              }, {tag: 'write-to-release'})
+                {tag: 'write-draft'},
+              )
+              finalDocId = draftId
+            } else {
+              const versionId = `versions.${targetRelease}.${publishedId}`
+              await client.action(
+                {
+                  actionType: 'sanity.action.document.version.create',
+                  document: {
+                    ...processedResult,
+                    _id: versionId,
+                    _type: documentType,
+                    createdBy: currentUser?.id,
+                    language: locale.id,
+                  },
+                  publishedId: publishedId,
+                },
+                {tag: 'write-to-release'},
+              )
               finalDocId = versionId
 
               try {

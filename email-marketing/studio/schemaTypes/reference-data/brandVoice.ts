@@ -3,7 +3,7 @@ import {defineField, defineType} from 'sanity'
 /**
  * Brand Voice (singleton)
  *
- * Supplemental context for @sanity/agent-context.
+ * Supplemental context for @sanity/context.
  * Brand-wide tone traits, writing style, prohibitions, legal constraints.
  */
 export const brandVoice = defineType({

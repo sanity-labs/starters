@@ -56,11 +56,14 @@ export const useSetDocumentLanguage = () => {
 
         console.log('✅ Document language set successfully')
 
-        await client.action({
-          actionType: 'sanity.action.document.publish',
-          draftId: docId,
-          publishedId: getPublishedId(docId),
-        }, {tag: 'publish-language'})
+        await client.action(
+          {
+            actionType: 'sanity.action.document.publish',
+            draftId: docId,
+            publishedId: getPublishedId(docId),
+          },
+          {tag: 'publish-language'},
+        )
 
         toast.push({
           description: 'Created translation metadata',

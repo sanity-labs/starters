@@ -412,11 +412,7 @@ export const handler = documentEventHandler<AnalyzeStaleEventData>(async ({conte
     // Fetch glossary data once (shared across all locales)
     let glossaries: Glossary[] = []
     try {
-      glossaries = await client.fetch<Glossary[]>(
-        GLOSSARIES_QUERY,
-        {},
-        {tag: 'get-glossaries'},
-      )
+      glossaries = await client.fetch<Glossary[]>(GLOSSARIES_QUERY, {}, {tag: 'get-glossaries'})
     } catch {
       console.warn(`[AnalyzeStale] Failed to fetch glossaries — continuing without`)
     }

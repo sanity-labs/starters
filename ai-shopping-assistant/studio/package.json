@@ -16,7 +16,7 @@
     "deploy-graphql": "sanity graphql deploy"
   },
   "dependencies": {
-    "@sanity/agent-context": "^0.2.0",
+    "@sanity/context": "^0.7.0",
     "@sanity/icons": "^3.7.4",
     "@sanity/ui": "^3.1.11",
     "@sanity/vision": "^5.12.0",

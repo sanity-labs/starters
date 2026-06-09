@@ -114,13 +114,16 @@ export async function executeTranslation({
 
   if (createAsDraft) {
     const draftId = `drafts.${publishedId}`
-    await client.createOrReplace({
-      ...processedResult,
-      _id: draftId,
-      _type: documentType,
-      createdBy: currentUserId,
-      language: language.id,
-    }, {tag: 'write-draft'})
+    await client.createOrReplace(
+      {
+        ...processedResult,
+        _id: draftId,
+        _type: documentType,
+        createdBy: currentUserId,
+        language: language.id,
+      },
+      {tag: 'write-draft'},
+    )
     finalDocId = draftId
 
     if (metadataId) {
@@ -133,17 +136,20 @@ export async function executeTranslation({
     }
   } else {
     const versionId = `versions.${targetRelease}.${publishedId}`
-    await client.action({
-      actionType: 'sanity.action.document.version.create',
-      document: {
-        ...processedResult,
-        _id: versionId,
-        _type: documentType,
-        createdBy: currentUserId,
-        language: language.id,
+    await client.action(
+      {
+        actionType: 'sanity.action.document.version.create',
+        document: {
+          ...processedResult,
+          _id: versionId,
+          _type: documentType,
+          createdBy: currentUserId,
+          language: language.id,
+        },
+        publishedId,
       },
-      publishedId,
-    }, {tag: 'write-to-release'})
+      {tag: 'write-to-release'},
+    )
     finalDocId = versionId
 
     if (metadataId && targetRelease) {

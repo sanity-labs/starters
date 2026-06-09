@@ -7,7 +7,7 @@ import {CLIENT_TOOLS, productFiltersSchema, type UserContext} from '@/lib/client
 import {saveConversation} from '@/lib/save-conversation'
 import {client} from '@/sanity/lib/client'
 
-// Slugs for Sanity Agent Context and Agent Config — override via env vars if needed
+// Slugs for Sanity Context and Agent Config — override via env vars if needed
 const contextSlug = process.env.SANITY_CONTEXT_SLUG || 'default'
 const agentConfigSlug = process.env.SANITY_AGENT_CONFIG_SLUG || 'default'
 // Claude model used for chat responses (https://docs.anthropic.com/en/docs/about-claude/models)
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
   }
 
   const apiVersion = new Date().toISOString().slice(0, 10)
-  const mcpUrl = `https://api.sanity.io/v${apiVersion}/agent-context/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${contextSlug}`
+  const mcpUrl = `https://api.sanity.io/v${apiVersion}/context/mcp/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${contextSlug}`
 
   const [mcpClient, agentConfig] = await Promise.all([
     createMCPClient({

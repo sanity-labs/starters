@@ -206,7 +206,7 @@ export function fetchSegmentContext(
   )
 }
 
-export function useAgentContext(campaignId: string, segmentId?: string): string | null {
+export function useSanityContext(campaignId: string, segmentId?: string): string | null {
   const client = useClient({apiVersion: '2026-04-08'})
   const [instruction, setInstruction] = useState<string | null>(null)
 

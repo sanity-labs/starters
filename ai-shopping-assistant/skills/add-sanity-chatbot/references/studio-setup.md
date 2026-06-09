@@ -1,20 +1,20 @@
-# Studio Setup: Adding Agent Context to Your Existing Studio
+# Studio Setup: Adding Sanity Context to Your Existing Studio
 
-Configure the Sanity Context plugin in your existing Studio to create agent context documents that scope what content the chatbot can access.
+Configure the Sanity Context plugin in your existing Studio to create Sanity Context documents that scope what content the chatbot can access.
 
 ## 1. Install the Package
 
 In your Studio project directory:
 
 ```bash
-npm install @sanity/agent-context
+npm install @sanity/context
 ```
 
 **Version requirements:**
 
 | Package                 | Version | Notes                 |
 | ----------------------- | ------- | --------------------- |
-| `@sanity/agent-context` | latest  | Check npm for current |
+| `@sanity/context`       | latest  | Check npm for current |
 | `sanity`                | ^5.8.0  | Studio v5.1.0+        |
 
 ## 2. Add the Plugin to Your Config
@@ -22,13 +22,13 @@ npm install @sanity/agent-context
 Open your `sanity.config.ts` and add the plugin:
 
 ```ts
-import { agentContextPlugin } from "@sanity/agent-context/studio";
+import { contextPlugin } from "@sanity/context/studio";
 
 export default defineConfig({
   // ... your existing config (name, projectId, dataset, etc.)
   plugins: [
     // ... your existing plugins
-    agentContextPlugin(),
+    contextPlugin(),
   ],
 });
 ```
@@ -42,7 +42,7 @@ If you want to organize agent-related documents under a dedicated section in the
 ```ts
 import { defineConfig } from "sanity";
 import { structureTool, type StructureBuilder, type ListItemBuilder } from "sanity/structure";
-import { agentContextPlugin } from "@sanity/agent-context/studio";
+import { contextPlugin } from "@sanity/context/studio";
 // ... your other imports
 
 // Types to group under the "Agents" section in the desk
@@ -70,15 +70,15 @@ export default defineConfig({
           ]);
       },
     }),
-    agentContextPlugin(),
+    contextPlugin(),
     // ... your other plugins
   ],
 });
 ```
 
-## 3. Create an Agent Context Document
+## 3. Create a Sanity Context Document
 
-Open your Studio and create a new **Agent Context** document. Fill in:
+Open your Studio and create a new **Sanity Context** document. Fill in:
 
 | Field              | Description                                               |
 | ------------------ | --------------------------------------------------------- |
@@ -115,24 +115,24 @@ The filter UI provides two modes:
 
 ## 4. Copy the MCP URL
 
-Once the Agent Context document has a slug, the MCP URL appears at the top of the document form:
+Once the Sanity Context document has a slug, the MCP URL appears at the top of the document form:
 
 ```
-https://api.sanity.io/:apiVersion/agent-context/:projectId/:dataset/:slug
+https://api.sanity.io/:apiVersion/context/mcp/:projectId/:dataset/:slug
 ```
 
 If your slug is not `default`, set `SANITY_CONTEXT_SLUG` in your Next.js app's environment variables. The MCP URL is constructed automatically from your project ID, dataset, and this slug.
 
 ## 5. Publish the Document
 
-The Agent Context document **must be published** for the MCP endpoint to work. Drafts are not accessible via the MCP URL.
+The Sanity Context document **must be published** for the MCP endpoint to work. Drafts are not accessible via the MCP URL.
 
 ## 6. Validate MCP Access (Optional)
 
 Before building anything, verify the MCP endpoint is reachable:
 
 ```bash
-curl -X POST https://api.sanity.io/vX/agent-context/YOUR_PROJECT_ID/YOUR_DATASET/YOUR_SLUG \
+curl -X POST https://api.sanity.io/vX/context/mcp/YOUR_PROJECT_ID/YOUR_DATASET/YOUR_SLUG \
   -H "Authorization: Bearer $SANITY_API_READ_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}'

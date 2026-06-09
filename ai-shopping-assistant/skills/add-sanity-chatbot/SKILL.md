@@ -5,7 +5,7 @@ description: Add an AI chatbot that operates on your Content Lake to an existing
 
 # Add an AI Chatbot That Operates on Your Content
 
-Add an AI chatbot to your existing Next.js + Sanity project. The chatbot connects to the Content Lake via Context MCP, giving the LLM structured, schema-aware access to your content. It can answer questions, run GROQ queries, and reason over your data, not just match keywords.
+Add an AI chatbot to your existing Next.js + Sanity project. The chatbot connects to the Content Lake via the Sanity Context MCP server, giving the LLM structured, schema-aware access to your content. It can answer questions, run GROQ queries, and reason over your data, not just match keywords.
 
 **What this gives you:**
 
@@ -33,9 +33,9 @@ Gather these credentials:
 
 ## Workflow
 
-### Step 1: Set Up Agent Context in Studio
+### Step 1: Set Up Sanity Context in Studio
 
-Install the plugin and create an agent context document to scope what content the chatbot can access.
+Install the plugin and create a Sanity Context document to scope what content the chatbot can access.
 
 See [references/studio-setup.md](references/studio-setup.md)
 
@@ -79,7 +79,7 @@ NEXT_PUBLIC_SANITY_DATASET=production
 # Sanity API token with read access
 SANITY_API_READ_TOKEN=your-read-token
 
-# Agent Context slug (optional, defaults to "default")
+# Sanity Context slug (optional, defaults to "default")
 # SANITY_CONTEXT_SLUG=default
 
 # LLM API key
@@ -143,7 +143,7 @@ For more prompt examples (e-commerce, docs, support), see the system prompts gui
 Once the chatbot works, explore your dataset and build a production-quality system prompt:
 
 ```bash
-npx skills add https://github.com/sanity-io/agent-context --skill optimize-agent-prompt
+npx skills add https://github.com/sanity-io/context --skill optimize-agent-prompt
 ```
 
 ## Important Notes
@@ -171,12 +171,12 @@ If you are using Next.js 16 with Turbopack (the default dev bundler), you may en
 
 ### MCP URL Format
 
-The Context MCP URL has two forms:
+The Sanity Context MCP server URL has two forms:
 
-- **Base URL** (all content): `https://api.sanity.io/:apiVersion/agent-context/:projectId/:dataset`
-- **Scoped URL** (filtered content): `https://api.sanity.io/:apiVersion/agent-context/:projectId/:dataset/:slug`
+- **Base URL** (all content): `https://api.sanity.io/:apiVersion/context/mcp/:projectId/:dataset`
+- **Scoped URL** (filtered content): `https://api.sanity.io/:apiVersion/context/mcp/:projectId/:dataset/:slug`
 
-Use the scoped URL for production. It limits what content the agent can access based on the GROQ filter in your Agent Context document.
+Use the scoped URL for production. It limits what content the agent can access based on the GROQ filter in your Sanity Context document.
 
 ### Available MCP Tools
 
@@ -190,7 +190,7 @@ Use the scoped URL for production. It limits what content the agent can access b
 
 ### MCP connection fails
 
-1. Create an Agent Context document in Studio and give it a slug
+1. Create a Sanity Context document in Studio and give it a slug
 2. If the slug is not `default`, set `SANITY_CONTEXT_SLUG` in `.env.local`
 3. Ensure the Studio is deployed (`npx sanity deploy`)
 
@@ -200,7 +200,7 @@ Your `SANITY_API_READ_TOKEN` is missing or invalid. Generate a new token at [san
 
 ### "No documents found" / Empty results
 
-Check your Agent Context document's content filter:
+Check your Sanity Context document's content filter:
 
 - Is the GROQ filter correct?
 - Are the document types spelled correctly?
@@ -210,11 +210,11 @@ Check your Agent Context document's content filter:
 
 1. Log `mcpClient.tools()` to verify tools are returned
 2. Check the MCP URL (project ID, dataset, slug)
-3. Verify the Agent Context document is **published**
+3. Verify the Sanity Context document is **published**
 
-### Context MCP returns errors or no schema
+### The Sanity Context MCP server returns errors or no schema
 
-Context MCP needs your schema deployed server-side. This happens automatically when Studio runs, but if it's not working:
+The Sanity Context MCP server needs your schema deployed server-side. This happens automatically when Studio runs, but if it's not working:
 
 1. Ensure Studio is v5.1.0+
 2. Open your Studio in a browser (triggers schema deployment)

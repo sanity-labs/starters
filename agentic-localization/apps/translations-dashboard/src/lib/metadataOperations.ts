@@ -29,24 +29,35 @@ export async function fetchOrCreateMetadata(
   documentType: string,
 ): Promise<MetadataDoc> {
   const publishedId = getPublishedId(baseDocumentId)
-  const fetched = await client.fetch<MetadataDoc | null>(METADATA_WITH_TRANSLATIONS_QUERY, {
-    documentId: publishedId,
-  }, {tag: 'load-metadata'})
+  const fetched = await client.fetch<MetadataDoc | null>(
+    METADATA_WITH_TRANSLATIONS_QUERY,
+    {
+      documentId: publishedId,
+    },
+    {tag: 'load-metadata'},
+  )
 
   if (fetched) return fetched
 
   const sourceRef = createReference(baseLanguage, getPublishedId(baseDocumentId), documentType)
   const metadataId = getTranslationMetadataId(publishedId)
-  await client.createIfNotExists({
-    _id: metadataId,
-    _type: 'translation.metadata',
-    schemaTypes: [documentType],
-    translations: [sourceRef],
-  }, {tag: 'init-translation'})
+  await client.createIfNotExists(
+    {
+      _id: metadataId,
+      _type: 'translation.metadata',
+      schemaTypes: [documentType],
+      translations: [sourceRef],
+    },
+    {tag: 'init-translation'},
+  )
   // Re-fetch to get backend-generated _key values on array items
-  return (await client.fetch<MetadataDoc>(METADATA_WITH_TRANSLATIONS_QUERY, {
-    documentId: publishedId,
-  }, {tag: 'load-metadata'}))!
+  return (await client.fetch<MetadataDoc>(
+    METADATA_WITH_TRANSLATIONS_QUERY,
+    {
+      documentId: publishedId,
+    },
+    {tag: 'load-metadata'},
+  ))!
 }
 
 /**

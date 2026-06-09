@@ -18,10 +18,9 @@ export type Locale = {
  * to match the starter project's locale schema.
  */
 export async function getLocales(client: SanityClient): Promise<Locale[]> {
-  const locales =
-    await client.fetch<
-      Array<{code: string; fallbackCode: null | string; flag: string; title: string}>
-    >(LOCALES_QUERY, {}, {tag: 'list-locales'})
+  const locales = await client.fetch<
+    Array<{code: string; fallbackCode: null | string; flag: string; title: string}>
+  >(LOCALES_QUERY, {}, {tag: 'list-locales'})
 
   return locales.map((locale) => ({
     fallbackLocale: locale.fallbackCode,

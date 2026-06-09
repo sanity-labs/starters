@@ -42,7 +42,11 @@ export async function postProcessTranslation({
     }
   }
 
-  const baseDoc = await client.fetch(`*[_id == $id][0]`, {id: baseDocumentId}, {tag: 'restore-images'})
+  const baseDoc = await client.fetch(
+    `*[_id == $id][0]`,
+    {id: baseDocumentId},
+    {tag: 'restore-images'},
+  )
   processedResult = restoreImageCropHotspot(baseDoc, processedResult) as typeof processedResult
 
   return processedResult

@@ -164,7 +164,7 @@ Domain plugins live under `studio/plugins/` and own their schema, document actio
   - "Generate variants" — calls `client.agent.action.generate()` per selected segment; creates base + N segment-variant promotions + companion workflow.state docs
   - Multi-turn refinement UI accessible via promotion detail (moved to promotion plugin; triggered from campaign context)
 - **Views**: `<CampaignGrid>` Structure Builder view — custom view on campaign document pane showing all variant promotions side-by-side as Shadow DOM tiles with local MJML renders
-- **Agent Context wiring**: Campaign document is configured as context source for `@sanity/agent-context` (brief fields + brand voice + segment profiles + previewContext)
+- **Agent Context wiring**: Campaign document is configured as context source for `@sanity/context` (brief fields + brand voice + segment profiles + previewContext)
 
 **`studio/plugins/promotion/`**
 
@@ -277,7 +277,7 @@ Domain plugins live under `studio/plugins/` and own their schema, document actio
 - Accepted changes auto-update the live promotion document
 - Uses `createStudioAgent(client, workspace)` (v0.6.0+) for Studio session auth inheritance; no explicit token in browser
 
-**No manual prompt assembly**: All context injection is declarative via `@sanity/agent-context` on `campaign` document. Schema change to add a field to campaign automatically includes it in the context — no code changes to prompt assembly logic.
+**No manual prompt assembly**: All context injection is declarative via `@sanity/context` on `campaign` document. Schema change to add a field to campaign automatically includes it in the context — no code changes to prompt assembly logic.
 
 **Personalization awareness**: `campaign.previewContext` is serialized as context, so Content Agent API generation understands available tokens ({{first_name}}, {{last_purchase_date}}) and incorporates them naturally in generated copy, not treating them as opaque syntax.
 
@@ -396,7 +396,7 @@ Following the agentic-localization starter's two-level pattern:
 - `campaign` document fields (brief intent, toneTraits, emotionalGoal, primaryMessage, previewContext)
 - Referenced `segment` enrichment fields (affinityDescription, typicalCopyTone, engagementTier)
 
-**Injection**: `@sanity/agent-context` on `campaign` document serializes both tiers and injects them into all Content Agent API calls (batch generation, refinement, ad-hoc variants). No manual `promptAssembly.ts` — context is declarative.
+**Injection**: `@sanity/context` on `campaign` document serializes both tiers and injects them into all Content Agent API calls (batch generation, refinement, ad-hoc variants). No manual `promptAssembly.ts` — context is declarative.
 
 **AI in-context**: Every `client.agent.action.generate()` call sees:
 
@@ -496,7 +496,7 @@ Recommend **Vitest** (already used in many Sanity starters) for unit tests of pa
 
 ### Ahead-of-Product Dependencies
 
-Three surfaces are shipped as GA (`@sanity/agent-context`, Content Agent API, Sanity Functions); four are ahead of product or require custom integration:
+Three surfaces are shipped as GA (`@sanity/context`, Content Agent API, Sanity Functions); four are ahead of product or require custom integration:
 
 1. **Portable Text → email-safe HTML renderer** — No shipped `@portabletext/to-mjml` package. The starter ships `@starter/render-email` with MJML rendering (uses the `mjml` npm package directly). For Portable Text fields (e.g., disclaimers, CTAs), the starter ships a helper; production use should consider upgrading to a shipped renderer when available.
 
@@ -543,7 +543,7 @@ campaign
 ├── toneTraits
 ├── segments (references → segment[])
 ├── previewContext (key-value map)
-└── @sanity/agent-context wiring
+└── @sanity/context wiring
     ├── Serializes campaign fields (local context)
     └── Serializes brandVoice singleton (supplemental)
 

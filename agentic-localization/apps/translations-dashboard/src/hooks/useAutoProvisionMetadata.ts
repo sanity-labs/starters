@@ -46,9 +46,13 @@ export const useAutoProvisionMetadata = ({
         })
 
         // Double-check metadata doesn't exist
-        const existingMetadata = await client.fetch(METADATA_EXISTS_QUERY, {
-          docId: getPublishedId(docId),
-        }, {tag: 'check-metadata'})
+        const existingMetadata = await client.fetch(
+          METADATA_EXISTS_QUERY,
+          {
+            docId: getPublishedId(docId),
+          },
+          {tag: 'check-metadata'},
+        )
 
         if (existingMetadata) {
           console.log('✅ Metadata already exists, skipping')
