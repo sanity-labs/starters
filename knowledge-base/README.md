@@ -10,6 +10,8 @@ pnpm create sanity@latest --template sanity-labs/starters/knowledge-base
 
 One Sanity dataset feeds two AI surfaces through two scoped [Agent Context](https://www.sanity.io/docs) (hosted MCP) configurations:
 
+> The seed data ships with **Beacon**, a fictional customer-engagement SaaS — replace it with your own content. Everything Beacon-branded lives in `studio/scripts/generate-seed.ts`.
+
 | Workspace               | What it is                                                                                                                             |
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | **`studio/`**           | Sanity Studio — content model, governance (Needs Review queue, review-clock Function), Agent Context configs, Content Health dashboard |
