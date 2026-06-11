@@ -3,8 +3,17 @@
 import {useChat} from '@ai-sdk/react'
 import {lastAssistantMessageIsCompleteWithToolCalls} from 'ai'
 import {useState} from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 import {ResultCards} from './result-cards'
+
+const TOOL_LABELS: Record<string, string> = {
+  initial_context: 'Reading the knowledge base structure',
+  groq_query: 'Searching the knowledge base',
+  schema_explorer: 'Checking content details',
+  array_field_reader: 'Reading content',
+}
 
 const SUGGESTIONS = [
   'How do I authenticate my sending domain?',
@@ -53,16 +62,19 @@ export function Chat() {
             >
               {message.parts.map((part, i) => {
                 if (part.type === 'text' && part.text.trim()) {
+                  if (message.role === 'user') {
+                    return (
+                      <div
+                        key={i}
+                        className="max-w-[80%] whitespace-pre-wrap rounded-2xl bg-blue-600 px-4 py-2 text-sm text-white"
+                      >
+                        {part.text}
+                      </div>
+                    )
+                  }
                   return (
-                    <div
-                      key={i}
-                      className={
-                        message.role === 'user'
-                          ? 'max-w-[80%] whitespace-pre-wrap rounded-2xl bg-blue-600 px-4 py-2 text-sm text-white'
-                          : 'max-w-[80%] whitespace-pre-wrap text-sm leading-relaxed text-gray-900'
-                      }
-                    >
-                      {part.text}
+                    <div key={i} className="prose prose-sm max-w-[80%] text-gray-900">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{part.text}</ReactMarkdown>
                     </div>
                   )
                 }
@@ -72,6 +84,20 @@ export function Chat() {
                     items: Record<string, unknown>[]
                   }
                   return <ResultCards key={i} type={type} items={items} />
+                }
+                // Knowledge-base lookups (MCP tools) — show what the agent is doing
+                if (part.type === 'dynamic-tool' || part.type.startsWith('tool-')) {
+                  const name =
+                    part.type === 'dynamic-tool' ? part.toolName : part.type.slice('tool-'.length)
+                  const running = !('state' in part) || part.state !== 'output-available'
+                  return (
+                    <p
+                      key={i}
+                      className={`text-xs text-gray-400 ${running ? 'animate-pulse' : ''}`}
+                    >
+                      {TOOL_LABELS[name] ?? 'Working'}…
+                    </p>
+                  )
                 }
                 return null
               })}
