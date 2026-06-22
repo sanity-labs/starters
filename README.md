@@ -16,6 +16,7 @@ pnpm create sanity@latest --template sanity-labs/starters/<starter-name>
 | ------------------------------------------------ | ----------------------------------------------------------------------------------------- |
 | [agentic-localization](./agentic-localization)   | AI translation with glossaries, style guides, quality evals, and a translations dashboard |
 | [ai-shopping-assistant](./ai-shopping-assistant) | Ecommerce storefront with a Claude chatbot powered by Context MCP                         |
+| [knowledge-base](./knowledge-base)               | Governed knowledge base feeding external and internal AI chat surfaces from one dataset   |
 
 ## Repo structure
 

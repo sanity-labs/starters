@@ -1,0 +1,38 @@
+packages:
+  - studio
+  - app
+  - dashboard
+  - dashboard-server
+  - functions
+  - packages/@starter/*
+
+# Pin @sanity/cli to 6.6.0 — 6.7.0 (2026-06-02) ships a cli-core/cli-build split
+# whose schema-extract worker calls getWorkspace(), which sanity@5.x doesn't export,
+# breaking `sanity schema extract` (→ typegen, typecheck, bootstrap). Remove once
+# upstream restores compatibility within the `sanity` ^5.x range.
+overrides:
+  '@sanity/cli': '6.6.0'
+
+catalog:
+  sanity: '^5.13.0'
+  '@sanity/client': '^7.16.0'
+  '@sanity/vision': '^5.13.0'
+  '@sanity/icons': '^3.7.4'
+  '@sanity/ui': '^3.2.0'
+  '@sanity/agent-context': '^0.6.0'
+  '@sanity/sdk': '^2.12.0'
+  '@sanity/sdk-react': '^2.12.0'
+  hono: '^4.6.0'
+  '@hono/node-server': '^1.13.0'
+  ai: '^6.0.175'
+  '@ai-sdk/anthropic': '^3.0.51'
+  '@ai-sdk/mcp': '^1.0.23'
+  '@ai-sdk/react': '^3.0.108'
+  zod: '^4.3.6'
+  groq: '^5.13.0'
+  react: '^19.2.4'
+  react-dom: '^19.2.4'
+  '@types/react': '^19.2'
+  '@types/react-dom': '^19.2.3'
+  styled-components: '^6.3.11'
+  typescript: '^5.9.3'

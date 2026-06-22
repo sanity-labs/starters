@@ -6,7 +6,12 @@ if [ -n "$format_files" ]; then
   for starter in $(echo "$format_files" | sed 's|/.*||' | sort -u); do
     starter_format_files=$(echo "$format_files" | grep "^$starter/" | tr '\n' ' ' || true)
     if [ -n "$starter_format_files" ]; then
-      (cd "$starter" && echo "$starter_format_files" | sed "s|$starter/||g" | xargs pnpm exec oxfmt)
+      if [ -f "$starter/package.json" ]; then
+        (cd "$starter" && echo "$starter_format_files" | sed "s|$starter/||g" | xargs pnpm exec oxfmt)
+      else
+        # Non-starter dirs (e.g. .github) have no own oxfmt — use the root one
+        echo "$starter_format_files" | xargs pnpm exec oxfmt
+      fi
       echo "$starter_format_files" | xargs git add
     fi
   done

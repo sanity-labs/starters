@@ -1,0 +1,25 @@
+{
+  "name": "dashboard-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node --import tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "catalog:",
+    "@ai-sdk/mcp": "catalog:",
+    "@hono/node-server": "catalog:",
+    "ai": "catalog:",
+    "hono": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@starter/tsconfig": "workspace:*",
+    "@types/node": "^22.19.13",
+    "tsx": "^4.21.0",
+    "typescript": "catalog:"
+  }
+}
