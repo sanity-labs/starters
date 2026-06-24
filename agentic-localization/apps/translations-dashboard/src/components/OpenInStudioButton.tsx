@@ -11,9 +11,12 @@ type OpenInStudioButtonProps = {
 }
 
 /**
- * Build a Studio URL that opens the document with the translations inspector pane.
+ * Build a Studio intent URL that opens the document with the translations inspector pane.
  *
- * URL format: {studioBase}/structure/{docType};{docId},inspect=translations
+ * Intent URLs let the Studio router resolve the correct location in the structure tree
+ * automatically.
+ *
+ * URL format: {studioBase}/intent/edit/id={docId};type={docType};inspect=translations/
  *
  * The studio base URL is resolved in order:
  * 1. SANITY_APP_STUDIO_URL env var (for production — set to your deployed studio hostname,
@@ -35,8 +38,8 @@ export function getStudioDocumentUrl(doc: DocumentHandle): string {
       ? 'http://localhost:3333'
       : ''
 
-  // Open the document in the structure tool with the translations inspector pane
-  return `${studioBase}/structure/${doc.documentType};${encodeURIComponent(`${docId},inspect=translations`)}`
+  const params = `id=${encodeURIComponent(docId)};type=${encodeURIComponent(doc.documentType)};inspect=translations`
+  return `${studioBase}/intent/edit/${params}/`
 }
 
 function OpenInStudioButton({doc, mode = 'bleed', size = 2, text, title}: OpenInStudioButtonProps) {
