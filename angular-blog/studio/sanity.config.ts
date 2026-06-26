@@ -6,7 +6,10 @@ import {schemaTypes} from './schemaTypes'
 
 const projectId = process.env.SANITY_STUDIO_PROJECT_ID!
 const dataset = process.env.SANITY_STUDIO_DATASET || 'production'
-const previewUrl = process.env.SANITY_STUDIO_PREVIEW_URL ?? 'http://localhost:4200'
+const previewUrl = (process.env.SANITY_STUDIO_PREVIEW_URL ?? 'http://localhost:4200').replace(
+  /\/$/,
+  '',
+)
 
 export default defineConfig({
   name: 'default',
@@ -21,8 +24,10 @@ export default defineConfig({
         origin: previewUrl,
         previewMode: {
           enable: '/api/draft-mode/enable',
+          disable: '/api/draft-mode/disable',
         },
       },
+      allowOrigins: ['http://localhost:*', previewUrl],
       resolve: {
         mainDocuments: defineDocuments([
           {

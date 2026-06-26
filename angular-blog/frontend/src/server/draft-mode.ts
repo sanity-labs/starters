@@ -24,14 +24,17 @@ export function createServerSanityClient(token?: string): SanityClient {
   })
 }
 
-function clientCookieFlags(secure: boolean): string {
-  const parts = ['Path=/', 'SameSite=Lax']
-  if (secure) parts.push('Secure')
-  return parts.join('; ')
+function cookieFlags(): string {
+  // Required for Presentation tool: preview runs in a cross-origin Studio iframe.
+  return 'Path=/; Secure; SameSite=None'
 }
 
-function httpOnlyCookieFlags(secure: boolean): string {
-  return `HttpOnly; ${clientCookieFlags(secure)}`
+function clientCookieFlags(): string {
+  return cookieFlags()
+}
+
+function httpOnlyCookieFlags(): string {
+  return `HttpOnly; ${cookieFlags()}`
 }
 
 export async function handleDraftModeEnable(req: Request, res: Response): Promise<void> {
@@ -51,24 +54,22 @@ export async function handleDraftModeEnable(req: Request, res: Response): Promis
   }
 
   const perspective = studioPreviewPerspective ?? 'drafts'
-  const secure = req.secure || req.get('x-forwarded-proto') === 'https'
   const cleanPath = redirectTo
     ? withoutSecretSearchParams(new URL(redirectTo, fullUrl)).pathname
     : '/'
 
   res.setHeader('Set-Cookie', [
-    `${DRAFT_MODE_COOKIE}=true; ${clientCookieFlags(secure)}; Max-Age=3600`,
-    `${perspectiveCookieName}=${encodeURIComponent(perspective)}; ${httpOnlyCookieFlags(secure)}; Max-Age=3600`,
+    `${DRAFT_MODE_COOKIE}=true; ${clientCookieFlags()}; Max-Age=3600`,
+    `${perspectiveCookieName}=${encodeURIComponent(perspective)}; ${httpOnlyCookieFlags()}; Max-Age=3600`,
   ])
   res.redirect(307, cleanPath)
 }
 
 export function handleDraftModeDisable(_req: Request, res: Response): void {
-  const secure = _req.secure || _req.get('x-forwarded-proto') === 'https'
-  const expired = `Max-Age=0; ${clientCookieFlags(secure)}`
+  const expired = `Max-Age=0; ${clientCookieFlags()}`
   res.setHeader('Set-Cookie', [
     `${DRAFT_MODE_COOKIE}=; ${expired}`,
-    `${perspectiveCookieName}=; Max-Age=0; ${httpOnlyCookieFlags(secure)}`,
+    `${perspectiveCookieName}=; Max-Age=0; ${httpOnlyCookieFlags()}`,
   ])
   res.redirect(307, '/')
 }
@@ -82,10 +83,9 @@ export function handleDraftModePerspective(req: Request, res: Response): void {
     return
   }
 
-  const secure = req.secure || req.get('x-forwarded-proto') === 'https'
   res.setHeader(
     'Set-Cookie',
-    `${perspectiveCookieName}=${encodeURIComponent(next)}; ${httpOnlyCookieFlags(secure)}; Max-Age=3600`,
+    `${perspectiveCookieName}=${encodeURIComponent(next)}; ${httpOnlyCookieFlags()}; Max-Age=3600`,
   )
   res.status(200).json({reload: true})
 }
