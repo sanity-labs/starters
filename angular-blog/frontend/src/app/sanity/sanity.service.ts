@@ -1,10 +1,10 @@
 import {createClient as createSanityClient, type SanityClient} from '@sanity/client'
-import {inject, Injectable, PLATFORM_ID} from '@angular/core'
+import {inject, Injectable, PLATFORM_ID, REQUEST, TransferState} from '@angular/core'
 import {isPlatformBrowser} from '@angular/common'
-import {REQUEST} from '@angular/core'
-import type {Request} from 'express'
+import {DRAFT_MODE_KEY} from '../app.config'
 import {PUBLIC_ENV} from '../env/public-env.token'
 import {
+  cookiesFromRequest,
   getPerspectiveFromCookies,
   isDraftModeBrowser,
   isDraftModeRequest,
@@ -29,6 +29,7 @@ export type PostDetail = PostListItem & {
 }
 
 export type SiteSettings = {
+  logo?: {asset?: {_ref: string}}
   title?: string
   description?: string
 }
@@ -38,15 +39,20 @@ export class SanityService {
   private readonly platformId = inject(PLATFORM_ID)
   private readonly publicEnv = inject(PUBLIC_ENV)
   private readonly serverEnv = inject(SERVER_ENV, {optional: true})
-  private readonly request = inject(REQUEST, {optional: true}) as Request | null
+  private readonly transferState = inject(TransferState)
+  private readonly request = inject(REQUEST, {optional: true})
+
+  private isBrowserDraft(): boolean {
+    return this.transferState.get(DRAFT_MODE_KEY, false) || isDraftModeBrowser()
+  }
 
   private getDraftContext(): {draft: boolean; token?: string; perspective?: string} {
     if (isPlatformBrowser(this.platformId)) {
-      const draft = isDraftModeBrowser()
+      const draft = this.isBrowserDraft()
       return {draft, perspective: draft ? 'drafts' : undefined}
     }
 
-    const cookies = (this.request?.cookies ?? {}) as Record<string, string | undefined>
+    const cookies = cookiesFromRequest(this.request)
     const draft = isDraftModeRequest(cookies)
     return {
       draft,
@@ -71,7 +77,7 @@ export class SanityService {
     })
 
     if (isPlatformBrowser(this.platformId) && draft) {
-      ensureLiveMode(client)
+      ensureLiveMode(client, this.transferState)
     }
 
     return client

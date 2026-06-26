@@ -6,6 +6,7 @@ import {PUBLIC_ENV, type PublicEnv} from './env/public-env.token'
 import {routes} from './app.routes'
 
 export const PUBLIC_ENV_KEY = makeStateKey<PublicEnv>('publicEnv')
+export const DRAFT_MODE_KEY = makeStateKey<boolean>('draftMode')
 
 const fallbackPublicEnv: PublicEnv = {
   projectId: '',

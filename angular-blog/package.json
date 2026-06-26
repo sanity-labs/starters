@@ -15,6 +15,7 @@
     "pretypecheck": "pnpm run typegen",
     "typecheck": "pnpm -r typecheck",
     "bootstrap": "pnpm --filter studio bootstrap",
+    "bootstrap:seed": "pnpm --filter studio bootstrap:seed",
     "validate": "sanity-template-validate"
   },
   "devDependencies": {

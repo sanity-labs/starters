@@ -1,5 +1,5 @@
-import {afterNextRender, Component} from '@angular/core'
-import {RouterOutlet} from '@angular/router'
+import {afterNextRender, Component, inject, TransferState} from '@angular/core'
+import {Router, RouterOutlet} from '@angular/router'
 import {initVisualEditing} from './sanity/visual-editing'
 
 @Component({
@@ -12,9 +12,12 @@ import {initVisualEditing} from './sanity/visual-editing'
   styleUrl: './app.css',
 })
 export class App {
+  private readonly router = inject(Router)
+  private readonly transferState = inject(TransferState)
+
   constructor() {
     afterNextRender(() => {
-      initVisualEditing()
+      initVisualEditing(this.router, this.transferState)
     })
   }
 }

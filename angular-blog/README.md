@@ -22,7 +22,7 @@ pnpm bootstrap   # links Sanity project + dataset
 pnpm dev         # Studio :3333 + blog :4200
 ```
 
-`pnpm bootstrap` deploys the Sanity blueprint and functions before seeding content. That step can take a minute or more — you may see a message like “No new activity for 60 seconds” while deployment continues on Sanity’s servers. That’s normal; you can wait for it to finish or exit and check status later with `npx sanity blueprints info`.
+`pnpm bootstrap` deploys the Sanity blueprint and functions before seeding content. It also adds a CORS origin for the blog preview (`http://localhost:4200`, or `SANITY_STUDIO_PREVIEW_URL` if set). That step can take a minute or more — you may see a message like “No new activity for 60 seconds” while deployment continues on Sanity’s servers. That’s normal; you can wait for it to finish or exit and check status later with `npx sanity blueprints info`.
 
 ### Environment
 
@@ -50,7 +50,8 @@ Copy `.env.example` to `.env.local` at the **starter root**:
 | `pnpm build`     | Build all workspaces                        |
 | `pnpm typegen`   | Generate types from schema + GROQ queries   |
 | `pnpm validate`  | Run `sanity-template-validate`              |
-| `pnpm bootstrap` | Create/link Sanity project and seed content |
+| `pnpm bootstrap`      | Deploy blueprint, schema, CORS, typegen, and seed content |
+| `pnpm bootstrap:seed` | Import seed ndjson + upload images only (skips if present) |
 
 ## Visual editing
 
@@ -58,6 +59,10 @@ Copy `.env.example` to `.env.local` at the **starter root**:
 2. Open the **Presentation** tool
 3. The blog preview loads at `http://localhost:4200`
 4. Draft mode activates via `/api/draft-mode/enable` (validated with `@sanity/preview-url-secret`)
+
+The Angular SSR server reads env from the **starter root** `.env.local` (not `studio/.env.local`). `SANITY_API_READ_TOKEN` must be set there for draft mode to work. If Presentation shows a 500 on `/api/draft-mode/enable`, check that token and restart `pnpm dev`.
+
+Transient WebSocket warnings in the Studio console are usually harmless Studio reconnect noise and not related to preview setup.
 
 ## Project structure
 

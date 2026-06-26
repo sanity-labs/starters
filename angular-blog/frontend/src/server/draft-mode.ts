@@ -24,10 +24,14 @@ export function createServerSanityClient(token?: string): SanityClient {
   })
 }
 
-function cookieFlags(secure: boolean): string {
-  const parts = ['Path=/', 'HttpOnly', 'SameSite=Lax']
+function clientCookieFlags(secure: boolean): string {
+  const parts = ['Path=/', 'SameSite=Lax']
   if (secure) parts.push('Secure')
   return parts.join('; ')
+}
+
+function httpOnlyCookieFlags(secure: boolean): string {
+  return `HttpOnly; ${clientCookieFlags(secure)}`
 }
 
 export async function handleDraftModeEnable(req: Request, res: Response): Promise<void> {
@@ -53,18 +57,18 @@ export async function handleDraftModeEnable(req: Request, res: Response): Promis
     : '/'
 
   res.setHeader('Set-Cookie', [
-    `${DRAFT_MODE_COOKIE}=true; ${cookieFlags(secure)}; Max-Age=3600`,
-    `${perspectiveCookieName}=${encodeURIComponent(perspective)}; ${cookieFlags(secure)}; Max-Age=3600`,
+    `${DRAFT_MODE_COOKIE}=true; ${clientCookieFlags(secure)}; Max-Age=3600`,
+    `${perspectiveCookieName}=${encodeURIComponent(perspective)}; ${httpOnlyCookieFlags(secure)}; Max-Age=3600`,
   ])
   res.redirect(307, cleanPath)
 }
 
 export function handleDraftModeDisable(_req: Request, res: Response): void {
   const secure = _req.secure || _req.get('x-forwarded-proto') === 'https'
-  const expired = `Max-Age=0; ${cookieFlags(secure)}`
+  const expired = `Max-Age=0; ${clientCookieFlags(secure)}`
   res.setHeader('Set-Cookie', [
     `${DRAFT_MODE_COOKIE}=; ${expired}`,
-    `${perspectiveCookieName}=; ${expired}`,
+    `${perspectiveCookieName}=; Max-Age=0; ${httpOnlyCookieFlags(secure)}`,
   ])
   res.redirect(307, '/')
 }
@@ -81,7 +85,7 @@ export function handleDraftModePerspective(req: Request, res: Response): void {
   const secure = req.secure || req.get('x-forwarded-proto') === 'https'
   res.setHeader(
     'Set-Cookie',
-    `${perspectiveCookieName}=${encodeURIComponent(next)}; ${cookieFlags(secure)}; Max-Age=3600`,
+    `${perspectiveCookieName}=${encodeURIComponent(next)}; ${httpOnlyCookieFlags(secure)}; Max-Age=3600`,
   )
   res.status(200).json({reload: true})
 }

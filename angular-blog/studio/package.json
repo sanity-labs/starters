@@ -9,6 +9,7 @@
     "deploy": "sanity deploy",
     "typegen": "sanity schema extract && sanity typegen generate",
     "bootstrap": "sanity exec scripts/bootstrap.ts --with-user-token",
+    "bootstrap:seed": "sanity exec scripts/bootstrap.ts --with-user-token -- --seed-only",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

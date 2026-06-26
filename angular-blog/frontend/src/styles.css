@@ -10,6 +10,12 @@ body {
   color: #111;
 }
 
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .container {
   max-width: 48rem;
   margin: 0 auto;

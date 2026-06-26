@@ -1,18 +1,33 @@
+import {existsSync} from 'fs'
 import {join} from 'path'
 import {fileURLToPath} from 'url'
 import type {PublicEnv} from '../app/env/public-env'
 
-const rootDir = join(fileURLToPath(new URL('.', import.meta.url)), '../..')
-
-try {
-  process.loadEnvFile(join(rootDir, '.env.local'))
-} catch {
+function tryLoadEnvFile(path: string): void {
+  if (!existsSync(path)) return
   try {
-    process.loadEnvFile(join(rootDir, '.env'))
+    process.loadEnvFile(path)
   } catch {
-    // optional in CI
+    // optional in CI or when file is empty
   }
 }
+
+function loadEnvFiles(): void {
+  const moduleDir = fileURLToPath(new URL('.', import.meta.url))
+  const roots = [
+    process.cwd(),
+    join(process.cwd(), '..'),
+    join(moduleDir, '../../..'), // frontend/src/server -> starter root (dev)
+    join(moduleDir, '../../../..'), // dist/frontend/server -> starter root (prod)
+  ]
+
+  for (const root of roots) {
+    tryLoadEnvFile(join(root, '.env'))
+    tryLoadEnvFile(join(root, '.env.local'))
+  }
+}
+
+loadEnvFiles()
 
 export type ServerEnv = {
   projectId: string

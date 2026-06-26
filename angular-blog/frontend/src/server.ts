@@ -22,7 +22,12 @@ app.use(cookieParser())
 
 // API routes BEFORE Angular SSR (order matters for Presentation tool)
 app.get('/api/draft-mode/enable', (req, res) => {
-  void handleDraftModeEnable(req, res)
+  void handleDraftModeEnable(req, res).catch((error: unknown) => {
+    console.error('Failed to enable draft mode:', error)
+    if (!res.headersSent) {
+      res.status(500).send('Failed to enable draft mode')
+    }
+  })
 })
 app.get('/api/draft-mode/disable', (req, res) => {
   handleDraftModeDisable(req, res)

@@ -15,3 +15,22 @@ export function getPerspectiveFromCookies(
 export function isDraftModeBrowser(): boolean {
   return typeof document !== 'undefined' && document.cookie.includes(`${DRAFT_MODE_COOKIE}=true`)
 }
+
+export function parseCookieHeader(cookieHeader: string | null): Record<string, string | undefined> {
+  if (!cookieHeader) return {}
+
+  const cookies: Record<string, string | undefined> = {}
+  for (const part of cookieHeader.split(';')) {
+    const [name, ...rest] = part.trim().split('=')
+    if (!name) continue
+    cookies[name] = decodeURIComponent(rest.join('=') || '')
+  }
+  return cookies
+}
+
+/** Read cookies from Angular's injected Fetch API `Request` (SSR). */
+export function cookiesFromRequest(
+  request: Request | null | undefined,
+): Record<string, string | undefined> {
+  return parseCookieHeader(request?.headers.get('cookie') ?? null)
+}
