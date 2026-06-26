@@ -7,7 +7,7 @@
  *  3. Deploy schema to the Content Lake
  *  4. Run typegen (schema extract + type generation)
  *  5. Import seed data (ndjson)
- *  6. Upload seed images (logo + post cover images)
+ *  6. Upload seed images (logo, author avatar, post cover images)
  *
  * Usage:
  *   pnpm bootstrap              Full bootstrap

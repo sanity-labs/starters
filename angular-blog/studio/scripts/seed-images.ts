@@ -4,6 +4,7 @@ import type {SanityClient} from '@sanity/client'
 
 const SEED_IMAGES = [
   {documentId: 'settings', field: 'logo', file: 'logo.png'},
+  {documentId: 'author-1', field: 'image', file: 'author.png'},
   {documentId: 'post-1', field: 'coverImage', file: 'blog-1.png'},
   {documentId: 'post-2', field: 'coverImage', file: 'blog-2.png'},
   {documentId: 'post-3', field: 'coverImage', file: 'blog-3.png'},

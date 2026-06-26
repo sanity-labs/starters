@@ -21,7 +21,18 @@ import {postBySlugQuery} from '../sanity/queries'
           }
           <h1>{{ p.title }}</h1>
           @if (p.author?.name) {
-            <p class="byline">By {{ p.author.name }}</p>
+            <p class="byline">
+              @if (authorImageUrl()) {
+                <img
+                  class="byline-avatar"
+                  [src]="authorImageUrl()"
+                  [alt]="p.author.name"
+                  width="40"
+                  height="40"
+                />
+              }
+              <span>By {{ p.author.name }}</span>
+            </p>
           }
           @if (p.publishedAt) {
             <time>{{ p.publishedAt | date: 'longDate' }}</time>
@@ -59,5 +70,9 @@ export class PostComponent implements OnInit, OnDestroy {
 
   coverUrl(): string | undefined {
     return this.images.url(this.post()?.coverImage, 960)
+  }
+
+  authorImageUrl(): string | undefined {
+    return this.images.url(this.post()?.author?.image, 80)
   }
 }

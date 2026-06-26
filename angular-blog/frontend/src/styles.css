@@ -46,7 +46,7 @@ header h1 {
 }
 
 .post-list img,
-article img {
+article > img {
   width: 100%;
   height: auto;
   border-radius: 0.5rem;
@@ -62,6 +62,21 @@ time,
 .byline {
   color: #666;
   font-size: 0.9rem;
+}
+
+.byline {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin: 0 0 0.5rem;
+}
+
+.byline-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .portable-text p {
