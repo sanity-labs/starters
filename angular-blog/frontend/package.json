@@ -1,0 +1,48 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "ng serve --port 4200",
+    "build": "ng build",
+    "start": "node dist/frontend/server/server.mjs",
+    "test": "vitest run",
+    "typecheck": "ng build --configuration development && tsc --noEmit -p tsconfig.app.json",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@angular/common": "^22.0.0",
+    "@angular/compiler": "^22.0.0",
+    "@angular/core": "^22.0.0",
+    "@angular/forms": "^22.0.0",
+    "@angular/platform-browser": "^22.0.0",
+    "@angular/platform-server": "^22.0.0",
+    "@angular/router": "^22.0.0",
+    "@angular/ssr": "^22.0.4",
+    "@portabletext/to-html": "^5.0.2",
+    "@portabletext/toolkit": "catalog:",
+    "@sanity/client": "catalog:",
+    "@sanity/core-loader": "catalog:",
+    "@sanity/image-url": "catalog:",
+    "@sanity/preview-url-secret": "^4.0.7",
+    "@sanity/visual-editing": "catalog:",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.1.0",
+    "groq": "catalog:",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.0.4",
+    "@angular/cli": "^22.0.4",
+    "@angular/compiler-cli": "^22.0.0",
+    "@starter/tsconfig": "workspace:*",
+    "@types/cookie-parser": "^1.4.8",
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.19.13",
+    "jsdom": "^28.0.0",
+    "typescript": "~6.0.2",
+    "vitest": "^4.0.8"
+  }
+}
