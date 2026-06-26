@@ -44,13 +44,13 @@ Copy `.env.example` to `.env.local` at the **starter root**:
 
 ## Scripts
 
-| Command          | Description                                 |
-| ---------------- | ------------------------------------------- |
-| `pnpm dev`       | Studio + Angular blog + functions dev       |
-| `pnpm build`     | Build all workspaces                        |
-| `pnpm typegen`   | Generate types from schema + GROQ queries   |
-| `pnpm validate`  | Run `sanity-template-validate`              |
-| `pnpm bootstrap`      | Deploy blueprint, schema, CORS, typegen, and seed content |
+| Command               | Description                                                |
+| --------------------- | ---------------------------------------------------------- |
+| `pnpm dev`            | Studio + Angular blog + functions dev                      |
+| `pnpm build`          | Build all workspaces                                       |
+| `pnpm typegen`        | Generate types from schema + GROQ queries                  |
+| `pnpm validate`       | Run `sanity-template-validate`                             |
+| `pnpm bootstrap`      | Deploy blueprint, schema, CORS, typegen, and seed content  |
 | `pnpm bootstrap:seed` | Import seed ndjson + upload images only (skips if present) |
 
 ## Visual editing
