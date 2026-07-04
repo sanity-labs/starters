@@ -170,14 +170,14 @@ export const handler = documentEventHandler<AnalyzeStaleEventData>(async ({conte
     ...context.clientOptions,
     apiVersion: '2025-05-16',
     useCdn: false,
-    requestTagPrefix: 'fn.agentic-localization.analyze-stale',
+    requestTagPrefix: 'fn.agentic-l10n.analyze-stale',
   })
 
   const agentClient = createClient({
     ...context.clientOptions,
     apiVersion: 'vX',
     useCdn: false,
-    requestTagPrefix: 'fn.agentic-localization.analyze-stale',
+    requestTagPrefix: 'fn.agentic-l10n.analyze-stale',
   })
 
   // Step 1: Read full metadata doc

@@ -97,9 +97,7 @@ if (existsSync(studioEnv)) {
 heading('Resolve organization ID')
 
 let client = getCliClient({apiVersion: '2025-01-01'})
-client = client.withConfig({
-  requestTagPrefix: `${client.config().requestTagPrefix}.agentic-localization`,
-})
+client = client.withConfig({requestTagPrefix: `${client.config().requestTagPrefix}.agentic-l10n`})
 const {projectId, dataset} = client.config()
 
 const project = await client.request<{organizationId?: string}>({

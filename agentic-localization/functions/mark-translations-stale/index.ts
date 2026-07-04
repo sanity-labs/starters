@@ -70,7 +70,7 @@ export const handler = documentEventHandler<StaleEventData>(async ({context, eve
     ...context.clientOptions,
     apiVersion: '2025-05-16',
     useCdn: false,
-    requestTagPrefix: 'fn.agentic-localization.mark-stale',
+    requestTagPrefix: 'fn.agentic-l10n.mark-stale',
   })
 
   // Strip drafts./versions. prefix to get the published ID for reference matching.

@@ -66,7 +66,7 @@ a page per locale at build time.
 
 ### Request tags
 
-The reference client sets `requestTagPrefix: 'kit.agentic-localization'` — handy
+The reference client sets `requestTagPrefix: 'kit.agentic-l10n'` — handy
 for filtering your own request logs. Change or remove `requestTagPrefix` in
 your client config to use whatever tagging scheme you prefer. See
 [Request tags](https://www.sanity.io/docs/apis-and-sdks/js-client-request-tags).

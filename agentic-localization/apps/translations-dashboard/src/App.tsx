@@ -22,10 +22,7 @@ const SANITY_CONFIG: SanityConfig = {
   projectId: import.meta.env.SANITY_APP_PROJECT_ID,
   auth: {
     clientFactory: (config) =>
-      createClient({
-        ...config,
-        requestTagPrefix: `${config.requestTagPrefix}.agentic-localization`,
-      }),
+      createClient({...config, requestTagPrefix: `${config.requestTagPrefix}.agentic-l10n`}),
   },
 }
 

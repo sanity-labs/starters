@@ -8,6 +8,6 @@ export function getClient() {
     apiVersion: 'vX',
     token: getUserToken(),
     useCdn: false,
-    requestTagPrefix: 'evals.agentic-localization',
+    requestTagPrefix: 'evals.agentic-l10n',
   })
 }

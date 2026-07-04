@@ -22,7 +22,9 @@ const dir = import.meta.dirname!
 const rootDir = resolve(dir, '../..')
 
 let client = getCliClient({apiVersion: '2026-04-08'})
-client = client.withConfig({requestTagPrefix: `${client.config().requestTagPrefix}.email-marketing`})
+client = client.withConfig({
+  requestTagPrefix: `${client.config().requestTagPrefix}.email-marketing`,
+})
 const {projectId, dataset} = client.config()
 
 function run(cmd: string, args: string[], options?: {cwd?: string}) {
@@ -140,6 +142,5 @@ try {
 } catch {
   // best-effort — never block bootstrap
 }
-
 
 console.log('\n✓ Bootstrap complete\n')
