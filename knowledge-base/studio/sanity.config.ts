@@ -20,8 +20,10 @@ export default defineConfig({
   projectId,
   dataset,
 
+  // Keep the suffix short: composed request tags must stay under 75 characters,
+  // and the Presentation tool's base prefix is already long.
   unstable_clientFactory: (options) =>
-    createClient({...options, requestTagPrefix: `${options.requestTagPrefix}.knowledge-base`}),
+    createClient({...options, requestTagPrefix: `${options.requestTagPrefix}.kb`}),
 
   plugins: [
     structureTool({structure}),

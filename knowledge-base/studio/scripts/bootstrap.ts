@@ -13,6 +13,7 @@
  *  9. Create the external + internal read tokens and write their Agent Context MCP URLs
  * 10. Import seed data (ndjson)
  * 11. Restore dependencies (blueprint deploy can disrupt node_modules)
+ * 12. Generate types (schema extract + typegen) so `pnpm dev` works out of the box
  *
  * Usage:
  *   pnpm bootstrap          (from studio/, runs via `sanity exec --with-user-token`)
@@ -172,14 +173,30 @@ try {
 
 heading('Add CORS origin')
 try {
-  sanity('cors', 'add', 'http://localhost:3000', '--credentials')
+  execFileSync(
+    'pnpm',
+    ['exec', 'sanity', 'cors', 'add', 'http://localhost:3000', '--credentials'],
+    {
+      stdio: 'pipe',
+    },
+  )
+  console.log('Added http://localhost:3000 as a CORS origin')
   success('Add CORS origin')
 } catch (err) {
-  failed(
-    'Add CORS origin',
-    err,
-    'cd studio && npx sanity cors add http://localhost:3000 --credentials',
-  )
+  // `sanity init --template` may have already added the origin — not a failure.
+  const out = String(
+    err instanceof Error ? `${err.message} ${(err as {stderr?: Buffer}).stderr ?? ''}` : err,
+  ).toLowerCase()
+  if (out.includes('duplicate') || out.includes('conflict')) {
+    console.log('CORS origin already exists — skipping')
+    success('Add CORS origin')
+  } else {
+    failed(
+      'Add CORS origin',
+      err,
+      'cd studio && npx sanity cors add http://localhost:3000 --credentials',
+    )
+  }
 }
 
 // ── 4. Deploy blueprint ──────────────────────────────────────────────────────
@@ -396,6 +413,18 @@ try {
   success('Restore dependencies')
 } catch (err) {
   failed('Restore dependencies', err, 'pnpm install')
+}
+
+// ── 12. Generate types ───────────────────────────────────────────────────────
+// Extracts schema.json and generates TypeGen types. Without this, the first
+// `pnpm dev` fails with "Schema file not found: schema.json".
+
+heading('Generate types')
+try {
+  run('pnpm', ['--filter', 'studio', 'typegen'], {cwd: root})
+  success('Generate types')
+} catch (err) {
+  failed('Generate types', err, 'pnpm typegen')
 }
 
 // ── Summary ──────────────────────────────────────────────────────────────────
