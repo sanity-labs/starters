@@ -14,6 +14,8 @@
     "@ai-sdk/anthropic": "catalog:",
     "@ai-sdk/mcp": "catalog:",
     "@ai-sdk/react": "catalog:",
+    "@sanity/agent-context": "catalog:",
+    "@sanity/client": "catalog:",
     "ai": "catalog:",
     "next": "^16.1.6",
     "next-sanity": "^12.1.1",

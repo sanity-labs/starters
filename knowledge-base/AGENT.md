@@ -16,7 +16,7 @@ pnpm install && pnpm run bootstrap && pnpm dev
 | `app/`               | Next.js 16 external help center — browse, hybrid search, AI chat                             |
 | `dashboard/`         | Sanity App SDK internal tool — browser-only SPA, auth = logged-in user                       |
 | `dashboard-server/`  | Hono chat proxy — holds the internal token + Anthropic key for the dashboard                 |
-| `functions/`         | `set-review-date` — stamps `reviewByDate` (+90d) on create/update                            |
+| `functions/`         | `set-review-date` (stamps `reviewByDate` +90d) + `classify-conversations` (hourly Insights)  |
 | `packages/@starter/` | Shared eslint-config, tsconfig, generated sanity-types                                       |
 
 ## Monorepo
@@ -33,6 +33,7 @@ pnpm install && pnpm run bootstrap && pnpm dev
 - Agent Context MCP requires a **deployed Studio** — deployed schema alone returns `-32004`.
 - Scoping is the `sanity.agentContext` document's `groqFilter`, not the token. New document types must be added to the filters and instructions (seeded from `studio/scripts/generate-seed.ts`).
 - Hybrid search (`app/sanity/search.ts`): `text::semanticSimilarity()` only inside `score()`, needs Dataset Embeddings enabled, keyword `match` fallback on error.
+- Agent Insights (opt-in at bootstrap): both chat backends save conversations via `sanityInsightsIntegration` (new instance per request, Editor write token `SANITY_INSIGHTS_WRITE_TOKEN`, skipped when unset). The scheduled `classify-conversations` function (hourly, blueprint robot token, `ANTHROPIC_API_KEY` function env) fills in the Studio dashboard metrics; without the write token it deploys but idles.
 
 ## Code style
 
