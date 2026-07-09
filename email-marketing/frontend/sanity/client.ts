@@ -7,7 +7,7 @@ export const client = createClient({
   useCdn: true,
   requestTagPrefix: 'frontend.email-marketing',
   stega: {
-    studioUrl: process.env.NEXT_PUBLIC_SANITY_STUDIO_URL || '/studio',
+    studioUrl: process.env.NEXT_PUBLIC_SANITY_STUDIO_URL || 'http://localhost:3333',
   },
 })
 

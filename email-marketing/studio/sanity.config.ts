@@ -36,10 +36,12 @@ export default defineConfig({
   plugins: [
     assist(),
     presentationTool({
+      allowOrigins: ['http://localhost:*', 'http://127.0.0.1:*'],
       previewUrl: {
-        origin: previewUrl,
+        initial: previewUrl,
         previewMode: {
           enable: '/api/draft-mode/enable',
+          disable: '/api/draft-mode/disable',
         },
       },
       resolve: {
