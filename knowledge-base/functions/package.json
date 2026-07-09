@@ -12,11 +12,15 @@
     "deploy": "sanity blueprints deploy"
   },
   "devDependencies": {
+    "@ai-sdk/anthropic": "catalog:",
+    "@sanity/agent-context": "catalog:",
     "@sanity/client": "catalog:",
     "@sanity/functions": "^1.2.1",
     "@starter/tsconfig": "workspace:*",
+    "ai": "catalog:",
     "groq": "catalog:",
     "rolldown": "^1.0.0-rc.8",
-    "sanity": "catalog:"
+    "sanity": "catalog:",
+    "zod": "catalog:"
   }
 }

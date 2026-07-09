@@ -21,7 +21,10 @@ export default defineConfig({
   dataset,
 
   unstable_clientFactory: (options) =>
-    createClient({...options, requestTagPrefix: `${options.requestTagPrefix}.knowledge-base`}),
+    createClient({
+      ...options,
+      requestTagPrefix: `${options.requestTagPrefix}.kb`,
+    }),
 
   plugins: [
     structureTool({structure}),

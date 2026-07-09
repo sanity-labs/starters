@@ -4,15 +4,19 @@
  * Steps:
  *  1. Consolidate env — propagate project ID + dataset to app/.env.local
  *  2. Prompt for Anthropic API key (powers the chat surfaces)
+ *  2b. Ask whether to enable Agent Insights (conversation telemetry + classification)
  *  3. Add CORS origin for the local help center (localhost:3000)
- *  4. Deploy blueprint (the set-review-date function + robot token)
+ *  4. Deploy blueprint (set-review-date + classify-conversations functions, robot token),
+ *     then set the Anthropic key on the classifier's function runtime (if Insights enabled)
  *  5. Deploy schema to the Content Lake
  *  6. Deploy Studio — required for the Agent Context MCP endpoint to exist
  *  7. Make the dataset private (security model: no API access without a token)
  *  8. Enable Dataset Embeddings (powers hybrid semantic retrieval)
- *  9. Create the external + internal read tokens and write their Agent Context MCP URLs
+ *  9. Create the external + internal read tokens and write their Agent Context MCP URLs,
+ *     plus the Agent Insights write token shared by both chat surfaces (if enabled)
  * 10. Import seed data (ndjson)
  * 11. Restore dependencies (blueprint deploy can disrupt node_modules)
+ * 12. Generate types (schema extract + typegen) so `pnpm dev` works out of the box
  *
  * Usage:
  *   pnpm bootstrap          (from studio/, runs via `sanity exec --with-user-token`)
@@ -137,6 +141,8 @@ try {
   if (!existsSync(serverEnvLocal) && existsSync(serverEnvExample)) {
     copyFileSync(serverEnvExample, serverEnvLocal)
   }
+  patchEnvVar(serverEnvLocal, 'SANITY_PROJECT_ID', projectId)
+  patchEnvVar(serverEnvLocal, 'SANITY_DATASET', dataset)
   console.log('Wrote project ID + dataset to app, dashboard, and dashboard-server env')
   success('Consolidate env')
 } catch (err) {
@@ -168,18 +174,65 @@ try {
   failed('Anthropic API key', err, 'Add ANTHROPIC_API_KEY=your-key to app/.env.local')
 }
 
+// ── 2b. Agent Insights opt-in ────────────────────────────────────────────────
+// Everything privacy-relevant hinges on the write token minted in step 9c:
+// without it, the chat surfaces skip telemetry, nothing is stored, and the
+// scheduled classifier no-ops. Declining here skips that token and the
+// classifier's Anthropic key — the deployed function stays inert.
+
+heading('Agent Insights')
+let insightsEnabled = false
+try {
+  const alreadyEnabled = [parseEnvFile(appEnvLocal), parseEnvFile(serverEnvLocal)].some((vars) =>
+    isRealValue(vars.SANITY_INSIGHTS_WRITE_TOKEN),
+  )
+  if (alreadyEnabled) {
+    insightsEnabled = true
+    console.log('Insights write token already set — conversation telemetry stays enabled')
+  } else {
+    console.log(
+      "Agent Insights saves chat conversations — which may include your users'\n" +
+        'questions — to your dataset, and classifies them hourly with Anthropic to\n' +
+        'power the Agent Insights dashboard in the Studio. You can enable it later\n' +
+        'by re-running `pnpm bootstrap`.',
+    )
+    const answer = prompt('Enable Agent Insights conversation telemetry? (Y/n): ')
+    insightsEnabled = !/^n/i.test(answer.trim())
+    console.log(insightsEnabled ? 'Agent Insights enabled' : 'Agent Insights disabled — skipping')
+  }
+  success('Agent Insights')
+} catch (err) {
+  failed('Agent Insights', err)
+}
+
 // ── 3. Add CORS origin ───────────────────────────────────────────────────────
 
 heading('Add CORS origin')
 try {
-  sanity('cors', 'add', 'http://localhost:3000', '--credentials')
+  execFileSync(
+    'pnpm',
+    ['exec', 'sanity', 'cors', 'add', 'http://localhost:3000', '--credentials'],
+    {
+      stdio: 'pipe',
+    },
+  )
+  console.log('Added http://localhost:3000 as a CORS origin')
   success('Add CORS origin')
 } catch (err) {
-  failed(
-    'Add CORS origin',
-    err,
-    'cd studio && npx sanity cors add http://localhost:3000 --credentials',
-  )
+  // `sanity init --template` may have already added the origin — not a failure.
+  const out = String(
+    err instanceof Error ? `${err.message} ${(err as {stderr?: Buffer}).stderr ?? ''}` : err,
+  ).toLowerCase()
+  if (out.includes('duplicate') || out.includes('conflict')) {
+    console.log('CORS origin already exists — skipping')
+    success('Add CORS origin')
+  } else {
+    failed(
+      'Add CORS origin',
+      err,
+      'cd studio && npx sanity cors add http://localhost:3000 --credentials',
+    )
+  }
 }
 
 // ── 4. Deploy blueprint ──────────────────────────────────────────────────────
@@ -203,6 +256,21 @@ try {
           projectId,
         ],
         {cwd: root, stdio: 'pipe'},
+      )
+      // Robot tokens and scheduled functions require an org-scoped stack —
+      // promote the freshly initialized one.
+      run(
+        'pnpm',
+        [
+          'exec',
+          'sanity',
+          'blueprints',
+          'promote',
+          '--force',
+          '--new-stack-name',
+          `${projectId}-prod`,
+        ],
+        {cwd: root},
       )
     } catch (initErr: unknown) {
       const out = String(initErr instanceof Error ? initErr.message : initErr).toLowerCase()
@@ -229,6 +297,55 @@ try {
   success('Deploy blueprint')
 } catch (err) {
   failed('Deploy blueprint', err, 'cd <root> && npx sanity blueprints deploy')
+}
+
+// ── 4b. Classifier Anthropic key ─────────────────────────────────────────────
+// The classify-conversations function runs on Sanity infrastructure, so the
+// Anthropic key from step 2 must be set on the function runtime — .env files
+// never leave this machine.
+
+heading('Classifier Anthropic key')
+try {
+  if (!insightsEnabled) {
+    console.log('Agent Insights disabled — skipping')
+    results.push({
+      name: 'Classifier Anthropic key',
+      status: 'skipped',
+      error: 'Agent Insights disabled in step 2b',
+    })
+  } else if (isRealValue(anthropicKey)) {
+    run(
+      'pnpm',
+      [
+        'exec',
+        'sanity',
+        'functions',
+        'env',
+        'add',
+        'classify-conversations',
+        'ANTHROPIC_API_KEY',
+        anthropicKey,
+      ],
+      {cwd: root},
+    )
+    console.log('Set ANTHROPIC_API_KEY on the classify-conversations function')
+    success('Classifier Anthropic key')
+  } else {
+    console.log(
+      'No Anthropic key — conversations will not be classified until you set one:\n  npx sanity functions env add classify-conversations ANTHROPIC_API_KEY <key>',
+    )
+    results.push({
+      name: 'Classifier Anthropic key',
+      status: 'skipped',
+      error: 'No Anthropic API key entered in step 2',
+    })
+  }
+} catch (err) {
+  failed(
+    'Classifier Anthropic key',
+    err,
+    'npx sanity functions env add classify-conversations ANTHROPIC_API_KEY <key>',
+  )
 }
 
 // ── 5. Deploy schema ─────────────────────────────────────────────────────────
@@ -374,6 +491,62 @@ try {
   )
 }
 
+// ── 9c. Insights write token ─────────────────────────────────────────────────
+// An Editor token used server-side by both chat surfaces to save conversations
+// (sanity.agentContextConversation) for the Studio's Agent Insights dashboard.
+// One token is shared by app/ and dashboard-server/ — never sent to a browser.
+
+heading('Insights write token')
+if (!insightsEnabled) {
+  console.log('Agent Insights disabled — skipping')
+  results.push({
+    name: 'Insights write token',
+    status: 'skipped',
+    error: 'Agent Insights disabled in step 2b',
+  })
+} else {
+  try {
+    let insightsToken = [parseEnvFile(appEnvLocal), parseEnvFile(serverEnvLocal)]
+      .map((vars) => vars.SANITY_INSIGHTS_WRITE_TOKEN)
+      .find(isRealValue)
+    if (insightsToken) {
+      console.log('Insights write token already set — skipping creation')
+    } else {
+      const out = execFileSync(
+        'pnpm',
+        [
+          'exec',
+          'sanity',
+          'tokens',
+          'add',
+          'Knowledge Base — Insights (write)',
+          '--project-id',
+          projectId,
+          '--role',
+          'editor',
+          '--json',
+          '-y',
+        ],
+        {cwd: root, stdio: ['inherit', 'pipe', 'inherit']},
+      ).toString()
+      const json = JSON.parse(out.match(/\{[\s\S]*\}/)?.[0] ?? '{}')
+      insightsToken = json.key ?? json.token ?? json.value
+      if (!insightsToken) throw new Error('Could not parse token from `sanity tokens add` output')
+      console.log('Created insights write token')
+    }
+    patchEnvVar(appEnvLocal, 'SANITY_INSIGHTS_WRITE_TOKEN', insightsToken)
+    patchEnvVar(serverEnvLocal, 'SANITY_INSIGHTS_WRITE_TOKEN', insightsToken)
+    console.log('Wrote insights write token to app and dashboard-server env')
+    success('Insights write token')
+  } catch (err) {
+    failed(
+      'Insights write token',
+      err,
+      'cd studio && npx sanity tokens add "KB Insights" --role editor  # then add SANITY_INSIGHTS_WRITE_TOKEN to app/.env.local and dashboard-server/.env.local',
+    )
+  }
+}
+
 // ── 10. Import seed data ─────────────────────────────────────────────────────
 
 heading('Import seed data')
@@ -396,6 +569,18 @@ try {
   success('Restore dependencies')
 } catch (err) {
   failed('Restore dependencies', err, 'pnpm install')
+}
+
+// ── 12. Generate types ───────────────────────────────────────────────────────
+// Extracts schema.json and generates TypeGen types. Without this, the first
+// `pnpm dev` fails with "Schema file not found: schema.json".
+
+heading('Generate types')
+try {
+  run('pnpm', ['--filter', 'studio', 'typegen'], {cwd: root})
+  success('Generate types')
+} catch (err) {
+  failed('Generate types', err, 'pnpm typegen')
 }
 
 // ── Summary ──────────────────────────────────────────────────────────────────

@@ -12,6 +12,8 @@
     "@ai-sdk/anthropic": "catalog:",
     "@ai-sdk/mcp": "catalog:",
     "@hono/node-server": "catalog:",
+    "@sanity/agent-context": "catalog:",
+    "@sanity/client": "catalog:",
     "ai": "catalog:",
     "hono": "catalog:",
     "zod": "catalog:"

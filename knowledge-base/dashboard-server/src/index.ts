@@ -1,5 +1,7 @@
 import {anthropic} from '@ai-sdk/anthropic'
 import {createMCPClient} from '@ai-sdk/mcp'
+import {sanityInsightsIntegration} from '@sanity/agent-context/ai-sdk'
+import {createClient} from '@sanity/client'
 import {serve} from '@hono/node-server'
 import {convertToModelMessages, stepCountIs, streamText, tool, type ToolSet, zodSchema} from 'ai'
 import {Hono} from 'hono'
@@ -8,9 +10,13 @@ import {z} from 'zod'
 
 import {MODEL_ID, SYSTEM_PROMPT} from './constants'
 
-try {
-  process.loadEnvFile(new URL('../.env', import.meta.url))
-} catch {}
+// .env.local (written by bootstrap) takes precedence — loadEnvFile never
+// overwrites vars that are already set.
+for (const file of ['../.env.local', '../.env']) {
+  try {
+    process.loadEnvFile(new URL(file, import.meta.url))
+  } catch {}
+}
 
 // Chat proxy for the App SDK dashboard. Holds the INTERNAL read token and calls
 // the internal Agent Context (Team KB). The App SDK app is browser-only and
@@ -27,6 +33,34 @@ const displayCards = tool({
   execute: async ({type, items}) => ({type, items}),
 })
 
+// Saves conversations to Sanity so they show up in the Studio's Agent Insights
+// dashboard. Optional: without the write token, chat works and telemetry is
+// skipped. A fresh integration instance is required per request — instances
+// must not be shared across concurrent streams.
+function insightsTelemetry(threadId: string) {
+  const token = process.env.SANITY_INSIGHTS_WRITE_TOKEN
+  const projectId = process.env.SANITY_PROJECT_ID
+  const dataset = process.env.SANITY_DATASET
+  if (!token || !projectId || !dataset) return undefined
+  return {
+    isEnabled: true,
+    integrations: [
+      sanityInsightsIntegration({
+        client: createClient({
+          projectId,
+          dataset,
+          apiVersion: '2025-03-01',
+          token,
+          useCdn: false,
+          requestTagPrefix: 'insights.kb',
+        }),
+        agentId: 'team-kb',
+        threadId,
+      }),
+    ],
+  }
+}
+
 const app = new Hono()
 
 app.use(
@@ -39,7 +73,9 @@ app.use(
 )
 
 app.post('/api/chat', async (c) => {
-  const {messages} = await c.req.json()
+  // `id` is the chat id — the AI SDK's default transport sends it with every
+  // request, so it doubles as a stable per-conversation thread id.
+  const {messages, id} = await c.req.json()
 
   const mcpUrl = process.env.SANITY_AGENT_CONTEXT_URL_INTERNAL
   if (!mcpUrl) return c.json({error: 'SANITY_AGENT_CONTEXT_URL_INTERNAL is not set'}, 500)
@@ -60,6 +96,7 @@ app.post('/api/chat', async (c) => {
       messages: await convertToModelMessages(messages),
       tools: {...mcpTools, displayCards} as ToolSet,
       stopWhen: stepCountIs(8),
+      experimental_telemetry: insightsTelemetry(typeof id === 'string' ? id : crypto.randomUUID()),
       onFinish: () => mcpClient.close(),
     })
     return result.toUIMessageStreamResponse()
