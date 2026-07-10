@@ -116,11 +116,11 @@ analytics-content-ops/
 Each workspace manages its own `.env` (never committed). Copy from the matching
 `.env.example` and set the same project ID / dataset in all three:
 
-| File | Loaded by | Required vars |
-| --- | --- | --- |
-| `studio/.env` | Studio CLI (`sanity.cli.ts` → `process.loadEnvFile`), `pnpm bootstrap`, `sanity dev` | `SANITY_STUDIO_PROJECT_ID`, `SANITY_STUDIO_DATASET`, optional `SANITY_STUDIO_PREVIEW_URL` |
-| `frontend/.env` | Next.js | `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, optional `SANITY_API_READ_TOKEN` / `NEXT_PUBLIC_SANITY_STUDIO_URL` |
-| `.env` (root) | Blueprint (`dotenv/config` in `sanity.blueprint.ts`), Phase 1 sync | `SANITY_STUDIO_PROJECT_ID`, `SANITY_STUDIO_DATASET`, `ANALYTICS_PROVIDER`, optional `SANITY_API_WRITE_TOKEN` + GA4 vars |
+| File            | Loaded by                                                                            | Required vars                                                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `studio/.env`   | Studio CLI (`sanity.cli.ts` → `process.loadEnvFile`), `pnpm bootstrap`, `sanity dev` | `SANITY_STUDIO_PROJECT_ID`, `SANITY_STUDIO_DATASET`, optional `SANITY_STUDIO_PREVIEW_URL`                                         |
+| `frontend/.env` | Next.js                                                                              | `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, optional `SANITY_API_READ_TOKEN` / `NEXT_PUBLIC_SANITY_STUDIO_URL` |
+| `.env` (root)   | Blueprint (`dotenv/config` in `sanity.blueprint.ts`), Phase 1 sync                   | `SANITY_STUDIO_PROJECT_ID`, `SANITY_STUDIO_DATASET`, `ANALYTICS_PROVIDER`, optional `SANITY_API_WRITE_TOKEN` + GA4 vars           |
 
 **Common failure:** putting values only in root `.env.local`. That file is used by
 `scripts/analytics-sync.ts`, but **not** by Studio CLI or blueprint deploy. Without

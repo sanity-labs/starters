@@ -65,7 +65,11 @@ function formatAxisValue(n: number): string {
   return String(Math.round(n))
 }
 
-function vsAverageCopy(pct?: number): {arrow: string; label: string; tone: 'positive' | 'caution' | 'default'} {
+function vsAverageCopy(pct?: number): {
+  arrow: string
+  label: string
+  tone: 'positive' | 'caution' | 'default'
+} {
   if (typeof pct !== 'number' || pct === 0) {
     return {arrow: '→', label: 'in line with catalog average', tone: 'default'}
   }
@@ -123,7 +127,10 @@ function TrafficChart({series}: {series: DailySession[]}) {
 
   const xLabels = [
     {i: 0, label: formatShortDate(points[0].date)},
-    {i: Math.floor((points.length - 1) / 2), label: formatShortDate(points[Math.floor((points.length - 1) / 2)].date)},
+    {
+      i: Math.floor((points.length - 1) / 2),
+      label: formatShortDate(points[Math.floor((points.length - 1) / 2)].date),
+    },
     {i: points.length - 1, label: formatShortDate(points[points.length - 1].date)},
   ]
 
@@ -259,7 +266,10 @@ export function PerformancePanel(props: {documentId?: string; document?: {docume
     [data?.performanceTier, data?.lifecycleState],
   )
 
-  const vsAvg = useMemo(() => vsAverageCopy(data?.sessionsVsCatalogAvgPct), [data?.sessionsVsCatalogAvgPct])
+  const vsAvg = useMemo(
+    () => vsAverageCopy(data?.sessionsVsCatalogAvgPct),
+    [data?.sessionsVsCatalogAvgPct],
+  )
 
   if (loading) {
     return (
@@ -318,7 +328,11 @@ export function PerformancePanel(props: {documentId?: string; document?: {docume
               30-day traffic
             </Label>
             <Flex align="baseline" gap={3} wrap="wrap">
-              <Text size={4} weight="bold" style={{fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em'}}>
+              <Text
+                size={4}
+                weight="bold"
+                style={{fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em'}}
+              >
                 {typeof data.sessions30d === 'number' ? formatSessions(data.sessions30d) : '—'}
               </Text>
               <Inline space={2}>

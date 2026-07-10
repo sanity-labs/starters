@@ -34,11 +34,11 @@ cp frontend/.env.example frontend/.env
 cp .env.example .env
 ```
 
-| File | Who loads it | Must set |
-| --- | --- | --- |
-| `studio/.env` | `studio/sanity.cli.ts` (`process.loadEnvFile`) | `SANITY_STUDIO_PROJECT_ID`, `SANITY_STUDIO_DATASET` |
-| `frontend/.env` | Next.js | `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET` |
-| `.env` (root) | `sanity.blueprint.ts` via `dotenv/config` | `SANITY_STUDIO_PROJECT_ID`, `SANITY_STUDIO_DATASET` |
+| File            | Who loads it                                   | Must set                                                      |
+| --------------- | ---------------------------------------------- | ------------------------------------------------------------- |
+| `studio/.env`   | `studio/sanity.cli.ts` (`process.loadEnvFile`) | `SANITY_STUDIO_PROJECT_ID`, `SANITY_STUDIO_DATASET`           |
+| `frontend/.env` | Next.js                                        | `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET` |
+| `.env` (root)   | `sanity.blueprint.ts` via `dotenv/config`      | `SANITY_STUDIO_PROJECT_ID`, `SANITY_STUDIO_DATASET`           |
 
 If only root `.env.local` exists, bootstrap fails with
 `Unable to resolve project ID/dataset from CLI configuration`.

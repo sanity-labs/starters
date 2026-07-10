@@ -1,4 +1,10 @@
-import type {AnalyticsMetric, AnalyticsProvider, ArticleRef, DailySession, TopReferrer} from '../types'
+import type {
+  AnalyticsMetric,
+  AnalyticsProvider,
+  ArticleRef,
+  DailySession,
+  TopReferrer,
+} from '../types'
 
 export type {ArticleRef} from '../types'
 
@@ -107,7 +113,12 @@ export function fixtureProvider(): AnalyticsProvider {
             slug: a.slug,
             ageDays: a.ageDays,
             ...curated,
-            dailySessions: buildDailySeries(a.slug, curated.sessions, curated.previousSessions, now),
+            dailySessions: buildDailySeries(
+              a.slug,
+              curated.sessions,
+              curated.previousSessions,
+              now,
+            ),
           }
         }
         // Fallback for any article not in the curated set.
