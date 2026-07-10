@@ -1,0 +1,17 @@
+{
+  "name": "@starter/analytics-sync",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./providers": "./src/providers/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@starter/tsconfig": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

@@ -1,0 +1,33 @@
+name: Analytics Sync
+
+# Phase 1 sync: an external cron that reads analytics and upserts performance
+# signal into Sanity. Phase 2 replaces this with the scheduled Function in
+# `functions/analytics-sync` (see sanity.blueprint.ts) — the sync logic is
+# identical, so retiring this workflow is an infrastructure swap, not a rewrite.
+
+on:
+  schedule:
+    # 07:00 UTC ≈ nightly, after the previous day closes in the Americas.
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Sync analytics into Sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install
+      - name: Run analytics sync
+        run: pnpm analytics-sync
+        env:
+          SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
+          SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET }}
+          SANITY_API_WRITE_TOKEN: ${{ secrets.SANITY_API_WRITE_TOKEN }}
+          ANALYTICS_PROVIDER: ${{ vars.ANALYTICS_PROVIDER || 'fixture' }}
+          GA4_PROPERTY_ID: ${{ vars.GA4_PROPERTY_ID }}
+          GA4_SERVICE_ACCOUNT_KEY: ${{ secrets.GA4_SERVICE_ACCOUNT_KEY }}
