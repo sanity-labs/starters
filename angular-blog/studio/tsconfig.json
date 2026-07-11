@@ -1,0 +1,7 @@
+{
+  "extends": "@starter/tsconfig/base.json",
+  "include": ["schemaTypes/**/*.ts", "scripts/**/*.ts"],
+  "compilerOptions": {
+    "noEmit": true
+  }
+}

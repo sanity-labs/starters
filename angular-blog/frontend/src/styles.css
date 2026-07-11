@@ -1,0 +1,84 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+body {
+  margin: 0;
+  background: #fafafa;
+  color: #111;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.container {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+header h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+}
+
+.lede {
+  color: #444;
+}
+
+.post-list {
+  list-style: none;
+  padding: 0;
+  margin: 2rem 0 0;
+  display: grid;
+  gap: 2rem;
+}
+
+.post-list a {
+  color: inherit;
+  text-decoration: none;
+  display: block;
+}
+
+.post-list img,
+article > img {
+  width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.post-list h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.35rem;
+}
+
+time,
+.byline {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.byline {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin: 0 0 0.5rem;
+}
+
+.byline-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.portable-text p {
+  margin: 0 0 1rem;
+}
