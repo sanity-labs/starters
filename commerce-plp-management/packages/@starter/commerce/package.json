@@ -1,0 +1,21 @@
+{
+  "name": "@starter/commerce",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./merge": "./src/merge.ts",
+    "./badges": "./src/badges.ts",
+    "./shopify": "./src/shopify/index.ts",
+    "./shopify/metaobject": "./src/shopify/metaobject.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@starter/tsconfig": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

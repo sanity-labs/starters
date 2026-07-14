@@ -1,0 +1,59 @@
+{
+  "name": "commerce-plp-management",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Commerce PLP management starter. Give merchandising teams editorial control of the category page — product curation, in-grid storytelling, badges, facet order, and custom campaign collections — as a Sanity enrichment layer on top of Shopify. Presence-based: no enrichment document means pure Shopify output. Built with Sanity Studio v5, Next.js 16, and Sanity Functions.",
+  "keywords": [
+    "Commerce",
+    "Content Operations",
+    "GROQ",
+    "Merchandising",
+    "Next.js",
+    "PLP",
+    "Sanity",
+    "Sanity Functions",
+    "Shopify"
+  ],
+  "homepage": "https://github.com/sanity-labs/starters/tree/main/commerce-plp-management#readme",
+  "bugs": {
+    "url": "https://github.com/sanity-labs/starters/issues"
+  },
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n studio,frontend,functions -c '#f03e2f,#8b5cf6,#f5a623' 'pnpm --filter studio dev' 'pnpm --filter frontend dev' 'pnpm --filter @starter/functions build && sanity functions dev'",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "eslint --cache --cache-location node_modules/.cache/eslint/ .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "typegen": "pnpm --filter studio typegen",
+    "pretypecheck": "pnpm run typegen",
+    "typecheck": "pnpm -r typecheck",
+    "bootstrap": "pnpm --filter studio bootstrap",
+    "seed": "pnpm --filter studio seed",
+    "shopify:setup": "tsx scripts/setup-metaobject.ts",
+    "shopify:storefront-token": "tsx scripts/create-storefront-token.ts",
+    "validate": "sanity-template-validate"
+  },
+  "devDependencies": {
+    "@sanity/blueprints": "^0.17.1",
+    "@sanity/client": "catalog:",
+    "@sanity/functions": "1.3.1",
+    "@sanity/template-validator": "^3.1.0",
+    "@starter/commerce": "workspace:*",
+    "@starter/eslint-config": "workspace:*",
+    "@types/node": "^22.19.13",
+    "concurrently": "^9.2.1",
+    "dotenv": "^17.4.2",
+    "eslint": "^9.39.3",
+    "groq": "catalog:",
+    "oxfmt": "^0.46.0",
+    "sanity": "catalog:",
+    "tsx": "^4.21.0"
+  },
+  "engines": {
+    "node": ">=20.19 <22 || >=22.12"
+  },
+  "packageManager": "pnpm@10.30.3"
+}
