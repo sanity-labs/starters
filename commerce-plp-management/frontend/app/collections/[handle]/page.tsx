@@ -33,6 +33,7 @@ export default async function CollectionPage({params}: {params: Promise<{handle:
   if (!collection) notFound()
 
   const productCount = collection.grid.filter((item) => item.kind === 'product').length
+  const hasFacets = collection.facets.length > 0
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">
@@ -54,8 +55,8 @@ export default async function CollectionPage({params}: {params: Promise<{handle:
         <h1 className="mb-6 text-3xl font-bold uppercase tracking-tight">{collection.title}</h1>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
-        <FacetRail facets={collection.facets} />
+      <div className={hasFacets ? 'grid gap-6 lg:grid-cols-[240px_1fr]' : ''}>
+        {hasFacets ? <FacetRail facets={collection.facets} /> : null}
         <div>
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="text-lg font-bold uppercase tracking-tight">{collection.title}</h2>

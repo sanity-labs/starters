@@ -32,6 +32,7 @@
     "typecheck": "pnpm -r typecheck",
     "bootstrap": "pnpm --filter studio bootstrap",
     "seed": "pnpm --filter studio seed",
+    "seed:demo": "pnpm --filter studio seed:demo",
     "shopify:setup": "tsx scripts/setup-metaobject.ts",
     "shopify:storefront-token": "tsx scripts/create-storefront-token.ts",
     "validate": "sanity-template-validate"

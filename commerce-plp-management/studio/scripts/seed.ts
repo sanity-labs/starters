@@ -6,7 +6,11 @@
  * one sanity-custom). Open them in Studio and use the product picker to attach
  * real products from your store.
  *
- * Usage: pnpm seed   (from repo root) or  pnpm --filter studio seed
+ * Usage:
+ *   pnpm seed        (store-agnostic default: badges + two example collections)
+ *   pnpm seed:demo   (the fully-merchandised "Sanity Swag Store" demo)
+ *
+ * Set SEED_FILE to import a different ndjson file from studio/seed/.
  */
 
 import {createReadStream} from 'node:fs'
@@ -15,7 +19,8 @@ import {resolve} from 'node:path'
 import {getCliClient} from 'sanity/cli'
 
 const client = getCliClient({apiVersion: '2025-01-01'})
-const file = resolve(import.meta.dirname!, '../seed/data.ndjson')
+const fileName = process.env.SEED_FILE ?? 'data.ndjson'
+const file = resolve(import.meta.dirname!, '../seed/', fileName)
 
 const rl = createInterface({input: createReadStream(file), crlfDelay: Infinity})
 

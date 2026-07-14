@@ -12,7 +12,7 @@ export function ProductGrid({grid}: {grid: GridItem[]}) {
   }
 
   return (
-    <div id="grid" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 auto-rows-[1fr]">
+    <div id="grid" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
       {grid.map((item, index) =>
         item.kind === 'product' ? (
           <ProductCard key={`${item.product.id}-${index}`} item={item} />

@@ -10,6 +10,7 @@
     "typegen": "sanity schema extract && sanity typegen generate",
     "bootstrap": "sanity exec scripts/bootstrap.ts --with-user-token",
     "seed": "sanity exec scripts/seed.ts --with-user-token",
+    "seed:demo": "SEED_FILE=demo-swag-store.ndjson sanity exec scripts/seed.ts --with-user-token",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
