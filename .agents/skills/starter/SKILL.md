@@ -36,17 +36,17 @@ my-starter/
 
 Every starter must have:
 
-| File | Purpose |
-| --- | --- |
-| `package.json` | `"type": "module"`, `engines`, `packageManager`, scripts |
-| `pnpm-workspace.yaml` | Workspace packages + `catalog:` for shared dep versions |
-| `.env.example` | Template with comments, no real values |
-| `.gitignore` | Self-contained, covers all starter concerns |
-| `.npmrc` | `enable-pre-post-scripts=true` (required for pnpm 10.x) |
-| `.oxfmtrc.json` | `semi: false`, `singleQuote: true`, `printWidth: 100`, `bracketSpacing: false` |
-| `README.md` | Getting started, prerequisites, project structure |
-| `AGENT.md` | Agent context for Claude Code / Cursor / etc. |
-| `CLAUDE.md` | Symlink to `AGENT.md` |
+| File                  | Purpose                                                                        |
+| --------------------- | ------------------------------------------------------------------------------ |
+| `package.json`        | `"type": "module"`, `engines`, `packageManager`, scripts                       |
+| `pnpm-workspace.yaml` | Workspace packages + `catalog:` for shared dep versions                        |
+| `.env.example`        | Template with comments, no real values                                         |
+| `.gitignore`          | Self-contained, covers all starter concerns                                    |
+| `.npmrc`              | `enable-pre-post-scripts=true` (required for pnpm 10.x)                        |
+| `.oxfmtrc.json`       | `semi: false`, `singleQuote: true`, `printWidth: 100`, `bracketSpacing: false` |
+| `README.md`           | Getting started, prerequisites, project structure                              |
+| `AGENT.md`            | Agent context for Claude Code / Cursor / etc.                                  |
+| `CLAUDE.md`           | Symlink to `AGENT.md`                                                          |
 
 ## Environment Variables
 
@@ -58,11 +58,11 @@ Single root `.env.local` cascades to all workspaces. Never committed.
 
 Loading patterns by context:
 
-| Context | Pattern |
-| --- | --- |
-| Studio CLI (`sanity.cli.ts`) | `process.loadEnvFile(\`${__dirname}/../.env.local\`)` |
-| Blueprint (`sanity.blueprint.ts`) | `readFileSync` + manual parse (jiti quirk) |
-| Vite apps | `vite: { envDir: '..' }` pointing to root |
+| Context                           | Pattern                                               |
+| --------------------------------- | ----------------------------------------------------- |
+| Studio CLI (`sanity.cli.ts`)      | `process.loadEnvFile(\`${__dirname}/../.env.local\`)` |
+| Blueprint (`sanity.blueprint.ts`) | `readFileSync` + manual parse (jiti quirk)            |
+| Vite apps                         | `vite: { envDir: '..' }` pointing to root             |
 
 ## Shared Config Packages
 
@@ -121,13 +121,24 @@ Root `package.json` delegates to workspaces:
 
 ## GitHub Workflows
 
-Each starter ships its own workflows for standalone use:
+Each starter ships its own workflows under `<starter>/.github/workflows/` for standalone use (they run when the starter is cloned via `sanity init --template`):
 
-- **`ci.yml`** — format check, lint, typecheck, test, validate
-- **`deploy.yml`** — deploy Studio, functions, apps on push to main (path-filtered)
+- **`ci.yml`** — format check, lint, typecheck, validate, and (if it has Functions) build + manifest extract + bundle-size check
+- **`deploy.yml`** — deploy Studio, functions, and blueprint on push to main (path-filtered); build the frontend as a guard. The Next.js storefront itself deploys via Vercel (dashboard import), not this workflow.
 - **`eval.yml`** — manual triggers for quality evals (if applicable)
 
-These also exist in the root `.github/workflows/ci.yml` for monorepo CI but scoped with `working-directory` and `cache-dependency-path`.
+## Wiring a New Starter into the Monorepo
+
+The starter's own workflows do **not** run in this repo — the root `.github/workflows/ci.yml` runs CI for every starter. Adding a new starter is not complete until you do all of the following (it's easy to forget the root CI job — a starter with green local `pnpm validate` still has **zero** monorepo coverage without it):
+
+1. **Add a job to the root `.github/workflows/ci.yml`.** Mirror an existing starter job (e.g. `knowledge-base`): a Node 20/22 matrix, `environment: <starter-name>`, `defaults.run.working-directory: <starter-name>`, then `pnpm install` + format check + lint + typecheck + validate (+ functions build, manifest extract, and bundle-size check if it has Functions). Steps that touch the Content Lake read `SANITY_STUDIO_PROJECT_ID`/`SANITY_STUDIO_DATASET` from `${{ vars.SANITY_PROJECT_ID }}` / `${{ vars.SANITY_DATASET }}`.
+2. **Create a GitHub Environment** named exactly after the starter (repo Settings → Environments) with:
+   - vars: `SANITY_PROJECT_ID`, `SANITY_DATASET` (add `SANITY_STACK_ID` if it deploys a blueprint)
+   - secrets: `SANITY_AUTH_TOKEN` (only if the starter deploys)
+3. **Add a row** to the starters table in the root `README.md`.
+4. **Husky needs no edit** — the root `.husky/pre-commit` hook auto-discovers each starter by its own `package.json` / `eslint.config.*`, so formatting and lint-fix scope automatically.
+
+Verify from the starter directory with `pnpm validate` (template compatibility) and confirm the new `<starter-name>` job appears in the PR's checks.
 
 ## Template Validation
 
