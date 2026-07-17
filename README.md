@@ -18,6 +18,7 @@ pnpm create sanity@latest --template sanity-labs/starters/<starter-name>
 | [ai-shopping-assistant](./ai-shopping-assistant)     | Ecommerce storefront with a Claude chatbot powered by Context MCP                              |
 | [knowledge-base](./knowledge-base)                   | Governed knowledge base feeding external and internal AI chat surfaces from one dataset        |
 | [commerce-plp-management](./commerce-plp-management) | Editorial merchandising layer over Shopify PLPs — curation, badges, facets, custom collections |
+| [commerce-pdp-management](./commerce-pdp-management) | Editorial enrichment layer over Shopify PDPs — tag-matched attribute rules, control plane, SKU stories |
 
 ## Repo structure
 
