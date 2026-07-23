@@ -21,6 +21,8 @@ Run from the repo root:
 - `pnpm bootstrap` — deploy blueprint + schema, typegen, seed content + signal
 - `pnpm seed` — seed demo content and run the fixture sync
 - `pnpm analytics-sync` — run the analytics sync on demand (Phase 1 path)
+- `pnpm fn:sync` / `pnpm fn:triage` — run the `analytics-sync` / `agent-triage`
+  Function locally (loads root `.env` + your CLI token, no deploy needed)
 - `pnpm typegen` / `pnpm typecheck` / `pnpm lint` / `pnpm format`
 
 ## Environment setup (required before bootstrap)
@@ -52,9 +54,10 @@ If only root `.env.local` exists, bootstrap fails with
 ## Content model (the key architectural decisions)
 
 - **`article`** — the editorial document. Adds `editorialPriority` (the editor's
-  response to signal) and an `agentReview` object (state machine:
-  `idle → queued → in_progress → staged → approved | dismissed`) plus `seoTitle`
-  / `seoDescription` that the triage agent drafts.
+  response to signal) and an `agentReview` object (workflow status:
+  `idle → queued → in_progress → staged`, reset to `idle` once a human accepts or
+  dismisses; the outcome is recorded by `reviewedAt`, not a status) plus
+  `seoTitle` / `seoDescription` that the triage agent drafts.
 - **`articlePerformance`** — a **companion document**, synced nightly, **never
   edited by humans**. It is deliberately separate from `article` so that
   `article._updatedAt` stays a purely _editorial_ signal and webhooks can filter
@@ -96,19 +99,23 @@ computed across the whole catalog, so "stale" means "underperforming its peers."
 `agentReview.status == "queued"` articles, uses Agent Actions to write
 `agentReview.agentNotes` plus improved SEO metadata into the article's **draft**
 (never the published doc — the draft is the review gate), and marks each
-`staged`. The ops lead reviews the "Content Agent Queue" in Studio and publishes
-to approve.
+`staged`. The ops lead finds these under **Triage → Awaiting Approval** and
+**publishes to accept** — a publish-event Function (`functions/agent-review-resolve/`)
+then resets the article to `idle` — or uses the **Dismiss** action to reject,
+which discards the draft and resets it. Either path stamps
+`agentReview.reviewedAt`, which the sync honours as a re-queue cooldown.
 
-Production upgrade: promote the per-run batch to a first-class **Content
-Release** via the Releases API (currently tracked by `agentReview.releaseId`).
+Production upgrade (Enterprise-only): promote the per-run batch to a first-class
+**Content Release** via the Releases API (the batch name is tracked in
+`agentReview.releaseId`).
 
 ## Studio surfaces
 
 - `PerformanceTierBadge` — document badge (trending / stale / archive candidate)
 - Performance panel — read-only second view on every article
   (`structure.ts` → `defaultDocumentNode`), live-subscribed to the companion doc
-- Triage views in `structure.ts`: Needs Attention, Trending Now, Archive
-  Candidates, Content Agent Queue
+- Triage views in `structure.ts`: Awaiting Approval (staged — needs a human),
+  Underperforming, Trending Now, Archive Candidates, Content Agent Queue
 
 ## Deploying functions
 

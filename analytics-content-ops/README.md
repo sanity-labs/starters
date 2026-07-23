@@ -23,8 +23,8 @@ real articles from the [Sanity blog](https://www.sanity.io/blog).
 | Persona                                    | In this starter                                                                                                                                                     |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Author** — "how is my work doing?"       | A performance badge + read-only **Performance panel** on every article, with a one-line editorial cue. Set `editorialPriority` to flag a piece — no leaving Studio. |
-| **Section editor** — triaging a section    | Structure Builder **triage views**: Needs Attention, Trending Now, Archive Candidates.                                                                              |
-| **Content ops lead** — running the catalog | A **Content Agent Queue** of articles the sync flagged stale, each with agent-drafted notes and SEO staged in a draft for review.                                   |
+| **Section editor** — triaging a section    | Structure Builder **triage views**: Underperforming, Trending Now, Archive Candidates.                                                                              |
+| **Content ops lead** — running the catalog | An **Awaiting Approval** list of articles the agent drafted notes + SEO for (staged in a draft) — publish to accept, or dismiss to reject.                          |
 | **Developer** — content intelligence       | A nightly **sync** upserts `articlePerformance` companion docs; the "Trending" and "Most read" rails on the site are just GROQ joins.                               |
 | **Content Agent** — automated triage       | A scheduled Function loads queued articles, writes reasoning + improvements, and stages them for human review.                                                      |
 
@@ -107,7 +107,7 @@ analytics-content-ops/
 ├── packages/@starter/
 │   └── analytics-sync/           #   framework-agnostic sync + tier classification
 ├── scripts/analytics-sync.ts     # Phase 1 standalone / CI sync
-├── sanity.blueprint.ts           # scheduled functions + robot token
+├── sanity.blueprint.ts           # scheduled + on-publish functions, robot token
 └── .github/workflows/            # ci.yml + analytics-sync.yml (Phase 1 cron)
 ```
 
