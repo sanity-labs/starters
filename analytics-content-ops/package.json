@@ -34,6 +34,8 @@
     "bootstrap": "pnpm --filter studio bootstrap",
     "seed": "pnpm --filter studio seed",
     "analytics-sync": "tsx scripts/analytics-sync.ts",
+    "fn:sync": "tsx scripts/fn.ts analytics-sync",
+    "fn:triage": "tsx scripts/fn.ts agent-triage",
     "validate": "sanity-template-validate"
   },
   "devDependencies": {
