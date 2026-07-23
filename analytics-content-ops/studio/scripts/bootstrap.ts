@@ -12,7 +12,7 @@
  */
 
 import {execFileSync} from 'node:child_process'
-import {existsSync} from 'node:fs'
+import {existsSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {resolve} from 'node:path'
 import {getCliClient} from 'sanity/cli'
 import {seed} from '../seed/seed'
@@ -45,10 +45,36 @@ run('pnpm', ['--filter', '@starter/functions', 'run', 'build'], {cwd: rootDir})
 
 // Scheduled functions require an organization-scoped stack. Init creates a
 // project-scoped stack; promote moves it to org scope (same pattern as
-// email-marketing). Skip both when local config already exists.
+// email-marketing).
+//
+// Only skip init+promote when the local blueprint config is for THIS project. A
+// stale config from a different project (e.g. after changing
+// SANITY_STUDIO_PROJECT_ID) would otherwise silently deploy to the wrong stack.
+// The config drops its `projectId` once promoted to org scope, so we also record
+// the project in a sidecar marker to compare on later runs.
 const blueprintConfig = resolve(rootDir, '.sanity/blueprint.config.json')
+const projectMarker = resolve(rootDir, '.sanity/bootstrap-project')
+
 if (existsSync(blueprintConfig)) {
-  console.log('Blueprint already initialized — skipping init + promote')
+  const marker = existsSync(projectMarker) ? readFileSync(projectMarker, 'utf8').trim() : null
+  const configProjectId = (() => {
+    try {
+      return (JSON.parse(readFileSync(blueprintConfig, 'utf8')).projectId as string) || null
+    } catch {
+      return null
+    }
+  })()
+  const linkedProject = marker ?? configProjectId
+  if (linkedProject && linkedProject !== projectId) {
+    console.log(
+      `Blueprint config is for project "${linkedProject}", not "${projectId}" — re-initializing`,
+    )
+    rmSync(blueprintConfig)
+  }
+}
+
+if (existsSync(blueprintConfig)) {
+  console.log('Blueprint already initialized for this project — skipping init + promote')
 } else {
   run(
     'pnpm',
@@ -72,6 +98,10 @@ if (existsSync(blueprintConfig)) {
     {cwd: rootDir},
   )
 }
+
+// Record which project this stack belongs to, so a later run for a different
+// project detects the mismatch above instead of deploying to the wrong stack.
+writeFileSync(projectMarker, projectId!)
 
 run('pnpm', ['exec', 'sanity', 'blueprints', 'deploy'], {cwd: rootDir})
 
