@@ -48,7 +48,10 @@ Optimize primarily for the "$referrer" channel: organic → search intent and ke
 export const handler = scheduledEventHandler(async ({context}) => {
   const {SANITY_STUDIO_PROJECT_ID: projectId, SANITY_STUDIO_DATASET: dataset} = env
   const token = context.clientOptions?.token
-  const schemaId = env.SANITY_SCHEMA_ID || 'default'
+  // Agent Actions resolves against the deployed schema id, which carries a
+  // `_.schemas.` prefix. The Studio workspace is named "default"
+  // (studio/sanity.config.ts), so the deployed id is `_.schemas.default`.
+  const schemaId = env.SANITY_SCHEMA_ID || '_.schemas.default'
 
   if (!projectId || !dataset || !token) {
     throw new Error('Missing Sanity client configuration')
@@ -102,7 +105,15 @@ export const handler = scheduledEventHandler(async ({context}) => {
           referrer: {type: 'constant', value: article.referrer ?? 'organic'},
           percentile: {type: 'constant', value: String(article.percentile ?? 0)},
         },
-        target: [{path: 'agentReview.agentNotes'}, {path: 'seoTitle'}, {path: 'seoDescription'}],
+        // `path` takes an array of segments, not a JSONMatch dot-string — a
+        // dot-string is read as one literal top-level field and silently
+        // dropped. (Note this differs from client.patch().set(), where dot
+        // notation is valid.)
+        target: [
+          {path: ['agentReview', 'agentNotes']},
+          {path: ['seoTitle']},
+          {path: ['seoDescription']},
+        ],
       })
 
       await client
