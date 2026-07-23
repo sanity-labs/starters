@@ -1,5 +1,10 @@
 /// <reference types="node" />
-import {defineBlueprint, defineRobotToken, defineScheduledFunction} from '@sanity/blueprints'
+import {
+  defineBlueprint,
+  defineDocumentFunction,
+  defineRobotToken,
+  defineScheduledFunction,
+} from '@sanity/blueprints'
 import 'dotenv/config'
 
 const {SANITY_STUDIO_PROJECT_ID, SANITY_STUDIO_DATASET, ANALYTICS_PROVIDER, SANITY_SCHEMA_ID} =
@@ -21,6 +26,8 @@ const sharedEnv = {
 
 export default defineBlueprint({
   resources: [
+    // Scoped robot token the functions run as, so their writes use an explicit
+    // least-privilege (editor) identity rather than an ambient default token.
     defineRobotToken({
       name: 'analytics-content-ops-robot',
       label: 'Analytics Content Ops Robot',
@@ -57,8 +64,26 @@ export default defineBlueprint({
       env: {
         SANITY_STUDIO_PROJECT_ID,
         SANITY_STUDIO_DATASET,
-        SANITY_SCHEMA_ID: SANITY_SCHEMA_ID ?? 'default',
+        // Deployed schema id for Agent Actions. The Studio workspace is named
+        // "default" (studio/sanity.config.ts), so its deployed id is
+        // `_.schemas.default`. Override via SANITY_SCHEMA_ID in .env if renamed.
+        SANITY_SCHEMA_ID: SANITY_SCHEMA_ID ?? '_.schemas.default',
       },
+    }),
+
+    // Closes the triage loop on accept. Fires when a staged draft is published
+    // (its `agentReview.status == "staged"` lands on the published doc) and
+    // resets the live article's status to idle + stamps reviewedAt. The
+    // `status == "staged"` filter both scopes it to genuine accepts and prevents
+    // it from re-triggering on its own idle write. Dismiss is handled in Studio.
+    defineDocumentFunction({
+      name: 'agent-review-resolve',
+      src: 'functions/dist/agent-review-resolve',
+      event: {
+        on: ['create', 'update'],
+        filter: '_type == "article" && agentReview.status == "staged"',
+      },
+      robotToken: '$.resources.analytics-content-ops-robot.token',
     }),
   ],
 })

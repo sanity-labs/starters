@@ -22,16 +22,16 @@ export type TopReferrer = (typeof TOP_REFERRERS)[number]
 export const EDITORIAL_PRIORITIES = ['needs_update', 'promote', 'archive', 'monitor'] as const
 export type EditorialPriority = (typeof EDITORIAL_PRIORITIES)[number]
 
-// The agent-review state machine: idle → queued → in_progress → staged →
-// approved | dismissed.
-export const AGENT_REVIEW_STATUSES = [
-  'idle',
-  'queued',
-  'in_progress',
-  'staged',
-  'approved',
-  'dismissed',
-] as const
+// The agent-review workflow position of the *live* article:
+//   idle → queued (sync) → in_progress → staged (triage)
+// The human then resolves it through the document lifecycle, not a status:
+//   - accept  = publish the staged draft (a Function resets status to idle and
+//               stamps reviewedAt)
+//   - dismiss = the "Dismiss suggestion" action discards the draft and does the
+//               same reset
+// So "approved"/"dismissed" are *outcomes* recorded by reviewedAt, never the
+// live article's status — a resolved article is simply back to idle.
+export const AGENT_REVIEW_STATUSES = ['idle', 'queued', 'in_progress', 'staged'] as const
 export type AgentReviewStatus = (typeof AGENT_REVIEW_STATUSES)[number]
 
 export const TIER_LABELS: Record<PerformanceTier, string> = {

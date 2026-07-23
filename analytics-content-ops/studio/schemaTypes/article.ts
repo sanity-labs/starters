@@ -114,8 +114,12 @@ export const article = defineType({
       },
     }),
 
-    // Agent review state machine. Written by the sync (queued) and the triage
-    // function (in_progress → staged); resolved by editors (approved/dismissed).
+    // Agent review workflow. The status is machine-managed — written by the sync
+    // (queued) and the triage function (in_progress → staged), and reset to idle
+    // when a human resolves the review by publishing (accept) or using the
+    // "Dismiss suggestion" action. It is read-only in the form on purpose: a
+    // hand-set status would contradict the Publish/Dismiss buttons (e.g. marking
+    // "dismissed" while Publish is still available).
     defineField({
       name: 'agentReview',
       title: 'Agent review',
@@ -127,6 +131,7 @@ export const article = defineType({
           name: 'status',
           type: 'string',
           initialValue: 'idle',
+          readOnly: true,
           options: {
             list: AGENT_REVIEW_STATUSES.map((value) => ({
               value,

@@ -1,10 +1,11 @@
-import {defineConfig, type DocumentBadgeComponent} from 'sanity'
+import {defineConfig, type DocumentActionComponent, type DocumentBadgeComponent} from 'sanity'
 import {structureTool} from 'sanity/structure'
 import {visionTool} from '@sanity/vision'
 import {presentationTool, defineDocuments} from 'sanity/presentation'
 import {schemaTypes} from './schemaTypes'
 import {structure, defaultDocumentNode} from './structure'
 import {PerformanceTierBadge} from './components/PerformanceTierBadge'
+import {DiscardOrDismissAction} from './components/DiscardOrDismissAction'
 
 const projectId = process.env.SANITY_STUDIO_PROJECT_ID!
 const dataset = process.env.SANITY_STUDIO_DATASET || 'production'
@@ -47,6 +48,15 @@ export default defineConfig({
         return [PerformanceTierBadge, ...prev]
       }
       return prev
+    },
+    // Replace the default "Discard changes" with our review-aware action (in
+    // place, so it keeps its menu position) — one discard/dismiss path instead
+    // of a "Discard changes" and a "Dismiss" button competing.
+    actions: (prev, {schemaType}): DocumentActionComponent[] => {
+      if (schemaType !== 'article') return prev
+      return prev.map((action) =>
+        action.action === 'discardChanges' ? DiscardOrDismissAction : action,
+      )
     },
   },
 

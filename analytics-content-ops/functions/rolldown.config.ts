@@ -13,4 +13,4 @@ const fn = (name: string) =>
     platform: 'node',
   })
 
-export default [fn('analytics-sync'), fn('agent-triage')]
+export default [fn('analytics-sync'), fn('agent-triage'), fn('agent-review-resolve')]
