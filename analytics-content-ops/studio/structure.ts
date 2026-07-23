@@ -6,6 +6,7 @@ import {
   InfoOutlineIcon,
   RobotIcon,
   TagIcon,
+  ThumbsUpIcon,
   TrendUpwardIcon,
   UserIcon,
   WarningOutlineIcon,
@@ -31,7 +32,6 @@ export const structure: StructureResolver = (S) =>
 
       S.divider(),
 
-      // ── Editorial triage views ──────────────────────────────────────────
       S.listItem()
         .title('Triage')
         .icon(WarningOutlineIcon)
@@ -40,11 +40,25 @@ export const structure: StructureResolver = (S) =>
             .title('Triage')
             .items([
               S.listItem()
-                .title('Needs Attention')
+                .title('Awaiting Approval')
+                .icon(ThumbsUpIcon)
+                .child(
+                  S.documentList()
+                    .title('Awaiting Approval')
+                    .filter('_type == "article" && agentReview.status == "staged"')
+                    .defaultOrdering([
+                      {
+                        field: 'agentReview.reviewedAt',
+                        direction: 'desc',
+                      },
+                    ]),
+                ),
+              S.listItem()
+                .title('Underperforming')
                 .icon(WarningOutlineIcon)
                 .child(
                   S.documentList()
-                    .title('Needs Attention')
+                    .title('Underperforming')
                     .filter(inTier('performanceTier == "stale" || lifecycleState == "declining"'))
                     .defaultOrdering([{field: 'publishedAt', direction: 'asc'}]),
                 ),
@@ -66,16 +80,16 @@ export const structure: StructureResolver = (S) =>
                     .filter(inTier('lifecycleState == "archive_candidate"')),
                 ),
               S.divider(),
+
+              // ── Content Agent — the agent's work queues ────────────────────
               S.listItem()
                 .title('Content Agent Queue')
                 .icon(RobotIcon)
                 .child(
                   S.documentList()
                     .title('Content Agent Queue')
-                    .filter(
-                      '_type == "article" && agentReview.status in ["queued", "in_progress", "staged"]',
-                    )
-                    .defaultOrdering([{field: 'agentReview.reviewedAt', direction: 'desc'}]),
+                    .filter('_type == "article" && agentReview.status in ["queued", "in_progress"]')
+                    .defaultOrdering([{field: 'publishedAt', direction: 'asc'}]),
                 ),
             ]),
         ),
