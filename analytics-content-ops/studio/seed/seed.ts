@@ -93,6 +93,16 @@ export async function seed(client: SanityClient): Promise<void> {
   }
   console.log(`  ✓ ${articles.length} articles`)
 
+  // Reset leftover agent drafts for the seeded articles. Seeding is a
+  // known-state reset (createOrReplace above only touches published docs), and
+  // the triage function stages its work in article *drafts*. Without this, a
+  // re-seed leaves orphan `staged` drafts behind: the published-perspective
+  // sync ignores them, but they still clutter the Content Agent Queue and
+  // desync the review state from the freshly reset published docs.
+  const draftIds = articles.map((a) => `drafts.article-${a.slug}`)
+  const {results} = await client.delete({query: '*[_id in $ids]', params: {ids: draftIds}})
+  console.log(`  ✓ cleared ${results.length} leftover article draft(s)`)
+
   // Populate performance signal so the demo is fully interactive out of the box.
   const result = await runSync({
     client: client as unknown as SyncClient,

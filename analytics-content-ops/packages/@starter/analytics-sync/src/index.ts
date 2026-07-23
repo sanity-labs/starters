@@ -9,7 +9,8 @@ const ARTICLES_QUERY = `*[_type == "article" && defined(slug.current)]{
   _id,
   "slug": slug.current,
   publishedAt,
-  "agentStatus": agentReview.status
+  "agentStatus": agentReview.status,
+  "reviewedAt": agentReview.reviewedAt
 }`
 
 interface ArticleRow {
@@ -17,9 +18,17 @@ interface ArticleRow {
   slug: string
   publishedAt?: string
   agentStatus?: string
+  // Set when a human last resolved an agent review (accept/dismiss). Used as a
+  // cooldown so a just-reviewed article isn't immediately re-queued.
+  reviewedAt?: string
 }
 
 const ONE_DAY = 1000 * 60 * 60 * 24
+
+// After a human resolves a review, don't re-queue the article for triage again
+// until it has stayed stale for this long — otherwise the nightly sync would
+// re-nag the editor the very next run.
+const REQUEUE_COOLDOWN_MS = 30 * ONE_DAY
 
 function ageInDays(publishedAt?: string): number {
   if (!publishedAt) return 0
@@ -45,7 +54,18 @@ export async function runSync(options: RunSyncOptions): Promise<SyncResult> {
   const syncedAt = now.toISOString()
   const tag = options.tagPrefix ?? 'analytics-sync'
 
-  const articles = await client.fetch<ArticleRow[]>(ARTICLES_QUERY, {}, {tag: `${tag}.read`})
+  // Read the *published* catalog only. With no perspective pinned the client
+  // defaults to `raw`, which returns each article's draft/version siblings as
+  // extra rows — inflating the catalog denominator (percentiles skew) and
+  // letting a draft shadow its published article in `bySlug` below (a stale
+  // article with a lingering draft would then never re-queue). Signal is about
+  // live content, so published is the canonical view — the same intent the
+  // `drafts.`-stripping on the write path already encodes.
+  const articles = await client.fetch<ArticleRow[]>(
+    ARTICLES_QUERY,
+    {},
+    {tag: `${tag}.read`, perspective: 'published'},
+  )
 
   const refs: ArticleRef[] = articles.map((a) => ({
     slug: a.slug,
@@ -95,10 +115,15 @@ export async function runSync(options: RunSyncOptions): Promise<SyncResult> {
     })
 
     // Flag articles that have *newly* entered the stale tier for agent triage.
-    // We only touch idle/unset reviews so we never disturb work already in the
-    // review pipeline.
+    // Only touch idle/unset reviews so we never disturb work already in the
+    // pipeline (queued/in_progress/staged), and respect a cooldown after a human
+    // has resolved a review so we don't immediately re-queue what they just
+    // accepted or dismissed.
     const idle = !article.agentStatus || article.agentStatus === 'idle'
-    if (signal.performanceTier === 'stale' && idle) {
+    const reviewCooldownPassed =
+      !article.reviewedAt ||
+      now.getTime() - new Date(article.reviewedAt).getTime() > REQUEUE_COOLDOWN_MS
+    if (signal.performanceTier === 'stale' && idle && reviewCooldownPassed) {
       newlyQueued++
       mutations.push({
         patch: {

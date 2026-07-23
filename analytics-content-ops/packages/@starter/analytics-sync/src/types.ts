@@ -68,7 +68,11 @@ export interface PerformanceSignal {
 // @sanity/client version. Both `@sanity/client` and the Functions runtime
 // client satisfy this.
 export interface SyncClient {
-  fetch<T>(query: string, params?: Record<string, unknown>, options?: {tag?: string}): Promise<T>
+  fetch<T>(
+    query: string,
+    params?: Record<string, unknown>,
+    options?: {tag?: string; perspective?: 'published' | 'drafts' | 'raw'},
+  ): Promise<T>
   mutate(mutations: unknown[], options?: {tag?: string}): Promise<unknown>
 }
 
