@@ -1,0 +1,29 @@
+---
+import Base from '../../../layouts/Base.astro'
+import {SECTION_QUERY} from '@agent-ready/markdown'
+import {client} from '../../../lib/client'
+
+const {section: sectionSlug} = Astro.params
+const section = await client.fetch(SECTION_QUERY, {sectionSlug}, {tag: 'html.section'})
+
+if (!section) {
+  return new Response('Section not found', {status: 404})
+}
+---
+
+<Base title={section.title}>
+  <main>
+    <h1>{section.title}</h1>
+    {section.description && <p>{section.description}</p>}
+    <ul>
+      {
+        section.articles.map((article) => (
+          <li>
+            <a href={`/docs/${section.slug.current}/${article.slug.current}`}>{article.title}</a>
+            {article.summary && <p>{article.summary}</p>}
+          </li>
+        ))
+      }
+    </ul>
+  </main>
+</Base>

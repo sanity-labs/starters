@@ -1,0 +1,68 @@
+---
+import {SITE_INFO} from '../lib/config'
+
+interface Props {
+  title?: string
+}
+
+const {title} = Astro.props
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title ? `${title} · ${SITE_INFO.title}` : SITE_INFO.title}</title>
+    <meta name="description" content={SITE_INFO.summary} />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">{SITE_INFO.title}</a>
+      <nav>
+        <a href="/sitemap.md">sitemap.md</a>
+        <a href="/llms.txt">llms.txt</a>
+      </nav>
+    </header>
+    <slot />
+    <style is:global>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+        line-height: 1.6;
+      }
+      header {
+        display: flex;
+        gap: 1rem;
+        align-items: baseline;
+        margin-bottom: 2rem;
+      }
+      .brand {
+        font-weight: 700;
+        text-decoration: none;
+        color: inherit;
+      }
+      nav {
+        display: flex;
+        gap: 0.75rem;
+        font-size: 0.875rem;
+      }
+      pre {
+        background: #f4f4f4;
+        padding: 1rem;
+        overflow-x: auto;
+      }
+      .callout {
+        border-left: 4px solid #888;
+        padding: 0.5rem 1rem;
+        margin: 1rem 0;
+        background: #fafafa;
+      }
+      .callout strong {
+        font-size: 0.75rem;
+      }
+    </style>
+  </body>
+</html>

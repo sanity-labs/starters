@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Validate (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    # Nothing deploys, so no real project is needed — schema/manifest extract
+    # only require a non-empty projectId to load the Studio config.
+    env:
+      SANITY_STUDIO_PROJECT_ID: placeholder
+      SANITY_STUDIO_DATASET: production
+    strategy:
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: pnpm install
+      - name: Format check
+        run: pnpm run format:check
+      - name: Lint
+        run: pnpm run lint
+      - name: Typecheck
+        run: pnpm run typecheck
+      - name: Validate template
+        run: pnpm run validate
+      - name: Manifest extract
+        run: pnpm --filter studio exec sanity manifest extract
