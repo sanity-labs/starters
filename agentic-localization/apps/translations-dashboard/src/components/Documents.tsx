@@ -195,9 +195,9 @@ const Documents = () => {
                           </Text>
                           <Button
                             disabled={shouldDisableDocumentSelection}
+                            fontSize={1}
                             mode="ghost"
                             onClick={clearSelection}
-                            size={1}
                             text="Deselect All"
                             tone="default"
                           />

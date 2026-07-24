@@ -315,10 +315,10 @@ const TranslationsList = ({
           {!isLoadingStates && hasMissingTranslations && (
             <Button
               disabled={isTranslating || !canTranslate}
+              fontSize={1}
               icon={SparklesIcon}
               mode="default"
               onClick={translateAllLanguages}
-              size={1}
               text="Translate All"
               tone="primary"
             />

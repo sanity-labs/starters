@@ -49,6 +49,7 @@
   },
   "devDependencies": {
     "@sanity/document-internationalization": "catalog:",
+    "@sanity/language-filter": "catalog:",
     "@starter/sanity-types": "workspace:*",
     "@starter/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "^4.1.11",

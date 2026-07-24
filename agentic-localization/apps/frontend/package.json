@@ -14,7 +14,7 @@
     "@sanity/image-url": "^2.0.0",
     "@tailwindcss/typography": "^0.5.19",
     "next": "^16.0.0",
-    "next-sanity": "^12.0.0",
+    "next-sanity": "^13.2.1",
     "react": "catalog:",
     "react-dom": "catalog:",
     "server-only": "^0.0.1"

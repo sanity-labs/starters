@@ -33,8 +33,8 @@ const BulkLanguageCard = ({
         </Text>
         <Button
           disabled={isBulkSettingLanguage}
+          fontSize={1}
           onClick={onBulkSetLanguage}
-          size={1}
           text={`Set ${invalidDocuments.length} document${invalidDocuments.length > 1 ? 's' : ''} to ${defaultLanguage}`}
           tone="primary"
         />

@@ -1,5 +1,11 @@
 {
   "extends": "@starter/tsconfig/base.json",
+  "compilerOptions": {
+    // The shared base uses jsx: "preserve" for the Next.js frontend. This package
+    // ships React components that are consumed from source, and Vite 8 honours the
+    // nearest tsconfig when transforming them, so it needs the automatic runtime.
+    "jsx": "react-jsx"
+  },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]
 }

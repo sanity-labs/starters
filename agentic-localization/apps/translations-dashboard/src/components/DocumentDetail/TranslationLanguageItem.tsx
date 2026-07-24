@@ -236,7 +236,7 @@ const TranslationLanguageItem = ({
               {error}
             </Text>
           )}
-          <Button mode="ghost" onClick={onRetry} size={1} text="Retry" tone="critical" />
+          <Button fontSize={1} mode="ghost" onClick={onRetry} text="Retry" tone="critical" />
         </Stack>
       </Card>
     )

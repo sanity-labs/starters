@@ -75,9 +75,9 @@ export function MultiSelectDropdown({
           <CommandGroup>
             <div className="p-2">
               <Button
+                fontSize={1}
                 mode="default"
                 onClick={onToggleAll}
-                size={1}
                 text={
                   selectedValues.length === getAllOptions().filter((opt) => !opt.disabled).length
                     ? 'Deselect All'

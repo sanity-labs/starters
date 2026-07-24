@@ -5,20 +5,21 @@ packages:
   - apps/*
 
 catalog:
-  '@sanity/assist': ^6.0.2
-  '@sanity/client': ^7.22.0
-  '@sanity/document-internationalization': ^6.0.0
+  '@sanity/assist': ^6.1.17
+  '@sanity/client': ^7.24.0
+  '@sanity/document-internationalization': ^6.2.26
   '@sanity/icons': ^3.7.4
-  '@sanity/ui': ^3.1.13
-  '@sanity/vision': ^5.12.0
+  '@sanity/language-filter': ^5.0.13
+  '@sanity/ui': ^3.4.0
+  '@sanity/vision': ^6.6.0
   '@types/react': ^19.2
   '@types/react-dom': ^19.2.3
-  groq: ^5.12.0
+  groq: ^6.6.0
   lucide-react: ^0.574.0
-  react: ^19.2
-  react-dom: ^19.2
-  sanity: ^5.12.0
-  sanity-plugin-internationalized-array: ^5.0.0
+  react: ^19.2.8
+  react-dom: ^19.2.8
+  sanity: ^6.6.0
+  sanity-plugin-internationalized-array: ^5.1.24
   styled-components: ^6.3.11
   typescript: ^5.9
   vitest: ^4.0.18
