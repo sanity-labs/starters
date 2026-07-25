@@ -8,14 +8,14 @@ inferred from docs. Where the docs and reality disagree, this file records reali
 
 ## 0. Where things stand
 
-| PR                                   | State                                |
-| ------------------------------------ | ------------------------------------ |
-| **PR 1** — Studio v5 → v6            | **Committed** (`0d24679`)            |
-| **PR 2** — definitions + bench specs | **In the working tree, uncommitted** |
-| PR 3 — workflows dataset + deploy    | Not started                          |
-| PR 4 — effect handlers + runtime     | Not started                          |
-| PR 5 — Studio and dashboard surfaces | Not started                          |
-| PR 6 — field-level tier              | Not started                          |
+| PR                                    | State                                |
+| ------------------------------------- | ------------------------------------ |
+| **PR 1** — Studio v5 → v6             | **Committed** (`0d24679`)            |
+| **PR 2** — definitions + bench specs  | **Committed** (`b9f000b`)            |
+| **PR 3** — workflows dataset + deploy | **In the working tree, uncommitted** |
+| PR 4 — effect handlers + runtime      | Not started                          |
+| PR 5 — Studio and dashboard surfaces  | Not started                          |
+| PR 6 — field-level tier               | Not started                          |
 
 Branch: `feature/use-workflows-for-localization`. Baseline before this work was
 169 tests; it is now **213** (`pnpm --filter @starter/l10n test`), with typecheck
@@ -89,13 +89,32 @@ Three consequences worth acting on:
   half the job.
 - **`packages/l10n` should become several packages.** It is currently one package
   with fifteen sub-path exports — the sub-paths exist precisely to keep React out
-  of serverless consumers, which is the problem a domain split solves properly. A
-  plausible cut: workflow definitions, prompt assembly + queries, schemas, and
-  Studio UI. Do this _after_ the deletions in PR 5, so the split moves only code
-  that survives.
+  of serverless consumers, which is the problem a domain split solves properly.
+  The organizing principle (user, 2026-07-24): **logical modules of core logic,
+  behaviors, and components** — pure core logic (engine/stdlib only), behaviors
+  (workflow definitions, prompt assembly, queries — React-free), components
+  (Studio UI, the only layer allowed React/`@sanity/ui`), plus schemas. Do this
+  _after_ the deletions in PR 5, so the split moves only code that survives.
 - **e2e coverage does not exist yet.** Today there are unit tests and live-model
   evals. The bench suite proves the definitions but nothing exercises a deployed
-  run end to end. Worth adding once PR 4 makes a run actually executable.
+  run end to end. Add once PR 4 makes a run actually executable. Strategy
+  (user, 2026-07-24): **critical user journeys as Gherkin `.feature` files
+  driven by racejar** (`racejar/playwright` for Studio/dashboard journeys,
+  `racejar/vitest` for API-level); individual modules keep their own unit and
+  integration tests. Prior art: `email-marketing/e2e` in this monorepo — copy
+  its structure (fixtures/steps, sanity-client fixture, session-token
+  storageState), but not its positional `Feature(featureText, defs)` call; the
+  real signature is `Feature({featureText, stepDefinitions, parameterTypes?,
+hooks?})`.
+
+- **Skills teach the pattern, not this repo** (user, 2026-07-24). After the
+  package split, refocus `skills/sanity-l10n` and `skills/add-l10n-frontend` on
+  how the pattern works, its requirements, and how an agent adds its elements
+  to a greenfield or brownfield project. Much of the current skill content
+  documents machinery PRs 4–5 delete.
+- **Distill comments, docs and the README** to just what a human or agent needs
+  to operate and incorporate the pattern (user, 2026-07-24). A standing
+  constraint on new writing from PR 4 onward, plus a final pass.
 
 Bundle discipline already has a foothold worth preserving: `src/workflows/` imports
 only `@sanity/workflow-engine/define`, and `src/core/` is React-free by design, so
@@ -175,6 +194,34 @@ Every item here cost real time. None of it is obvious from the docs.
 - **`start.filter` reads the loaded candidate document.** Passing an `{_id, _type}`
   stub to `definitionsForDocument` silently defeats any field-based filter.
 
+### CLI and deploy (learned in PR 3, against the real project)
+
+- The CLI bin is `sanity-workflows`; `deploy` is an alias of
+  `editorial-workflows deploy`. `--check` and `--dry-run` are mutually
+  exclusive flags on the same command.
+- The CLI discovers `sanity.workflow.{ts,js,mjs}` in **cwd** and loads it with
+  **jiti** — so like `sanity.blueprint.ts`, the config cannot use
+  `process.loadEnvFile` and parses `.env` manually.
+- Auth is `SANITY_AUTH_TOKEN` or the `sanity login` session token (via
+  `@sanity/cli-core` `getCliToken()`); no token plumbing needed when the CLI
+  is already logged in.
+- **Definition sharing is ON by default** — deploys upload definition versions
+  to Sanity "to improve Editorial Workflows". Opt out per-deploy with
+  `--no-share-defs`. A starter template should leave the default visible
+  rather than silently opting users in or out.
+- `sanity-workflows list` lists **instances**, not definitions. To confirm
+  what is deployed, use `deploy --dry-run` (per-definition
+  `unchanged/created/updated` summary).
+- Blueprint `defineDataset` **creates** a fresh dataset when `ownershipAction`
+  is omitted; `{type: 'attach'}` is only for adopting a dataset that already
+  exists outside the stack (the main dataset pre-exists from `sanity init`,
+  which is why it attaches). The `workflows` dataset deployed cleanly with
+  just `deletionPolicy: 'retain'`.
+- A blueprint redeploy **destroys and recreates the stack's Functions**
+  ("automatically migrating Functions") — fine for stateless handlers, but a
+  deploy mid-run briefly leaves no live Function; relevant once PR 4's
+  drainer/heartbeat carry the pipeline.
+
 ### Test bench
 
 - `createBench({now, documents})`, deterministic clock, no network, no project.
@@ -246,32 +293,35 @@ Behaviour worth knowing before changing anything:
 
 ## 5. Remaining PRs
 
-### PR 3 — workflows dataset + definition deploy
+### PR 3 — workflows dataset + definition deploy — DONE (as built)
 
-Create `sanity.workflow.ts` at the repo root with `defineWorkflowConfig`:
+- `sanity.workflow.ts` at the repo root: one deployment, `{name:
+'localization', tag: 'production', expectedMinReaderModel: 4,
+workflowResource: {type: 'dataset', id: `${projectId}.workflows`},
+definitions: localizationWorkflows}`. Env parse mirrors the blueprint's
+  (jiti, §3). No `resourceAliases` — confirmed unnecessary by `--check`; the
+  definitions embed no content references.
+- `@sanity/workflow-cli` joined the exact-pin catalog block at 0.23.0. Root
+  `package.json` gained dev deps `@sanity/workflow-cli`,
+  `@sanity/workflow-engine` (for the `/define` import) and `@starter/l10n`
+  (so jiti resolves the definitions import), plus a `workflows:deploy`
+  script.
+- **Deviation from the original plan (user-approved):** the `workflows`
+  dataset is declared in `sanity.blueprint.ts` as a second `defineDataset`
+  (private, `deletionPolicy: 'retain'`, no `ownershipAction` — see §3) rather
+  than created imperatively in bootstrap. Infra stays declared in one place
+  and PR 4's Functions bind to the same resource.
+- `studio/scripts/bootstrap.ts` gained step 4, "Deploy workflow definitions":
+  `pnpm exec sanity-workflows deploy` from the repo root, right after the
+  blueprint deploy that guarantees the dataset exists. Deploys are
+  idempotent.
+- A parent cannot spawn a child that is not deployed — all three deploy
+  together via `localizationWorkflows`.
 
-```ts
-deployments: [
-  {
-    name: 'localization',
-    tag: 'production',
-    expectedMinReaderModel: 4,
-    workflowResource: {type: 'dataset', id: `${projectId}.workflows`},
-    definitions: localizationWorkflows, // all three, one call
-  },
-]
-```
-
-- Add `@sanity/workflow-cli@0.23.0` (exact) as a dev dependency.
-- The definitions currently embed **no** content references — subjects arrive at
-  runtime as GDRs from `initialFields` — so `resourceAliases` is probably
-  unnecessary. Verify with `sanity-workflows deploy --check` before adding any.
-- Extend `studio/scripts/bootstrap.ts` to create the `workflows` dataset (private)
-  and run the deploy, idempotently, alongside the existing blueprint/schema steps.
-- A parent cannot spawn a child that is not deployed — deploy all three together.
-
-**Verify:** `sanity-workflows deploy --check` (validates, no dataset contact),
-then `--dry-run` (diffs against deployed).
+Verified against the real project: `deploy --check` (3 definitions pass),
+blueprint deploy created `workflows`, definitions landed as
+`production.localize-{locale,document,campaign}.v1`, and `deploy --dry-run`
+reports a no-op.
 
 ### PR 4 — effect handlers + runtime Functions
 
@@ -421,7 +471,7 @@ pnpm --filter l10n eval              # quality gate — needs credentials (PR 4 
 pnpm -r typecheck                    # note: `pretypecheck` runs typegen
 pnpm lint                            # 0 errors expected; 6 pre-existing warnings
 npx oxfmt --check .
-sanity-workflows deploy --check      # from PR 3
+pnpm exec sanity-workflows deploy --check   # from PR 3; `--dry-run` diffs deployed state
 ```
 
 `pnpm -r test` suppresses output on success — a silent pass is a pass. Confirm by
