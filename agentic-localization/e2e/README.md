@@ -99,8 +99,9 @@ pnpm e2e:browser
 | `dashboard`            | `:3334`                | Nothing yet — see the tags below                                    |
 
 These read the **dev** dataset the dev servers are already serving and write
-nothing to it. Screenshots land in `/tmp/l10n-shots/e2e-browser`
-(`L10N_SHOTS_DIR` to move them).
+nothing to it — the one exception, the review-verb scenarios, mutates a run and
+stays skipped unless `E2E_BROWSER_VERBS=1` opts in. Screenshots land in
+`/tmp/l10n-shots/e2e-browser` (`L10N_SHOTS_DIR` to move them).
 
 ### racejar on vitest, driving Playwright as a library
 
@@ -126,10 +127,10 @@ the feature text before compiling it and prints the reason. The tag stays in the
 `.feature` as the documented precondition; the scenario is skipped, never failed,
 and the run says why.
 
-| Tag                  | Closed when                                                               |
-| -------------------- | ------------------------------------------------------------------------- |
-| `@requires-auth`     | No review verb is offered, or the App SDK bounced the tab to a login page |
-| `@requires-open-run` | Every inbox section counts zero                                           |
+| Tag                  | Closed when                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `@requires-auth`     | `E2E_BROWSER_VERBS` unset (verbs write to a run — opt in explicitly), no verb offered, or a login-page bounce |
+| `@requires-open-run` | Every inbox section counts zero                                                                               |
 
 Both are closed today. The review verbs need an engine session that resolves
 account-globally, which an automated browser has none of; the dashboard

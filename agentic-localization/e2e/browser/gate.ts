@@ -29,7 +29,7 @@ export function gateFeature(featureText: string, tag: string, blocked: GateReaso
   if (tagged.length === 0) {
     throw new Error(`[e2e] no "${tag}" tag in the feature — the gate is wired to nothing`)
   }
-  if (!blocked) return featureText
+  if (blocked === undefined) return featureText
 
   console.log(`[e2e] ${tag}: ${blocked}`)
 

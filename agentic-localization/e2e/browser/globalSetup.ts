@@ -4,7 +4,9 @@
  * navigation timeout inside the first scenario.
  *
  * Unlike the API suite's setup this creates nothing and sweeps nothing: the
- * browser journeys read the dev dataset and never write to it.
+ * browser journeys read the dev dataset and never write to it — except the
+ * review-verb scenarios, which mutate a run and only arm behind
+ * `E2E_BROWSER_VERBS=1`.
  */
 
 import {assertE2eCredentials} from '../fixtures/env'

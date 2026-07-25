@@ -38,7 +38,8 @@ async function probeSession(): Promise<GateReason> {
   await session.shot('gate')
 
   const landed = new URL(session.page.url())
-  if (!landed.hostname.endsWith(LOGIN_HOST)) return undefined
+  const onLoginHost = landed.hostname === LOGIN_HOST || landed.hostname.endsWith(`.${LOGIN_HOST}`)
+  if (!onLoginHost) return undefined
 
   return (
     `the App SDK sent the tab to ${landed.origin}${landed.pathname} — the dashboard ` +

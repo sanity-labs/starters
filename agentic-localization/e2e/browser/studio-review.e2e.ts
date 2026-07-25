@@ -65,7 +65,15 @@ async function probeReviewVerbs(): Promise<GateReason> {
   return undefined
 }
 
-const verbsBlocked = await probeReviewVerbs()
+/**
+ * Firing a verb mutates the run it touches — an approval advances a live run a
+ * human reviewer may be sitting on, and downstream effects follow. So even
+ * with an engine session and an open run, writing is an explicit opt-in; the
+ * untagged scenarios stay read-only unconditionally.
+ */
+const verbsBlocked: GateReason = process.env.E2E_BROWSER_VERBS
+  ? await probeReviewVerbs()
+  : 'review verbs write to the run they touch — set E2E_BROWSER_VERBS=1 to opt in'
 
 let scenario = 0
 
