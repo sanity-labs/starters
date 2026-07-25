@@ -1,7 +1,7 @@
 // --- The plugin and its structure helpers ---
 
 export {createL10n} from './plugin'
-export {withLocaleFilter} from './structure'
+export {withLocaleFilter, withRunSections} from './structure'
 
 // --- The Translations pane ---
 

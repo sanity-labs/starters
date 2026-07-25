@@ -45,6 +45,16 @@ const FIELD_TIER: Record<string, InternationalizedField[]> = {
     {path: 'seo.metaTitle', itemType: 'internationalizedArrayStringValue', containers: SEO},
     {path: 'seo.metaDescription', itemType: 'internationalizedArrayTextValue', containers: SEO},
   ],
+  'l10n.uiStrings': [
+    {path: 'siteTitle', itemType: 'internationalizedArrayStringValue', containers: []},
+    {path: 'siteTagline', itemType: 'internationalizedArrayTextValue', containers: []},
+    {path: 'articlesHeading', itemType: 'internationalizedArrayStringValue', containers: []},
+    {path: 'emptyArticles', itemType: 'internationalizedArrayStringValue', containers: []},
+    {path: 'backToArticles', itemType: 'internationalizedArrayStringValue', containers: []},
+    {path: 'homeLabel', itemType: 'internationalizedArrayStringValue', containers: []},
+    {path: 'architectureLabel', itemType: 'internationalizedArrayStringValue', containers: []},
+    {path: 'fallbackNotice', itemType: 'internationalizedArrayTextValue', containers: []},
+  ],
 }
 
 /** Every internationalized field on a document type; empty for the doc tier. */

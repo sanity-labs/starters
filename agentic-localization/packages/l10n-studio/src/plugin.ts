@@ -7,6 +7,7 @@ import {glossaryEntry} from './schemas/glossaryEntry'
 import {translationLocale} from './schemas/translationLocale'
 import {translationGlossary} from './schemas/translationGlossary'
 import {translationStyleGuide} from './schemas/translationStyleGuide'
+import {uiStrings} from './schemas/uiStrings'
 import {l10nUsEnglishLocaleBundle} from './i18n'
 import {SUPPORTED_LANGUAGES_QUERY} from '@starter/l10n/prompts'
 import {fieldTierTypes, languageFieldName, proposalTypeName} from '@starter/l10n'
@@ -14,7 +15,7 @@ import {proposal} from './schemas/proposal'
 import {proposalActions} from './proposals'
 import {injectLanguageField} from './schemas/languageField'
 import {LocaleNavbar} from './components/LocaleNavbar'
-import {L10nProvider} from './L10nProvider'
+import {L10nLayout} from './components/L10nLayout'
 import {LocaleBadge} from './components/LocaleBadge'
 import {createTranslationInspector} from './translations/createTranslationPanePlugin'
 
@@ -40,7 +41,7 @@ export function createL10n({localizedSchemaTypes, defaultLanguage}: L10nOptions)
       studio: {
         components: {
           navbar: LocaleNavbar,
-          layout: L10nProvider,
+          layout: L10nLayout,
         },
       },
       schema: {
@@ -52,6 +53,7 @@ export function createL10n({localizedSchemaTypes, defaultLanguage}: L10nOptions)
           translationLocale,
           translationGlossary,
           translationStyleGuide,
+          uiStrings,
           // Both tiers are localization subjects, so both can be a proposal's
           // source: the document tier is configured, the field tier is a registry.
           proposal({subjectTypes: [...localizedSchemaTypes, ...fieldTierTypes()]}),

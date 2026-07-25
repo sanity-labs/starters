@@ -11,6 +11,7 @@ import {
   createLocalizationScheduleGate,
   LOCALIZE_DOCUMENT_DEFINITION,
   withLocaleFilter,
+  withRunSections,
 } from '@starter/l10n-studio'
 import {SOURCE_LANGUAGE, WORKFLOW_TAG, WORKFLOWS_DATASET} from '@starter/l10n/workflows'
 import {schemaTypes} from './schemaTypes'
@@ -42,7 +43,7 @@ const occurrencesDesc = [
   {field: '_createdAt', direction: 'desc'} as const,
 ]
 
-const structure = ((S) =>
+const structure = ((S, {i18n}) =>
   S.list()
     .title('Content')
     .items([
@@ -56,25 +57,29 @@ const structure = ((S) =>
       ),
       S.documentTypeListItem('tag').child(S.documentTypeList('tag').defaultOrdering(titleAsc)),
       S.divider(),
+      // The inbox first — which runs need a person right now — then the
+      // documents localization is configured from. `withRunSections` reads the
+      // engine, so the whole list arrives as an observable and its counts stay
+      // live.
       S.listItem()
         .title('Localization')
         .icon(EarthGlobeIcon)
-        .child(
-          S.list()
-            .title('Localization')
-            .items(
-              l10nTypes.map((type) =>
-                S.documentTypeListItem(type).child(
-                  type === 'translation.metadata'
-                    ? S.documentTypeList(type)
-                    : // A proposal has no title; the count of times a correction
-                      // has recurred is what a reviewer should triage by.
-                      type === 'l10n.proposal'
-                      ? S.documentTypeList(type).defaultOrdering(occurrencesDesc)
-                      : S.documentTypeList(type).defaultOrdering(titleAsc),
-                ),
+        .child(() =>
+          withRunSections(
+            S,
+            i18n,
+            l10nTypes.map((type) =>
+              S.documentTypeListItem(type).child(
+                type === 'translation.metadata'
+                  ? S.documentTypeList(type)
+                  : // A proposal has no title; the count of times a correction
+                    // has recurred is what a reviewer should triage by.
+                    type === 'l10n.proposal'
+                    ? S.documentTypeList(type).defaultOrdering(occurrencesDesc)
+                    : S.documentTypeList(type).defaultOrdering(titleAsc),
               ),
             ),
+          ),
         ),
       S.divider(),
       ...S.documentTypeListItems().filter(

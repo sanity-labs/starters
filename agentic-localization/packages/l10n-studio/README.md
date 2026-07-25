@@ -17,6 +17,7 @@ Function or a frontend never reaches it through this package.
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `createL10n({localizedSchemaTypes, defaultLanguage})`                                                    | Returns `{plugin, injectLanguageField}`. `plugin` registers the schema types, i18n bundle, navbar, locale badge and Translations inspector |
 | `withLocaleFilter(list)`                                                                                 | Scopes a structure document list to the active locale                                                                                      |
+| `withRunSections(S, i18n, items)`                                                                        | The Localization structure group with the run-state inbox on top: live counts per section, rows carrying stage and locales                 |
 | `createTranslationInspector(config)`                                                                     | The Translations inspector on its own, for a custom plugin composition                                                                     |
 | `createLocalizationScheduleGate()`                                                                       | The document action that gates scheduling on an open run                                                                                   |
 | `ReviewMatrix`, `ReviewActions`, `TranslationCompare`, `InlineDiff`, `PortableTextDiff`, `ErrorBoundary` | The pane's components, reusable in a custom pane                                                                                           |
@@ -32,11 +33,12 @@ Function or a frontend never reaches it through this package.
 | `translationLocale`, `translationGlossary`, `translationStyleGuide` | The three document types (`l10n.locale`, `l10n.glossary`, `l10n.styleGuide`)                                       |
 | `proposal({subjectTypes})`                                          | The learning loop's `l10n.proposal` type — a factory, because `subject` references the project's own subject types |
 | `glossaryEntry`, `localeTranslation`                                | The object types a glossary is built from                                                                          |
+| `uiStrings`                                                         | The frontend's chrome as a field-tier singleton (`l10n.uiStrings`), localized by the same run as its content       |
 | `injectLanguageField(types)`                                        | Adds the `language` field to every localized document type                                                         |
 | `validateLocaleCode`, `LOCALE_EXISTS_QUERY`                         | The async validator behind that field                                                                              |
 | `isUniqueOtherThanLanguage`, `SLUG_UNIQUE_QUERY`                    | Slug uniqueness across locales, version-id-safe (`isUnique` for localized slug fields)                             |
 
-`createL10n()` registers all six types, so this entry is for doing it yourself —
+`createL10n()` registers all seven types, so this entry is for doing it yourself —
 extending a type, renaming a title, or taking the locale document without the rest
 of the plugin.
 

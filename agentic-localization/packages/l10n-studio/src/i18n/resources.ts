@@ -38,6 +38,18 @@ export default {
   'status.failed.label': 'Failed',
   'status.failed.tooltip': 'Translation failed — retry available',
 
+  // --- Localization inbox (structure sections) ---
+  'inbox.title': 'Localization',
+  'inbox.section-count': '{{title}} ({{total}})',
+  'inbox.section.needs-review': 'Needs review',
+  'inbox.section.translating': 'Translating',
+  'inbox.section.source-changed': 'Source changed',
+  'inbox.section.failed-locales': 'Failed locales',
+  'inbox.empty': 'Nothing waiting here.',
+  'inbox.locales.undecided': 'Locales not decided yet',
+  'inbox.badge.source-changed': 'Source changed',
+  'inbox.subject-missing': 'This document no longer exists ({{documentId}})',
+
   // --- Inspector toolbar button ---
   'inspector.title': 'Translations',
   'inspector.title.stale': 'Translations need attention — source content has changed',

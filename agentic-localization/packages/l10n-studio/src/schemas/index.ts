@@ -5,6 +5,7 @@ export {proposal} from './proposal'
 export {translationGlossary} from './translationGlossary'
 export {translationLocale} from './translationLocale'
 export {translationStyleGuide} from './translationStyleGuide'
+export {uiStrings} from './uiStrings'
 
 export {injectLanguageField, LOCALE_EXISTS_QUERY, validateLocaleCode} from './languageField'
 export {isUniqueOtherThanLanguage, SLUG_UNIQUE_QUERY} from './isUniqueOtherThanLanguage'
