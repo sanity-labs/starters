@@ -21,7 +21,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: pnpm
       - run: pnpm install
       - run: pnpm --filter studio run deploy
         env:
@@ -38,7 +37,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: pnpm
       - run: pnpm install
       - run: pnpm --filter @starter/functions run build
       - name: Deploy blueprints
@@ -60,7 +58,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: pnpm
       - run: pnpm install
       - run: pnpm --filter @starter/frontend build
         env:
@@ -76,7 +73,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: pnpm
       - run: pnpm install
       - run: pnpm --filter @starter/translations-dashboard run deploy
         env:

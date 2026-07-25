@@ -15,7 +15,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: pnpm
       - run: pnpm install
       - name: Format check
         run: pnpm run format:check
