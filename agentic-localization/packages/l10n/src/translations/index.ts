@@ -13,10 +13,6 @@ export {InlineDiff} from './InlineDiff'
 export {PortableTextDiff} from './PortableTextDiff'
 export {TranslatedDocTaskCard, type TranslatedDocTaskCardProps} from './TranslatedDocTaskCard'
 export {useReleases, type Release} from './useReleases'
-export {
-  useDocumentWorkflowState,
-  type UseDocumentWorkflowStateResult,
-} from './useDocumentWorkflowState'
 export {useStaleAIAnalysis, type UseStaleAIAnalysisResult} from './useStaleAIAnalysis'
 export {useOpenTranslationsInspector} from './useOpenTranslationsInspector'
 export {

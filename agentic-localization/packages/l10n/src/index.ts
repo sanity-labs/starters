@@ -67,10 +67,6 @@ export {
 } from './core/computeFieldChanges'
 export {useReleases, type Release} from './translations/useReleases'
 export {ErrorBoundary} from './translations/ErrorBoundary'
-export {
-  useDocumentWorkflowState,
-  type UseDocumentWorkflowStateResult,
-} from './translations/useDocumentWorkflowState'
 export {useStaleAIAnalysis, type UseStaleAIAnalysisResult} from './translations/useStaleAIAnalysis'
 export {useOpenTranslationsInspector} from './translations/useOpenTranslationsInspector'
 export {useLocaleFilter} from './useLocaleFilter'

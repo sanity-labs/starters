@@ -16,8 +16,14 @@ catalog:
   # @sanity/workflow-* package is an exact-version peer of the others. Pin exactly
   # and upgrade them as one set.
   '@sanity/workflow-cli': 0.23.0
+  '@sanity/workflow-components': 0.23.0
+  '@sanity/workflow-diagram': 0.23.0
   '@sanity/workflow-engine': 0.23.0
   '@sanity/workflow-engine-test': 0.23.0
+  '@sanity/workflow-react': 0.23.0
+  '@sanity/workflow-sdk': 0.23.0
+  '@sanity/workflow-studio': 0.23.0
+  '@sanity/workflow-studio-plugin': 0.23.0
   '@types/react': ^19.2
   '@types/react-dom': ^19.2.3
   groq: ^6.6.0
@@ -26,6 +32,6 @@ catalog:
   react-dom: ^19.2.8
   sanity: ^6.6.0
   sanity-plugin-internationalized-array: ^5.1.24
-  styled-components: ^6.3.11
+  styled-components: ^6.4.2
   typescript: ^5.9
   vitest: ^4.0.18

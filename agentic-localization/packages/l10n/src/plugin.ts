@@ -71,10 +71,10 @@ export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L1
         // Wrap the publish action with a confirmation gate when there are
         // unreviewed or stale field translations.
         actions: (prev: DocumentActionComponent[], context) => {
-          // Only gate document types that have internationalized array fields.
-          // The gate hook itself is lightweight (single listenQuery) so the
-          // overhead for non-matching types is negligible, but we skip
-          // system types to be safe.
+          // Document-level types carry their translations in sibling documents,
+          // so only the remaining (field-tier) types need the gate. The gate
+          // hook itself is lightweight (single listenQuery), so the overhead on
+          // types without internationalized array fields is negligible.
           if (localizedSchemaTypes.includes(context.schemaType)) return prev
           return prev.map((action) =>
             action.action === 'publish' ? createFieldTranslationPublishGate(action) : action,

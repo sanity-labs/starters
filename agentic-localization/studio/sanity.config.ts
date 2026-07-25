@@ -85,14 +85,12 @@ export default defineConfig({
           option.templateId !== 'fieldTranslation.metadata',
       ),
     actions: (prev, context) => {
-      // Gate the SchedulePublishAction for non-localized types that have
-      // field-level translations (e.g. person). The core injects this action
-      // after plugins run, so it must be wrapped here at the config root.
+      // Gate the schedule action for non-localized types that have field-level
+      // translations (e.g. person). The core injects this action after plugins
+      // run, so it must be wrapped here at the config root.
       if (['article'].includes(context.schemaType)) return prev
       return prev.map((action) =>
-        action.displayName === 'SchedulePublishAction'
-          ? createFieldTranslationPublishGate(action)
-          : action,
+        action.action === 'schedule' ? createFieldTranslationPublishGate(action) : action,
       )
     },
   },
