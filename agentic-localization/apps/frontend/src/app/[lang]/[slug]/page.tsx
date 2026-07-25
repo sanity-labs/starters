@@ -173,7 +173,7 @@ export default async function ArticlePage({
 
         {article.publishedAt && (
           <time className="text-sm text-[var(--color-text-muted)] not-prose block mb-6">
-            {new Date(article.publishedAt).toLocaleDateString()}
+            {new Date(article.publishedAt).toLocaleDateString(lang)}
           </time>
         )}
 

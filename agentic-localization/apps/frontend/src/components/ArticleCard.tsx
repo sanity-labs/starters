@@ -18,7 +18,7 @@ export function ArticleCard({article, lang}: {article: ArticleCardType; lang: st
       )}
       {article.publishedAt && (
         <time className="text-sm text-[var(--color-text-muted)] mt-3 block">
-          {new Date(article.publishedAt).toLocaleDateString()}
+          {new Date(article.publishedAt).toLocaleDateString(lang)}
         </time>
       )}
     </Link>
