@@ -12,6 +12,11 @@ catalog:
   '@sanity/language-filter': ^5.0.13
   '@sanity/ui': ^3.4.0
   '@sanity/vision': ^6.6.0
+  # Editorial Workflows is a prerelease: breaking changes ship in minors and every
+  # @sanity/workflow-* package is an exact-version peer of the others. Pin exactly
+  # and upgrade them as one set.
+  '@sanity/workflow-engine': 0.23.0
+  '@sanity/workflow-engine-test': 0.23.0
   '@types/react': ^19.2
   '@types/react-dom': ^19.2.3
   groq: ^6.6.0

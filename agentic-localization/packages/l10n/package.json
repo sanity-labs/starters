@@ -24,6 +24,10 @@
       "source": "./src/queries.ts",
       "default": "./src/queries.ts"
     },
+    "./workflows": {
+      "source": "./src/workflows/index.ts",
+      "default": "./src/workflows/index.ts"
+    },
     "./core": {
       "source": "./src/core/index.ts",
       "default": "./src/core/index.ts"
@@ -72,6 +76,7 @@
     "@sanity/document-internationalization": "catalog:",
     "@sanity/language-filter": "catalog:",
     "@sanity/util": "^6.6.0",
+    "@sanity/workflow-engine": "catalog:",
     "diff": "^8.0.3",
     "lucide-react": "catalog:",
     "react-error-boundary": "^6.1.1",
@@ -87,6 +92,7 @@
     "@sanity/id-utils": "^1.0.0",
     "@sanity/types": "^6.6.0",
     "@sanity/ui": "catalog:",
+    "@sanity/workflow-engine-test": "catalog:",
     "@starter/sanity-types": "workspace:*",
     "@starter/tsconfig": "workspace:*",
     "@types/diff": "^7.0.0",
