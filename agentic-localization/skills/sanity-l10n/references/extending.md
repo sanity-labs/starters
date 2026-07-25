@@ -40,12 +40,49 @@ The shape decisions that matter:
   guard on the stage, not a disabled button. See the `hold-source-publish-*`
   guards in `packages/l10n/src/workflows/localizeDocument.ts`.
 
-Before writing anything non-trivial, read
-[`docs/WORKFLOW_ENGINE_MIGRATION.md`](../../../docs/WORKFLOW_ENGINE_MIGRATION.md)
-§3. It records engine behaviour the official docs do not cover — cohort `status`
-meaning _settled_ rather than _succeeded_, `current` going false once a spawning
-stage is exited, triggers firing at most once per stage visit. Every item there
-cost real debugging time.
+### What the engine does not document
+
+Verified against the engine itself. Read this before writing anything
+non-trivial; every item cost real debugging time.
+
+- **Spawn rows need a stable identity.** Without one the engine cannot tell "same
+  row" from "new row" on stage re-entry, and refuses to fan out. Project a key:
+  `forEach: '...[]{"_key": locale, locale, reason}'`.
+- **Cohort `status` means _settled_, not _succeeded_.** A child that terminated
+  into its own `failed` stage still reports `status: 'done'`. Success lives in the
+  row's `stage`.
+- **Read cohort outcomes inside the spawning stage.** `current` is false for every
+  row once that stage is exited, and rows accumulate across visits — after a
+  successful retry you see both `{de-DE, failed}` and `{de-DE, translated}`.
+  Snapshot what you need into a field while the stage is still open.
+- **Spawned children skip start requirements**, so `singleSubject` does not
+  protect a run a parent spawned. Subworkflow depth caps at 6.
+- **Triggers fire at most once per stage visit.** `resetActivity` re-arms an
+  activity but leaves `pending: []`, and `setStage` to the _same_ stage is not a
+  new visit — so a failed effect in a trigger-driven stage has no in-place
+  recovery. Give it a loop-back edge to another stage.
+- **Op `value` expressions cannot compute.** They are `literal`, `fieldRead`,
+  `param`, `actor`, `now`, `self`, `stage` or `object` — no GROQ. You cannot write
+  a count into a field.
+- **Action params have no defaults**, and writing an absent param into an `array`
+  field throws `FieldValueShapeError`. Make such params `required`.
+- **Effect `outputs` is a strict allowlist.** An undeclared value rejects the whole
+  completion (`EffectOutputsInvalidError`) and leaves the effect claimable. The
+  handlers here declare no outputs and write through completion `ops` instead.
+- **Field `options.list` and numeric validation hold on every write path**, effect
+  completions included. That is what stops a hallucinated `materiality` reaching
+  workflow state.
+- **Actor ids are account-global `sanityUserId`.** A bare `'ada'` is rejected; the
+  bench's own user is `g-bench-user`.
+- **A guard's `idRefs` resolves to exactly one document.** An array idRef deploys
+  no guard at all, which is why a parent cannot hold the documents its children
+  write. Two stages may each declare a guard if the names differ, and exiting a
+  stage deletes its guard as the next stage's is created — a hold hands over with
+  no gap.
+- **Guards are advisory in the prerelease.** The Content Lake does not enforce them
+  against a raw client; dataset access control is the only hard boundary today.
+- **`start.filter` reads the loaded candidate document.** Passing an
+  `{_id, _type}` stub to `definitionsForDocument` silently defeats it.
 
 ## 2. Prove it on the bench
 
@@ -81,6 +118,16 @@ From there: `bench.listPendingEffects`, `bench.children`, `bench.fireAction`,
 Assert on invariants, not on transcripts. "No instance ever holds two pending
 effects" survives a refactor; "stage 3 fires action 4" does not.
 
+Three bench behaviours to know before fighting them:
+
+- `bench.children()` returns children of **all** stage visits, not just the open
+  one. Filter by pending effect before settling them.
+- `activeGuardsForDocument` probes with an update, so a publish-only guard never
+  appears there. Use `guardsForInstance` for existence and
+  `editDocument({action: 'publish'})` for denial.
+- `queryInScope({instanceId, groq})` evaluates GROQ against the same snapshot the
+  engine's conditions see. Use it before theorising about what a condition reads.
+
 Run with `pnpm --filter @starter/l10n test`.
 
 ## 3. Satisfy the effects
@@ -97,7 +144,10 @@ plumbing that is tedious to get right is exported from
   costs a second AI call.
 - `contentClientFor` / `agentClient` / `readSubjectDocument` — `ctx.client`
   addresses the workflows dataset only. All content traffic routes through these.
-- `instancePerspective` — whether this run writes drafts or a release version.
+- `instancePerspective` — whether this run writes drafts or a release version. A
+  handler that records a revision the engine later compares must read under
+  `instance.perspective ?? 'drafts'`; reading the other layer makes `analyzedRev`
+  unmatchable and `sourceChanged` permanently true.
 - `requireGdr`, `requireString`, `optionalString`, `optionalRelease` — params
   arrive untyped; narrow them rather than casting.
 - `siblingGdr`, `datasetOf` — GDR arithmetic.
@@ -122,6 +172,13 @@ Three registrations, all of which must agree:
    passes to `createEngine`. `functions/engine.ts` is the shared construction;
    note that `effectHandlers` is a parameter, so Functions that only `tick` keep
    the whole Agent Actions graph out of their bundle.
+   Anything that builds an engine by hand must also declare its content
+   resource. The engine gates every ref a caller supplies — `startInstance`
+   initial fields, an action's param-sourced op values, an effect's completion ops
+   — on the deployment's declared surface, and throws
+   `RefResourceUndeclaredError` otherwise. With engine storage in its own dataset,
+   every content ref is off-surface until a `resourceClients` resolver serves it;
+   returning the client _is_ the declaration (`projectResourceClients`).
 3. **The trigger** — if the run starts from a content event, add a
    `defineDocumentFunction` resource (or widen an existing filter) in
    `sanity.blueprint.ts`. If it starts from the Studio, add a `mappings` entry to

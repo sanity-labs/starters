@@ -44,6 +44,6 @@ here.
 ## Reference
 
 - Definitions (stage names, actions, fields): `packages/l10n/src/workflows/`
-- Engine behaviour verified against the real thing: `docs/WORKFLOW_ENGINE_MIGRATION.md` §2–§4
+- Engine behaviour the docs do not cover: `skills/sanity-l10n/references/extending.md`
 - Engine coordinates (dataset, tag): `src/consts/workflows.ts`, mirroring
   `sanity.blueprint.ts` and `sanity.workflow.ts`

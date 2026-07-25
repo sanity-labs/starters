@@ -1,6 +1,6 @@
 # Frontend
 
-Next.js 15 frontend with path-based i18n routing. Renders localized content from Sanity with automatic locale detection, a locale switcher, and fallback banners when translations are missing.
+Next.js 16 frontend with path-based i18n routing. Renders localized content from Sanity with automatic locale detection, a locale switcher, and fallback banners when translations are missing.
 
 ## Quick Start
 
@@ -21,7 +21,7 @@ echo 'SANITY_API_READ_TOKEN=your-token' >> .env.local
 ## How It Works
 
 - **Routes** — `[lang]/page.tsx` (article list), `[lang]/[slug]/page.tsx` (article detail), `[lang]/architecture/page.tsx` (architecture overview)
-- **Locale routing** — path prefix (`/en-US/`, `/de-DE/`) with middleware for cookie-based locale preference
+- **Locale routing** — path prefix (`/en-US/`, `/de-DE/`) with `proxy.ts` redirecting unprefixed paths using the `NEXT_LOCALE` cookie
 - **Fallback content** — when a translation is missing, shows the source-language content with a banner indicating it's a fallback
 - **Locale switcher** — dropdown that navigates between locale variants of the current page
 
@@ -48,5 +48,5 @@ src/
 │   ├── ArticleCard.tsx         Article preview card
 │   ├── FallbackBanner.tsx      "Viewing in fallback language" notice
 │   └── PortableText.tsx        Portable Text renderer
-└── proxy.ts                    Middleware for locale detection
+└── proxy.ts                    Locale redirect (Next 16's middleware convention)
 ```

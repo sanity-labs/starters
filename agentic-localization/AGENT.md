@@ -18,10 +18,8 @@
 
 # Orchestration belongs to the workflow engine
 
-This starter is migrating its hand-rolled orchestration onto **Sanity Editorial
-Workflows**. Roughly 4,600 lines of duplicated translate pipelines, semaphores,
-status reducers and cache-based loop guards are on the delete list. Do not add
-more of it.
+Localization runs on **Sanity Editorial Workflows**. Do not add orchestration
+beside it.
 
 - **Never hand-roll orchestration.** Fan-out, retries, concurrency limits, job
   status, review gates and idempotency are engine primitives — `spawn`, effects,
@@ -37,10 +35,9 @@ more of it.
 - Prove definitions with `@sanity/workflow-engine-test` (`createBench`) before
   deploying: the real engine, in memory, deterministic clock, no project or
   network. Specs are sibling `*.test.ts` files.
-- Read `docs/WORKFLOW_ENGINE_MIGRATION.md` before touching any of this. It records
-  engine behaviour verified empirically that the official docs do not cover —
-  cohort `status` meaning _settled_ rather than _succeeded_, `current` going false
-  once a spawning stage is exited, triggers firing once per stage visit, and more.
+- Engine behaviour the official docs do not cover is listed under "What the engine
+  does not document" in `skills/sanity-l10n/references/extending.md`. Read it
+  before writing or changing a definition.
 
 # Where this starter is heading
 
@@ -50,28 +47,29 @@ code against that, not just against "does it work".
 
 - **Spec first.** Behaviour is proven by executable specs before it ships. For
   workflows that means `createBench` suites; for pure logic, unit tests; for the
-  deployed surfaces, end-to-end coverage (**not yet present — a real gap today**,
-  the suite is unit tests plus live-model evals).
-- **Domain packages, not one grab-bag.** `packages/l10n` is currently a monolith
-  papered over with fifteen sub-path exports. The direction is real packages split
-  by domain — workflow definitions, prompt assembly, schemas, Studio UI — each with
-  a stable public API, so consumers take a dependency on a domain rather than on
-  everything.
+  deployed stack, the `e2e/` journeys. Browser journeys are the open gap —
+  `e2e/README.md` keeps the honest not-covered list.
+- **Domain packages, not one grab-bag.** Two packages split on the React line,
+  entries as layers — `docs/decisions/adr-001-package-shape.md` is the decision and
+  the two READMEs are the public API.
 - **Bundle footprint is a design constraint.** Anything a Function, the CLI or a
   frontend imports must not drag React, `@sanity/ui`, or Studio internals with it.
-  Keep pure logic and definitions free of UI imports. `src/workflows/` and
-  `src/core/` are the reference: engine and stdlib only, so they compose anywhere.
-  Check before adding an import, not after.
+  `@starter/l10n` is React-free by construction, enforced by an eslint zone and
+  `packages/l10n/src/exports.test.ts`. Check before adding an import, not after.
 - **Deletion is progress.** Replacing hand-rolled machinery with an engine
   primitive and removing the old code is the goal, not a nice-to-have.
 
 # Monorepo
 
 - Use `pnpm`, not `npm`
-- Run commands from root via `pnpm --filter <pkg>` (e.g. `pnpm --filter l10n test`)
+- Run commands from root via `pnpm --filter <pkg>` (e.g. `pnpm --filter @starter/l10n test`)
 - Node **>=22.12** and Sanity Studio **v6** (the workflow Studio plugin needs 6.3+;
   there is no v5 path)
 - `overrides` live in `pnpm-workspace.yaml`, not `package.json` (pnpm 10.30+), and
   do not reach auto-installed peers — declare those explicitly instead
 - Starter lock files are gitignored, so CI resolves fresh from the catalog ranges
   in `pnpm-workspace.yaml` on every run
+- `sanity.types.ts` is generated **and** gitignored, so a stale artifact hides a
+  broken typegen config. `pnpm typecheck` from the root regenerates first;
+  `pnpm -r typecheck` does not. Run `pnpm typegen` after moving any file the
+  typegen glob in `studio/sanity.cli.ts` scans

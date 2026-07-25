@@ -84,7 +84,9 @@ match on the literal; the engine resolves a handler by name alone.
 
 Handlers in `packages/l10n/src/effects/` satisfy the declared effects.
 `translateLocale.ts` is the one that spends: assemble, call Agent Actions
-Translate, sanitize what comes back, write it.
+Translate, sanitize what comes back, write it. `translate()` takes an array of
+targets and coalesces disjoint roots into one request, so a field-tier locale
+costs one AI call for every field rather than one per field.
 
 Two things a handler must get right, both provided by
 `packages/l10n/src/effects/effectRuntime.ts`:

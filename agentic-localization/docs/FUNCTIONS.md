@@ -16,10 +16,8 @@ which is the source of truth; this page says what each one is _for_.
 All five construct the same engine through
 [`functions/engine.ts`](../functions/engine.ts). The effect handlers it registers
 are `@starter/l10n/effects`; the definitions they satisfy are
-`@starter/l10n/workflows`; the learning loop is `@starter/l10n/distill`. See
-[WORKFLOW_ENGINE_MIGRATION.md](WORKFLOW_ENGINE_MIGRATION.md) for the engine
-behaviour behind these choices, and
-[adr-002](decisions/adr-002-learning-loop.md) for the loop.
+`@starter/l10n/workflows`; the learning loop is `@starter/l10n/distill`, designed
+in [adr-002](decisions/adr-002-learning-loop.md).
 
 ```
 article (en-US) published            article deleted        every 15 min

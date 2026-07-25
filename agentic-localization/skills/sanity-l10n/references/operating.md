@@ -22,6 +22,19 @@ both.
 Run blueprint and Function commands from the repo root. The CLI finds the
 blueprint by walking **up** from cwd, and `sanity.config.ts` is not required.
 
+Two more ordering constraints. The deployment declares
+`expectedMinReaderModel`, so every reader — Studio, Functions, CLI, dashboard —
+must be upgraded _before_ definitions that require a newer model. And a blueprint
+redeploy destroys and recreates the stack's Functions, so deploying mid-run
+briefly leaves the pipeline with no live drainer.
+
+On the definition deploy itself: `--check` validates without deploying and
+`--dry-run` prints a per-definition `unchanged/created/updated` summary (the two
+are mutually exclusive). `--dry-run` is how you confirm what is deployed, because
+`list` lists instances, not definitions. Deploys also upload definition versions
+to Sanity by default, "to improve Editorial Workflows"; `--no-share-defs` opts out
+per deploy.
+
 ## Observing a run
 
 `sanity-workflows` is the engine's CLI, and `diagnose` is the one command worth

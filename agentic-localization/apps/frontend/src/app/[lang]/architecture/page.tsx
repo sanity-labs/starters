@@ -8,10 +8,6 @@ export const metadata: Metadata = {
     'Architecture overview: how this starter implements document-level and field-level localization with Sanity, Next.js path-based i18n routing, AI-powered translation, and editorial review workflows.',
 }
 
-/* ------------------------------------------------------------------ */
-/*  Reusable UI primitives (scoped to this page)                      */
-/* ------------------------------------------------------------------ */
-
 function SectionHeading({id, children}: {id: string; children: React.ReactNode}) {
   return (
     <h2 id={id} className="text-2xl font-semibold mt-16 mb-4 scroll-mt-24">
@@ -40,7 +36,6 @@ function highlightCode(code: string): React.ReactNode[] {
   let match: RegExpExecArray | null
 
   while ((match = tokenPattern.exec(code)) !== null) {
-    // Text before the match
     if (match.index > lastIndex) {
       parts.push(code.slice(lastIndex, match.index))
     }
@@ -110,16 +105,11 @@ function Badge({children}: {children: React.ReactNode}) {
   )
 }
 
-/* ------------------------------------------------------------------ */
-/*  Page                                                               */
-/* ------------------------------------------------------------------ */
-
 export default async function ArchitecturePage({params}: {params: Promise<{lang: string}>}) {
   const {lang} = await params
 
   return (
     <div className="pb-20">
-      {/* Back link */}
       <Link
         href={`/${lang}`}
         className="group inline-flex items-center gap-1 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-[color] duration-[var(--transition-fast)] mb-10"
@@ -136,7 +126,6 @@ export default async function ArchitecturePage({params}: {params: Promise<{lang:
         </div>
       )}
 
-      {/* Hero */}
       <header className="mb-14">
         <Badge>Architecture</Badge>
         <h1 className="text-4xl font-bold tracking-tight mt-3 leading-tight">
@@ -149,7 +138,6 @@ export default async function ArchitecturePage({params}: {params: Promise<{lang:
         </p>
       </header>
 
-      {/* Quick nav */}
       <Card className="mb-14">
         <p className="text-sm font-medium text-[var(--color-text-secondary)] mb-3">On this page</p>
         <nav className="flex flex-wrap gap-2">
@@ -175,9 +163,6 @@ export default async function ArchitecturePage({params}: {params: Promise<{lang:
         </nav>
       </Card>
 
-      {/* ------------------------------------------------------------ */}
-      {/* Content model                                                 */}
-      {/* ------------------------------------------------------------ */}
       <SectionHeading id="content-model">Document-level localization in Sanity</SectionHeading>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
@@ -251,9 +236,6 @@ export default async function ArchitecturePage({params}: {params: Promise<{lang:
 })`}
       </CodeBlock>
 
-      {/* ------------------------------------------------------------ */}
-      {/* Field-level localization                                      */}
-      {/* ------------------------------------------------------------ */}
       <SectionHeading id="field-level">Field-level localization</SectionHeading>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
@@ -306,9 +288,6 @@ export default async function ArchitecturePage({params}: {params: Promise<{lang:
         section for details.
       </p>
 
-      {/* ------------------------------------------------------------ */}
-      {/* Slug uniqueness                                               */}
-      {/* ------------------------------------------------------------ */}
       <SectionHeading id="slug-uniqueness">Slug uniqueness per language</SectionHeading>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
@@ -358,9 +337,6 @@ defineField({
 })`}
       </CodeBlock>
 
-      {/* ------------------------------------------------------------ */}
-      {/* Routing                                                       */}
-      {/* ------------------------------------------------------------ */}
       <SectionHeading id="routing">Path-based i18n routing in Next.js</SectionHeading>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
@@ -447,7 +423,7 @@ defineField({
 
       <CodeBlock title="File structure">
         {`src/
-├── middleware.ts              # / → /{preferred locale} redirect
+├── proxy.ts                   # / → /{preferred locale} redirect
 └── app/
     └── [lang]/
         ├── layout.tsx         # <html lang={lang}>, locale switcher
@@ -458,9 +434,6 @@ defineField({
             └── page.tsx       # Article detail + fallback`}
       </CodeBlock>
 
-      {/* ------------------------------------------------------------ */}
-      {/* Querying                                                      */}
-      {/* ------------------------------------------------------------ */}
       <SectionHeading id="querying">Querying content by locale</SectionHeading>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
@@ -472,7 +445,7 @@ defineField({
         <code className="text-sm bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
           NEXT_LOCALE
         </code>{' '}
-        cookie is set so the middleware can redirect returning visitors to their preferred language.
+        cookie is set so the proxy can redirect returning visitors to their preferred language.
       </p>
 
       <CodeBlock title="Fetching articles for a locale — queries.ts">
@@ -504,9 +477,6 @@ defineField({
 }`}
       </CodeBlock>
 
-      {/* ------------------------------------------------------------ */}
-      {/* Fallback                                                      */}
-      {/* ------------------------------------------------------------ */}
       <SectionHeading id="fallback">Fallback content strategy</SectionHeading>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
@@ -594,9 +564,6 @@ defineField({
         reference, and querying each locale in sequence until content is found.
       </p>
 
-      {/* ------------------------------------------------------------ */}
-      {/* AI Translation                                                */}
-      {/* ------------------------------------------------------------ */}
       <SectionHeading id="translation">AI-powered translation</SectionHeading>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
@@ -623,10 +590,10 @@ defineField({
           </p>
         </Card>
         <Card>
-          <p className="text-sm font-medium mb-1">Stale detection</p>
+          <p className="text-sm font-medium mb-1">Change analysis</p>
           <p className="text-xs text-[var(--color-text-secondary)]">
-            When the source document changes, translations are flagged as stale. AI analyzes what
-            changed and suggests which fields need retranslation vs. which changes are cosmetic.
+            Publishing the source opens a run that diffs it against the last analyzed revision. AI
+            decides which locales the change affects; a cosmetic edit retranslates nothing.
           </p>
         </Card>
       </div>
@@ -643,9 +610,6 @@ defineField({
 }`}
       </CodeBlock>
 
-      {/* ------------------------------------------------------------ */}
-      {/* Editorial Workflow                                             */}
-      {/* ------------------------------------------------------------ */}
       <SectionHeading id="editorial-workflow">Editorial review workflow</SectionHeading>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
@@ -656,11 +620,19 @@ defineField({
       <h3 className="text-lg font-semibold mt-10 mb-4">Translation lifecycle</h3>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
-        Every translation — whether a full document or a single field — moves through the same
-        states:
+        Every translation — whether a full document or a single field — moves through the stages of
+        one localization run:
       </p>
 
       <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+        <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-800">
+          Analyzing
+        </span>
+        <span className="text-[var(--color-text-muted)]">&rarr;</span>
+        <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
+          Translating
+        </span>
+        <span className="text-[var(--color-text-muted)]">&rarr;</span>
         <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800">
           Review
         </span>
@@ -668,31 +640,27 @@ defineField({
         <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
           Approved
         </span>
-        <span className="text-[var(--color-text-muted)]">&rarr;</span>
-        <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
-          Stale
-        </span>
-        <span className="text-[var(--color-text-muted)]">&rarr;</span>
-        <span className="text-xs text-[var(--color-text-muted)]">re-translate or dismiss</span>
       </div>
 
       <div className="space-y-3 mb-6">
         <Card>
           <p className="text-sm">
-            <strong>Needs review</strong> — A translation was just created by AI. An editor should
-            verify it before it goes live.
+            <strong>Analyzing</strong> — AI diffs the publish against the last analyzed revision and
+            decides which locales the change actually affects. A cosmetic edit finishes here,
+            without involving a person.
           </p>
         </Card>
         <Card>
           <p className="text-sm">
-            <strong>Approved</strong> — An editor has reviewed and accepted the translation.
+            <strong>Translating</strong> — one child run per target locale, fanned out by the
+            engine. A locale that fails is surfaced to the reviewer rather than blocking the others.
           </p>
         </Card>
         <Card>
           <p className="text-sm">
-            <strong>Stale</strong> — The source content changed after the translation was approved.
-            The system compares a stored snapshot of the source against the current value and shows
-            a diff so editors can decide whether to re-translate or dismiss the change.
+            <strong>Review</strong> — an editor diffs source against translation and approves,
+            requests changes on named locales, or refreshes from a source that has moved. If the
+            source is republished mid-run, the run says so instead of quietly approving stale text.
           </p>
         </Card>
       </div>
@@ -700,9 +668,10 @@ defineField({
       <h3 className="text-lg font-semibold mt-10 mb-4">Publish gating</h3>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
-        Both the Publish and Schedule actions are disabled when a document has unresolved
-        translations (needs review or stale). This prevents incomplete or outdated translations from
-        going live. The actions show a tooltip explaining which translations need attention.
+        While a run is translating or in review, the engine holds Publish on the source document
+        with a guard, and Schedule is wrapped to match — so a source cannot leave mid-run and
+        incomplete translations cannot go live. Both actions show the run&apos;s stage as the
+        reason.
       </p>
 
       <h3 className="text-lg font-semibold mt-10 mb-4">How state is tracked</h3>
@@ -729,22 +698,17 @@ defineField({
         </Card>
       </div>
 
-      {/* ------------------------------------------------------------ */}
-      {/* System Diagram                                                */}
-      {/* ------------------------------------------------------------ */}
       <SectionHeading id="architecture-diagram">System diagram</SectionHeading>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
         Here&apos;s how the pieces fit together:
       </p>
 
-      {/* — Sanity Studio layer — */}
       <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] backdrop-blur-xl p-5 mb-2">
         <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">
           Sanity Studio
         </p>
 
-        {/* L10n document types */}
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="rounded-[var(--radius-sm)] border border-[var(--color-accent)]/15 bg-[var(--color-accent-subtle)] px-3 py-2">
             <p className="text-xs font-semibold text-[var(--color-accent)]">l10n.locale</p>
@@ -762,7 +726,6 @@ defineField({
           </div>
         </div>
 
-        {/* Document-level: articles linked by translation.metadata */}
         <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/40 px-4 py-3 mb-3">
           <div className="flex items-center justify-center gap-3 text-sm">
             <span className="font-mono text-xs text-[var(--color-text-secondary)]">
@@ -778,7 +741,6 @@ defineField({
           </p>
         </div>
 
-        {/* Field-level: internationalized arrays, no join document */}
         <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/40 px-4 py-3 mb-4">
           <div className="flex items-center justify-center gap-3 text-sm">
             <span className="font-mono text-xs text-[var(--color-text-secondary)]">
@@ -790,7 +752,6 @@ defineField({
           </p>
         </div>
 
-        {/* Translate API + workflow */}
         <div className="grid grid-cols-2 gap-3">
           <div className="text-center">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)] text-white px-3 py-1 text-xs font-medium">
@@ -805,13 +766,12 @@ defineField({
               Editorial workflow
             </span>
             <p className="text-[11px] text-[var(--color-text-muted)] mt-1">
-              review &rarr; approve &rarr; stale detection
+              analyze &rarr; fan out &rarr; review &rarr; approve
             </p>
           </div>
         </div>
       </div>
 
-      {/* — Connection arrow (Studio → Functions) — */}
       <div className="flex flex-col items-center py-1 text-[var(--color-text-muted)]">
         <div className="w-px h-4 bg-[var(--color-border)]" />
         <span className="text-xs font-medium my-1">document events</span>
@@ -829,7 +789,6 @@ defineField({
         </svg>
       </div>
 
-      {/* — Sanity Functions layer — */}
       <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] backdrop-blur-xl p-5 mb-2">
         <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">
           Sanity Functions
@@ -837,24 +796,35 @@ defineField({
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/40 px-3 py-2">
             <p className="text-xs font-semibold text-[var(--color-text-primary)]">
-              mark-translations-stale
+              start-localization
             </p>
             <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
-              Flags translations when the source document changes
+              Opens a run when a source publishes, or ticks the one already open
+            </p>
+          </div>
+          <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/40 px-3 py-2">
+            <p className="text-xs font-semibold text-[var(--color-text-primary)]">drain-effects</p>
+            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+              Dispatches a run&apos;s pending effect — the analysis and translate calls
             </p>
           </div>
           <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/40 px-3 py-2">
             <p className="text-xs font-semibold text-[var(--color-text-primary)]">
-              analyze-stale-translations
+              handle-deleted-subject
             </p>
             <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
-              AI analysis of what changed and whether retranslation is needed
+              Aborts runs whose source document was deleted
+            </p>
+          </div>
+          <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/40 px-3 py-2">
+            <p className="text-xs font-semibold text-[var(--color-text-primary)]">distill-review</p>
+            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+              Turns an approved run&apos;s corrections into draft glossary and style-guide proposals
             </p>
           </div>
         </div>
       </div>
 
-      {/* — Connection arrow (Functions → Frontend) — */}
       <div className="flex flex-col items-center py-1 text-[var(--color-text-muted)]">
         <div className="w-px h-4 bg-[var(--color-border)]" />
         <span className="text-xs font-medium my-1">GROQ queries</span>
@@ -872,7 +842,6 @@ defineField({
         </svg>
       </div>
 
-      {/* — Next.js Frontend layer — */}
       <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] backdrop-blur-xl p-5">
         <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">
           Next.js Frontend
@@ -880,7 +849,7 @@ defineField({
 
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/40 px-3 py-2">
-            <p className="text-xs font-semibold text-[var(--color-text-primary)]">middleware</p>
+            <p className="text-xs font-semibold text-[var(--color-text-primary)]">proxy.ts</p>
             <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5 font-mono">
               / &rarr; /&#123;locale&#125;
             </p>
@@ -906,15 +875,11 @@ defineField({
         </div>
       </div>
 
-      {/* ------------------------------------------------------------ */}
-      {/* CTA                                                           */}
-      {/* ------------------------------------------------------------ */}
       <div className="mt-16 rounded-[var(--radius-md)] border border-[var(--color-accent)]/20 bg-[var(--color-accent-subtle)] p-6">
         <h3 className="text-lg font-semibold mb-2">Add this to your project</h3>
         <p className="text-sm text-[var(--color-text-secondary)] mb-4">
-          This starter includes an agent skill that walks Claude through adding the full
-          localization setup to any existing Sanity project. Studio-side and frontend-side, step by
-          step.
+          This starter includes agent skills that walk Claude through adding the full localization
+          setup to any existing Sanity project. Studio-side and frontend-side, step by step.
         </p>
         <a
           href="https://github.com/sanity-labs/starters/tree/main/agentic-localization"

@@ -8,11 +8,13 @@ Without structured context, AI translates "Releases" as "Veröffentlichungen" in
 
 - **Translation metadata as content** — Glossaries, style guides, and locale rules are Sanity documents that content teams manage in the Studio
 - **Automated stale detection** — On publish, AI analyses what actually changed and retranslates only the locales it affects; cosmetic edits complete without involving a person
-- **Durable localization runs** — Fan-out, review gates, retries and audit are [Editorial Workflows](https://www.sanity.io/docs/editorial-workflows/concepts) definitions rather than hand-rolled orchestration ([migration in progress](docs/WORKFLOW_ENGINE_MIGRATION.md))
-- **Translation pane and inspector** — Studio UI for reviewing translation status, applying pre-translations, and triggering new translations
+- **Durable localization runs** — Fan-out, review gates, retries, guards and audit are [Editorial Workflows](https://www.sanity.io/docs/editorial-workflows/concepts) definitions, dispatched by five Sanity Functions
+- **A review gate that teaches** — What a reviewer corrects is distilled into draft glossary entries and style-guide rules for the next run
+- **Translations inspector** — Studio UI for the open run: per-locale progress, source-versus-translation diff, approve or request changes
 - **Translations dashboard** — Real-time overview of coverage, gaps, and stale documents across all locales (Sanity App SDK)
 - **Localized frontend** — Next.js app with path-based i18n routing, locale switcher, and fallback content
 - **Quality evals** — Translate with and without context, measure the delta with deterministic checks and an LLM judge
+- **Journey tests** — Gherkin scenarios against a real project: real datasets, deployed definitions, the real engine
 
 ## Getting started
 
@@ -35,7 +37,7 @@ cd your-project
 pnpm bootstrap
 ```
 
-`pnpm bootstrap` consolidates env files, resolves the organization ID, deploys the blueprint (CORS, dataset, robot token, serverless functions), deploys the schema, generates types, seeds locale documents, and imports sample content.
+`pnpm bootstrap` consolidates env files, resolves the organization ID, deploys the blueprint (CORS, datasets, robot token, Functions), deploys the workflow definitions and the schema, generates types, seeds locale documents, and imports sample content.
 
 <details>
 <summary>Running bootstrap steps manually</summary>
@@ -47,22 +49,25 @@ cp .env.example .env
 # 2. Resolve organization ID — find it at sanity.io/manage → project settings
 # Uncomment SANITY_STUDIO_ORGANIZATION_ID in .env and set it to your org ID
 
-# 3. Deploy blueprint (CORS, dataset, robot token, serverless functions)
+# 3. Deploy blueprint (CORS, datasets, robot token, Functions)
 pnpm --filter @starter/functions build
 pnpm exec sanity blueprints init --stack-name production --project-id <your-project-id>
 pnpm exec sanity blueprints deploy
 
-# 4. Deploy schema
+# 4. Deploy the workflow definitions into the dataset the blueprint created
+pnpm workflows:deploy
+
+# 5. Deploy schema
 pnpm --filter studio exec sanity schema deploy
 
-# 5. Generate types
+# 6. Generate types
 pnpm --filter studio exec sanity schema extract
 pnpm --filter studio exec sanity typegen generate
 
-# 6. Seed locale documents
+# 7. Seed locale documents
 pnpm --filter studio exec sanity migration run seed-locales --no-dry-run --no-confirm
 
-# 7. Import sample content
+# 8. Import sample content
 pnpm --filter studio exec sanity dataset import sample-data.ndjson <your-dataset> --replace
 ```
 
@@ -80,62 +85,40 @@ Opens the Studio at [localhost:3333](http://localhost:3333), the translations da
 
 ## How it works
 
-1. **Define metadata** in the Studio: locales, glossaries (approved translations, do-not-translate terms, forbidden terms), and style guides (formality, tone, audience instructions per locale)
-2. **Assemble prompt**: `assembleStyleGuide()` converts structured metadata into an instruction string; `filterGlossaryByContent()` prunes to relevant terms
-3. **Translate**: `buildTranslateParams()` packages everything for the [Agent Actions Translate API](https://www.sanity.io/docs/agent-actions), including protected phrases extracted from do-not-translate entries
-4. **Evaluate**: translate with and without context, score with deterministic checks and an LLM judge, compare the quality delta
+1. **Context is content** — locales, glossaries (approved translations, do-not-translate terms, forbidden terms) and per-locale style guides are documents editors maintain
+2. **Assembly** — the glossary is pruned to the terms the source actually contains, then assembled into one [Agent Actions Translate](https://www.sanity.io/docs/agent-actions) request; do-not-translate terms become the API's `protectedPhrases`
+3. **The run** — a publish starts one durable [Editorial Workflows](https://www.sanity.io/docs/editorial-workflows/concepts) instance. Three definitions (`localize-campaign` → `localize-document` → `localize-locale`) own analysis, fan-out, retries, guards and the review gate. Run state lives on the instance; content documents carry content
+4. **Review** — a reviewer diffs source against translation and approves, requests changes on named locales, or refreshes from a changed source
+5. **Distill** — the diff between machine draft and approved text becomes draft glossary and style-guide proposals. Accepting one is a human act, and assembly reads only published, approved context
+6. **Evaluate** — translate with and without context, score with deterministic checks and an LLM judge, compare the delta
 
-Only glossary entries whose terms appear in the source document are injected (content-aware filtering), so prompts stay focused.
-
-## Orchestration: moving to Editorial Workflows
-
-Steps 1–4 above are the quality half of the starter and are stable. The half that
-coordinates the work — deciding which locales need retranslating, fanning out,
-tracking status, gating review — is being rebuilt on [Sanity Editorial Workflows](https://www.sanity.io/docs/editorial-workflows/concepts)
-so that a localization job is one durable, resumable, auditable run instead of
-status spread across metadata arrays, React reducers and duplicated pipelines.
-
-Three definitions live in `packages/l10n/src/workflows/`:
-
-| Definition          | Scope                                                                                    |
-| ------------------- | ---------------------------------------------------------------------------------------- |
-| `localize-campaign` | A batch of documents shipped together as one Content Release                             |
-| `localize-document` | One source document across every locale that needs work, including the human review pass |
-| `localize-locale`   | One target locale of one document; machine-only                                          |
-
-They are authored and covered by an in-memory spec suite that runs the real engine
-with no project or network (`pnpm --filter @starter/l10n test`). **They are not yet
-driving translation** — the serverless functions below still do that until the
-effect handlers and runtime land.
+Both localization tiers run the same three definitions: document tier (one document
+per locale, `@sanity/document-internationalization`) and field tier (language-keyed
+entries on one document, `sanity-plugin-internationalized-array`).
 
 Editorial Workflows is a prerelease: every `@sanity/workflow-*` package is an
 exact-version peer of the others and breaking changes ship in minor releases, so
 they are pinned exactly in `pnpm-workspace.yaml` and must be upgraded as one set.
 
-See [docs/WORKFLOW_ENGINE_MIGRATION.md](docs/WORKFLOW_ENGINE_MIGRATION.md) for the
-remaining stages and the engine behaviour verified along the way.
-
 ## Project structure
 
 ```
-sanity.blueprint.ts              Infrastructure-as-code: dataset, CORS, robot token, functions
-functions/                       Serverless automation (Sanity Functions)
-  drain-effects/                   Dispatches a workflow instance's pending effects
-  start-localization/              Starts (or ticks) a run when a source publishes
-  handle-deleted-subject/          Aborts runs whose source was deleted
-  heartbeat/                       Scheduled sweep: stale claims + time-based conditions
-studio/                          Sanity Studio workspace
-  schemaTypes/                     Article, person, topic, tag schemas
-  migrations/                      Deterministic locale seeding
-packages/l10n/                   Core plugin: schemas, prompt assembly, UI, evals
-  src/schemas/                     Locale, glossary, style guide, entry types
-  src/core/                        Pure utilities for serverless (zero React)
-  src/translations/                Translation pane, inspector, hooks
-  src/workflows/                   Editorial Workflows definitions + bench specs
-  evals/                           Quality evals: with-context vs without-context scoring
-apps/translations-dashboard/     Real-time translation overview (Sanity App SDK)
+sanity.blueprint.ts              Infrastructure-as-code: datasets, CORS, robot token, Functions
+sanity.workflow.ts               Which definitions deploy, and where the engine stores them
+functions/                       The engine's runtime: five Functions — see docs/FUNCTIONS.md
+packages/l10n/                   Node floor: primitives, prompt assembly, definitions, handlers
+packages/l10n-studio/            Studio layer: plugin, schema types, Translations inspector
+studio/                          Studio workspace: schemas, locale seeding, bootstrap
+apps/translations-dashboard/     Real-time coverage overview (Sanity App SDK)
 apps/frontend/                   Next.js frontend with path-based i18n routing
+e2e/                             Journey tests against a real project
+skills/                          Agent skills for the pattern and its adoption, plus their evals
+docs/                            The Function map, decision records, the i18n gap analysis
 ```
+
+The two packages document their own surface:
+[`packages/l10n/README.md`](packages/l10n/README.md) and
+[`packages/l10n-studio/README.md`](packages/l10n-studio/README.md).
 
 ## Deploying
 
@@ -157,15 +140,23 @@ If you want "Open in Studio" links in the deployed dashboard to point to your pr
 echo 'SANITY_STUDIO_URL=https://your-studio.sanity.studio' >> .env
 ```
 
-## Tests and evals
+## Tests, evals and journeys
 
 ```sh
-pnpm test                    # Unit tests (schema, prompt assembly, locale utils)
-pnpm --filter l10n eval      # Model evals — requires sanity login, consumes AI credits
+pnpm test    # Unit tests, workflow bench specs, skill drift checks
+pnpm eval    # Model evals — needs a project and consumes AI credits
+pnpm e2e     # Journeys against a real project — see e2e/README.md
 ```
+
+Workflow definitions are proven on `@sanity/workflow-engine-test`, which runs the
+real engine in memory with no project or network. Never deploy a definition you
+have not run on the bench.
 
 ## Learn more
 
 - [Sanity Agent Actions](https://www.sanity.io/docs/agent-actions) — Translate API reference
 - [`@sanity/document-internationalization`](https://github.com/sanity-io/plugins/tree/main/plugins/@sanity/document-internationalization) — Document-level i18n plugin
+- [`skills/sanity-l10n/`](skills/sanity-l10n/) — The pattern, adopting it, extending it, operating it
+- [docs/FUNCTIONS.md](docs/FUNCTIONS.md) — What each Function is for, and why the artifacts are pre-bundled
+- [docs/decisions/](docs/decisions/) — Why the packages are shaped this way, and why the loop is an observer
 - [docs/I18N_RESEARCH.md](docs/I18N_RESEARCH.md) — Gap analysis between enterprise TMSes and AI translation agents

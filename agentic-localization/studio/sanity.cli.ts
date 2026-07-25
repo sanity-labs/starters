@@ -32,10 +32,7 @@ export default defineCliConfig({
     enabled: true,
     path: [
       './src/**/*.{ts,tsx}',
-      // `l10n*`: the node floor AND the Studio package. The split left this glob
-      // behind, which silently dropped `useTranslationTargets`' two query result
-      // types from the generated file — the stale artifact still had them, so
-      // nothing failed until the next regeneration.
+      // `l10n*`: the node floor AND the Studio package.
       '../packages/l10n*/src/**/*.{ts,tsx}',
       '../apps/translations-dashboard/src/**/*.{ts,tsx}',
       '../functions/*/index.ts',

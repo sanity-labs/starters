@@ -4,11 +4,12 @@
  * Steps:
  *  1. Consolidate env files — ensure root .env has all values
  *  2. Resolve organization ID (not scaffolded by init)
- *  3. Deploy blueprint (CORS, dataset, robot token, functions)
- *  4. Deploy schema to the Content Lake
- *  5. Run typegen (schema extract + type generation)
- *  6. Seed locale documents via migration
- *  7. Import sample data (ndjson)
+ *  3. Deploy blueprint (CORS, datasets, robot token, Functions)
+ *  4. Deploy workflow definitions
+ *  5. Deploy schema to the Content Lake
+ *  6. Run typegen (schema extract + type generation)
+ *  7. Seed locale documents via migration
+ *  8. Import sample data (ndjson)
  *
  * Usage:
  *   pnpm bootstrap          (from studio/)

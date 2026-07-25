@@ -2,6 +2,12 @@
 
 Date: 2026-07-25 · Status: accepted
 
+Amended: `@starter/l10n` carries two further entries under the same rule — an
+entry is a layer with its own consumer class. `./distill` is the learning loop
+(adr-002), separable so deleting the loop is one directory; `./credentials` is
+token resolution for suites, separate because `configstore` reads the filesystem
+and every other entry is bundled into a Function or a frontend.
+
 ## Decision
 
 `packages/l10n` splits into exactly two packages:

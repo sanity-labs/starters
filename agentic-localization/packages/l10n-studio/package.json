@@ -48,7 +48,7 @@
     "vitest": "catalog:"
   },
   "//dependencies": [
-    "@sanity/workflow-react and @sanity/workflow-sdk are not imported here: they are exact-version peer pins of @sanity/workflow-studio, which is. Every @sanity/workflow-* package peers on the others at an exact version and breaking changes ship in minors — see docs/WORKFLOW_ENGINE_MIGRATION.md §3 Versions. Pin exactly and upgrade the set together.",
+    "@sanity/workflow-react and @sanity/workflow-sdk are not imported here: they are exact-version peer pins of @sanity/workflow-studio, which is. Every @sanity/workflow-* package peers on the others at an exact version and breaking changes ship in minors. Pin exactly and upgrade the set together.",
     "@sanity/language-filter is likewise not imported here: it is the peer pin of sanity-plugin-internationalized-array."
   ]
 }

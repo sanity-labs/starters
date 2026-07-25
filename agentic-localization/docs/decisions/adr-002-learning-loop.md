@@ -1,7 +1,7 @@
 # ADR-002: The learning loop is a content-native observer with engine-captured revisions
 
 Date: 2026-07-25 · Status: accepted — built (`packages/l10n/src/distill/`,
-`functions/distill-review/`; see WORKFLOW_ENGINE_MIGRATION.md §5, PR 7)
+`functions/distill-review/`)
 
 ## Decision
 

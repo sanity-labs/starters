@@ -15,7 +15,7 @@ Studio UI lives in [`@starter/l10n-studio`](../l10n-studio).
 
 ## Entries
 
-Four, each an explicit barrel. There are no deep imports — if something is not on
+Six, each an explicit barrel. There are no deep imports — if something is not on
 a barrel, it is internal.
 
 ### `@starter/l10n` — primitives
@@ -72,6 +72,34 @@ improves translations.
 | `effectAlreadyDone`                                                             | The at-least-once idempotency read. Call it before spending an AI call                                    |
 | `ContentClient`, `EffectContext`, `AGENT_API_VERSION`                           | The types and constants the above are expressed in                                                        |
 
+### `@starter/l10n/distill` — the learning loop
+
+An observer of finished runs, not a phase of one
+([adr-002](../../docs/decisions/adr-002-learning-loop.md)). Optional: deleting
+this entry, `functions/distill-review/` and one blueprint resource removes the
+loop.
+
+| Export                                                                                       | What it is                                                                        |
+| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `distillReview`, `claimId`, `CLAIM_RETENTION_MS`                                             | The whole pass, its deterministic claim id, and the sweep window                  |
+| `gatherRun`                                                                                  | Machine draft vs approved text for a finished run, both tiers and both scopes     |
+| `buildDistillPrompt`, `buildLocaleSummary`, `DISTILL_PROMPT_INSTRUCTION`                     | The one prompt call per run                                                       |
+| `parseProposalResponse`, `PROPOSAL_KINDS`, `MODEL_PROPOSAL_KINDS`, `isProposalKind`          | The model's answer, disbelieved by default — verbatim evidence or the row is gone |
+| `proposalDocumentFor`, `evalCaseDocumentFor`, `proposalId`, `proposalDraftId`, `proposalKey` | The DRAFT `l10n.proposal` documents, content-addressed so two runs agree as one   |
+
+The pure noise gate that runs before any spend is internal
+([`src/core/distillDelta.ts`](./src/core/distillDelta.ts)) — it is why a reviewer
+who fixed a comma costs nothing.
+
+### `@starter/l10n/credentials` — a token outside the CLI
+
+| Export         | What it is                                                             |
+| -------------- | ---------------------------------------------------------------------- |
+| `getUserToken` | `SANITY_AUTH_TOKEN`, then a local `sanity login` session. Nothing else |
+
+Its own entry because `configstore` reads the filesystem, and every other entry
+is bundled into a Function or a frontend. Consumed by the eval suite and `e2e/`.
+
 ## Build your own workflow
 
 `./workflows` and `./effects` are an extension surface, not just this starter's
@@ -96,10 +124,11 @@ internals. To localize something the shipped definitions do not cover:
    deployed.
 
 Engine behaviour the official docs do not cover — cohort `status` meaning
-_settled_ rather than _succeeded_, `current` going false once a spawning stage is
-exited, triggers firing at most once per stage visit — is recorded in
-[`docs/WORKFLOW_ENGINE_MIGRATION.md` §3](../../docs/WORKFLOW_ENGINE_MIGRATION.md).
-Read it before writing a definition; every item there cost real time.
+_settled_ rather than _succeeded_, spawn rows needing a projected `_key`, triggers
+firing at most once per stage visit — is listed under "What the engine does not
+document" in
+[`skills/sanity-l10n/references/extending.md`](../../skills/sanity-l10n/references/extending.md).
+Read it before writing a definition.
 
 ## Why two types are declared here
 

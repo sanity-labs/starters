@@ -24,7 +24,7 @@ fetch property the whole layer rests on.
 workflow hooks are already reactive. Async actions go through `useTransition`.
 
 **Prefer package exports.** `@starter/l10n` owns the shared, React-free readers
-(`readDocumentId`, `readFlag`, `readLocaleRequests`, `liveChildInstanceIds`) and
+(`readDocumentId`, `readFlag`, `readLocaleRequests`, `childInstanceIds`) and
 the status display map (`getStatusDisplay`). `@sanity/workflow-engine` owns
 `gdrRef`, `releaseRef`, `parseGdr`. Check before writing a helper.
 

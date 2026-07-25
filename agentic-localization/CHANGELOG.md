@@ -4,6 +4,35 @@ All notable changes to this starter template are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- **Localization runs on [Editorial Workflows](https://www.sanity.io/docs/editorial-workflows/concepts)** — three definitions (`localize-campaign` → `localize-document` → `localize-locale`) own analysis, fan-out, retries, guards and the review gate. Run state lives on the workflow instance; content documents carry content only. Definitions are proven against the real engine in memory (`@sanity/workflow-engine-test`) before they deploy
+- **Five Sanity Functions as the engine's runtime** — `start-localization`, `drain-effects`, `handle-deleted-subject`, `distill-review`, and an opt-in scheduled `heartbeat`. The definitions hold at most one pending effect per instance, so one drain is at most one AI call ([docs/FUNCTIONS.md](docs/FUNCTIONS.md))
+- **A dedicated `workflows` dataset** for engine storage, declared in the blueprint, plus `sanity.workflow.ts` and `pnpm workflows:deploy` for the definition deploy
+- **The distillation loop** — what a reviewer corrects becomes draft `l10n.proposal` documents (glossary entries, style-guide rules, eval-case coordinates) that a human accepts. Prompt assembly reads only published, approved context, so two human acts stand between automation and a prompt ([adr-002](docs/decisions/adr-002-learning-loop.md))
+- **Both localization tiers on the same three definitions** — only the effect handler's write target differs
+- **End-to-end journeys** (`e2e/`) — Gherkin scenarios against a real project: real datasets, deployed definitions, real Content Lake guards. Nightly, not per-commit
+- **Agent skills** (`skills/`) for the pattern, its adoption, extension and operation, with deterministic drift checks and live routing evals
+- **Decision records** (`docs/decisions/`) for the package shape and the learning loop
+
+### Changed
+
+- **Breaking:** `@starter/l10n` split in two — `@starter/l10n` is the node floor (primitives, prompt assembly, workflow definitions, effect handlers) and is React-free by construction, enforced by a lint zone and a resolved-module-graph test; `@starter/l10n-studio` holds the plugin, schema types and the Translations inspector ([adr-001](docs/decisions/adr-001-package-shape.md))
+- **Breaking:** Sanity Studio v6 — the workflow Studio plugin needs 6.3+ and there is no v5 path — and Node >= 22.12
+- Review is one human pass over the whole document, across all locales; locale children are machine-only
+- `publish` is held by the run's own engine guard rather than a hand-rolled gate; `schedule` is wrapped at the config root, because core injects it after plugins resolve
+- Schema types moved to `@sanity/types` imports (`defineType`/`defineField`), keeping a schema registration from pulling the whole Studio into a consumer's bundle
+
+### Removed
+
+- **~4,600 lines of hand-rolled orchestration** — the duplicated translate pipelines, `createSemaphore` and four divergent concurrency limits, four disjoint status vocabularies, the React status reducers, and the cache-based staleness guard. All of it is an engine primitive now
+- `mark-translations-stale` and `analyze-stale-translations` Functions, superseded by `start-localization` and the `analyze-source` effect
+- Workflow fields on `translation.metadata`, and `fieldTranslation.metadata` entirely. `translation.metadata` itself stays: it is the document-internationalization plugin's join document and genuine content state
+- The field × locale matrix and its per-cell verbs — both tiers render the same run
+- The AI Assist translate field action, the last path that translated without assembled context and without review
+
 ## [2.0.0] - 2026-04-10
 
 ### Added
