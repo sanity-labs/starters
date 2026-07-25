@@ -2,6 +2,15 @@
 
 This project uses [Sanity Functions](https://www.sanity.io/docs/functions) to run serverless event handlers that react to document lifecycle events in the Content Lake. Functions are defined in `functions/` and deployed via [Blueprints](https://www.sanity.io/docs/blueprints) (`sanity.blueprint.ts`).
 
+> **The two functions documented below are being replaced.** The publish → mark-stale
+> → analyze event chain is hand-rolled orchestration that [Editorial Workflows](https://www.sanity.io/docs/editorial-workflows/concepts)
+> now provides as primitives. `mark-translations-stale` becomes a thin
+> `start-localization` Function and `analyze-stale-translations` becomes the
+> `analyze-source` effect handler, joined by an effect drainer and a scheduled
+> heartbeat. The build pipeline and blueprint mechanics below stay exactly as they
+> are; only the handlers change. See
+> [WORKFLOW_ENGINE_MIGRATION.md](WORKFLOW_ENGINE_MIGRATION.md) §5, PR 4.
+
 ---
 
 ## Build pipeline
@@ -60,7 +69,7 @@ Config: [`functions/rolldown.config.ts`](../functions/rolldown.config.ts)
 | Setting         | Value                                   | Why                                                                                                                                                                                           |
 | --------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `format`        | `esm`                                   | Sanity Functions runtime expects ESM                                                                                                                                                          |
-| `platform`      | `node`                                  | Functions run on Node 20                                                                                                                                                                      |
+| `platform`      | `node`                                  | Functions run on Node                                                                                                                                                                         |
 | `codeSplitting` | `false`                                 | Each function must be a single self-contained file — the deploy artifact is one `index.js` per function directory. Shared chunks aren't supported by the CLI's deploy layout.                 |
 | `sourcemap`     | `true`                                  | Stack traces from the Functions runtime map back to source                                                                                                                                    |
 | `external`      | `/^@sanity\//`, `/^sanity/`, `/^groq$/` | These are **runtime-provided** by the Sanity Functions platform — they don't need to be in the bundle. Regex patterns match each package and all subpath exports (e.g. `@sanity/client/csm`). |
@@ -162,7 +171,7 @@ Everything else is **bundled**: `@starter/l10n/*`, `@portabletext/*`, `diff`, an
 
 ---
 
-## Event chain
+## Event chain (current — being replaced)
 
 ```
 article (en-US) published
@@ -183,3 +192,34 @@ article (en-US) published
   Studio inspector reads staleAnalysis
   and shows materiality + suggestions
 ```
+
+A function that writes the very document it triggers on is the reason
+`analyze-stale-translations` carries a five-minute freshness cache as a loop guard.
+The chain also has no durable job, so status has to be smeared across
+`workflowStates[]` and there is no retry beyond a manual button.
+
+### Where it is going
+
+```
+article (en-US) published
+        │
+        ▼
+  start-localization  ──▶  startInstance (caller-supplied id = idempotency key)
+                                  │
+                                  ▼
+                          workflow instance
+                                  │
+     ┌────────────────────────────┼────────────────────────────┐
+     ▼                            ▼                            ▼
+ drain-effects              heartbeat (cron)            Studio / dashboard
+ drainEffects + tick        tick — deadlines,           fireAction: approve,
+ runs analyze-source,       source-drift detection      request-changes,
+ translate-locale,                                      refresh-from-source
+ publish-release
+```
+
+The instance replaces the metadata arrays, the idempotency ledger replaces the
+freshness cache, and the drainer is where concurrency is bounded — the engine does
+not throttle spawn, so a large campaign would otherwise queue every AI call at
+once. Handlers must be idempotent on `ctx.effectKey`; delivery is at-least-once
+with a five-minute claim lease.

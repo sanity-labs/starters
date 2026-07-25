@@ -59,7 +59,7 @@ starter-agentic-i18n/
 │       ├── authToken.ts          Resolves Sanity auth token for evals
 │       └── setup.ts              Global setup/teardown (seeds eval source doc)
 │
-├── functions/                    Sanity Functions (serverless)
+├── functions/                    Sanity Functions (serverless) — BEING REPLACED
 │   ├── mark-translations-stale.ts    Marks translations stale on source publish
 │   └── analyze-stale-translations.ts AI analysis + pre-translation of stale fields
 │
@@ -100,7 +100,14 @@ serverless functions:
 Functions import from `@starter/l10n/core/*` and `@starter/l10n/promptAssembly`
 — never from the root export (which pulls in React).
 
-## Data Flow: Stale Detection Pipeline
+## Data Flow: Stale Detection Pipeline (current — being replaced)
+
+> This hand-rolled event chain is being migrated onto Editorial Workflows. The
+> steps below still describe what runs today, but the pieces that exist only to
+> work around the lack of a durable job — the freshness cache guarding against the
+> function that writes the document it triggers on, `LOCALE_BATCH_SIZE`, and the
+> `workflowStates[]` array — all disappear. Definitions live in
+> `packages/l10n/src/workflows/`; the plan is in `docs/WORKFLOW_ENGINE_MIGRATION.md`.
 
 ```
 Source doc published (language == 'en-US')

@@ -38,8 +38,12 @@ Read `references/architecture.md` for the full project map. Key entry points:
 
 - `packages/l10n/` — Unified plugin: schemas, prompt assembly, translation UI,
   hooks, evals. Sub-path exports keep serverless functions React-free.
+- `packages/l10n/src/workflows/` — Editorial Workflows definitions
+  (`localize-campaign` → `localize-document` → `localize-locale`) plus their
+  in-memory bench specs. React-free; composable into Functions and the CLI.
 - `functions/` — Two Sanity Functions: mark translations stale on publish,
-  analyze changes + pre-translate.
+  analyze changes + pre-translate. **Being replaced by workflow effect handlers
+  and a drainer** — see `docs/WORKFLOW_ENGINE_MIGRATION.md`.
 - `studio/` — Studio workspace with article, person, topic, tag types.
 - `apps/translations-dashboard/` — Real-time translation overview (App SDK).
 - `apps/frontend/` — Next.js frontend with path-based i18n routing.
@@ -203,6 +207,27 @@ Load `references/troubleshooting.md` for common issues:
 
 ## Anti-Patterns
 
+- **Do NOT hand-roll orchestration** — no semaphores, no status enums, no
+  "is this stale yet" caches, no `for` loops over locales. Fan-out, retries,
+  concurrency, review gates and idempotency are Editorial Workflows primitives.
+  ~4,600 lines of exactly this are on the delete list; don't add more.
+- **Do NOT put workflow state on content documents** — the instance owns run
+  state, content documents own content state. `workflowStates[]` and
+  `staleAnalysis` on the metadata docs are being removed for this reason.
+- **Do NOT edit workflow instances as content** — no `useEditDocument`, no raw
+  patches. Every instance write goes through an engine verb (`fireAction`,
+  `editField`, `tick`, `completeEffect`) or it bypasses gates, history and the
+  transaction boundary.
+- **Do NOT let UI imports into `src/workflows/` or `src/core/`** — both are
+  React-free so Functions, the CLI and evals can import them at no bundle cost.
+  Check with `grep -rn "react\|@sanity/ui"` before adding an import.
+- **Do NOT deploy a definition you haven't proven on the bench** —
+  `@sanity/workflow-engine-test` runs the real engine in memory with no project or
+  network. It catches spawn-identity, cohort-gating and recovery bugs that only
+  otherwise surface against a live dataset.
+- **Do NOT mix `@sanity/workflow-*` versions** — they are exact-version peers of
+  one another and ship breaking changes in minor releases. Pin exactly; upgrade as
+  a set.
 - **Do NOT duplicate l10n schema types** — the plugin registers them via
   `createL10n()`. Adding them to `studio/schemaTypes/` causes conflicts.
 - **Do NOT hardcode locale lists** — query `l10n.locale` documents. The seed

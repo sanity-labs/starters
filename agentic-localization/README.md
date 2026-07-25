@@ -7,7 +7,8 @@ Without structured context, AI translates "Releases" as "Veröffentlichungen" in
 ## What you get
 
 - **Translation metadata as content** — Glossaries, style guides, and locale rules are Sanity documents that content teams manage in the Studio
-- **Automated stale detection** — Serverless functions mark translations stale on publish, run AI analysis on what changed, and pre-translate affected fields
+- **Automated stale detection** — On publish, AI analyses what actually changed and retranslates only the locales it affects; cosmetic edits complete without involving a person
+- **Durable localization runs** — Fan-out, review gates, retries and audit are [Editorial Workflows](https://www.sanity.io/docs/editorial-workflows/concepts) definitions rather than hand-rolled orchestration ([migration in progress](docs/WORKFLOW_ENGINE_MIGRATION.md))
 - **Translation pane and inspector** — Studio UI for reviewing translation status, applying pre-translations, and triggering new translations
 - **Translations dashboard** — Real-time overview of coverage, gaps, and stale documents across all locales (Sanity App SDK)
 - **Localized frontend** — Next.js app with path-based i18n routing, locale switcher, and fallback content
@@ -15,7 +16,7 @@ Without structured context, AI translates "Releases" as "Veröffentlichungen" in
 
 ## Getting started
 
-**Prerequisites:** Node.js (>=20.19 or >=22.12), pnpm, a [Sanity account](https://www.sanity.io/get-started)
+**Prerequisites:** Node.js >=22.12, pnpm, a [Sanity account](https://www.sanity.io/get-started)
 
 ### 1. Create the project
 
@@ -86,6 +87,34 @@ Opens the Studio at [localhost:3333](http://localhost:3333), the translations da
 
 Only glossary entries whose terms appear in the source document are injected (content-aware filtering), so prompts stay focused.
 
+## Orchestration: moving to Editorial Workflows
+
+Steps 1–4 above are the quality half of the starter and are stable. The half that
+coordinates the work — deciding which locales need retranslating, fanning out,
+tracking status, gating review — is being rebuilt on [Sanity Editorial Workflows](https://www.sanity.io/docs/editorial-workflows/concepts)
+so that a localization job is one durable, resumable, auditable run instead of
+status spread across metadata arrays, React reducers and duplicated pipelines.
+
+Three definitions live in `packages/l10n/src/workflows/`:
+
+| Definition          | Scope                                                                                    |
+| ------------------- | ---------------------------------------------------------------------------------------- |
+| `localize-campaign` | A batch of documents shipped together as one Content Release                             |
+| `localize-document` | One source document across every locale that needs work, including the human review pass |
+| `localize-locale`   | One target locale of one document; machine-only                                          |
+
+They are authored and covered by an in-memory spec suite that runs the real engine
+with no project or network (`pnpm --filter @starter/l10n test`). **They are not yet
+driving translation** — the serverless functions below still do that until the
+effect handlers and runtime land.
+
+Editorial Workflows is a prerelease: every `@sanity/workflow-*` package is an
+exact-version peer of the others and breaking changes ship in minor releases, so
+they are pinned exactly in `pnpm-workspace.yaml` and must be upgraded as one set.
+
+See [docs/WORKFLOW_ENGINE_MIGRATION.md](docs/WORKFLOW_ENGINE_MIGRATION.md) for the
+remaining stages and the engine behaviour verified along the way.
+
 ## Project structure
 
 ```
@@ -100,6 +129,7 @@ packages/l10n/                   Core plugin: schemas, prompt assembly, UI, eval
   src/schemas/                     Locale, glossary, style guide, entry types
   src/core/                        Pure utilities for serverless (zero React)
   src/translations/                Translation pane, inspector, hooks
+  src/workflows/                   Editorial Workflows definitions + bench specs
   evals/                           Quality evals: with-context vs without-context scoring
 apps/translations-dashboard/     Real-time translation overview (Sanity App SDK)
 apps/frontend/                   Next.js frontend with path-based i18n routing
