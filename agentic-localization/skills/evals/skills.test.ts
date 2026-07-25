@@ -3,8 +3,8 @@
  * can be checked without a model.
  *
  * Three properties, and each one has caught a real defect:
- *  1. Drift — every repo path a skill names still exists. The rewrite these
- *     evals ship with replaced a dozen paths that had silently moved.
+ *  1. Drift — every repo path a skill names still exists, because a path that
+ *     silently moves leaves prose that reads correct and resolves to nothing.
  *     `repo.test.ts` runs the same check over every markdown file in the repo.
  *  2. Coverage — for each scenario in `cases/scenarios.json`, the files an agent
  *     would load actually name the file, entry or command the answer needs.

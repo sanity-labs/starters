@@ -106,7 +106,7 @@ they are pinned exactly in `pnpm-workspace.yaml` and must be upgraded as one set
 ```
 sanity.blueprint.ts              Infrastructure-as-code: datasets, CORS, robot token, Functions
 sanity.workflow.ts               Which definitions deploy, and where the engine stores them
-functions/                       The engine's runtime: four Functions — see docs/FUNCTIONS.md
+functions/                       The engine's runtime: four Functions — see docs/functions.md
 packages/l10n/                   Node floor: primitives, prompt assembly, definitions, handlers
 packages/l10n-studio/            Studio layer: plugin, schema types, Translations inspector
 studio/                          Studio workspace: schemas, locale seeding, bootstrap
@@ -114,7 +114,7 @@ apps/translations-dashboard/     Real-time coverage overview (Sanity App SDK)
 apps/frontend/                   Next.js frontend with path-based i18n routing
 e2e/                             Journey tests against a real project
 skills/                          Agent skills for the pattern and its adoption, plus their evals
-docs/                            The Function map, decision records, the i18n gap analysis
+docs/                            The Function map and the decision records
 ```
 
 The two packages document their own surface:
@@ -158,6 +158,5 @@ have not run on the bench.
 - [Sanity Agent Actions](https://www.sanity.io/docs/agent-actions) — Translate API reference
 - [`@sanity/document-internationalization`](https://github.com/sanity-io/plugins/tree/main/plugins/@sanity/document-internationalization) — Document-level i18n plugin
 - [`skills/sanity-l10n/`](skills/sanity-l10n/) — The pattern, adopting it, extending it, operating it
-- [docs/FUNCTIONS.md](docs/FUNCTIONS.md) — What each Function is for, and why the artifacts are pre-bundled
+- [docs/functions.md](docs/functions.md) — What each Function is for, and why the artifacts are pre-bundled
 - [docs/decisions/](docs/decisions/) — Why the packages are shaped this way, and why the loop is an observer
-- [docs/I18N_RESEARCH.md](docs/I18N_RESEARCH.md) — Gap analysis between enterprise TMSes and AI translation agents

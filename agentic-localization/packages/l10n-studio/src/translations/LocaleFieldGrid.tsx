@@ -7,8 +7,8 @@
  * never came back is the failure that ships, and a grid whose height moves with
  * the run is a silhouette nobody learns.
  *
- * Cells are glyphs and nothing else. The old field matrix died of per-cell
- * verbs, not of pixels: the only action here is the `↻` on a locale whose run
+ * Cells are glyphs and nothing else — per-cell verbs are what make a grid like
+ * this unreadable. The only action here is the `↻` on a locale whose run
  * failed, and all it does is open the footer's own request-changes dialog with
  * that locale pre-checked.
  */

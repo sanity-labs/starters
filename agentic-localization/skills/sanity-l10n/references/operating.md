@@ -15,7 +15,7 @@ pnpm workflows:deploy                    # sanity-workflows deploy, per sanity.w
 
 Skipping the build ships the previous bundle — the Functions CLI is handed a
 prebuilt `index.js` on purpose (see
-[`docs/FUNCTIONS.md`](../../../docs/FUNCTIONS.md)), so nothing rebuilds it for
+[`docs/functions.md`](../../../docs/functions.md)), so nothing rebuilds it for
 you. Blueprint and definition deploys are independent: a new subject type needs
 both.
 

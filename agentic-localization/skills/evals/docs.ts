@@ -12,7 +12,7 @@ import {resolve} from 'node:path'
 import {REPO_ROOT} from './corpus'
 
 export interface MarkdownFile {
-  /** Path relative to the repo root, e.g. `docs/FUNCTIONS.md`. */
+  /** Path relative to the repo root, e.g. `docs/functions.md`. */
   path: string
   absolutePath: string
   text: string

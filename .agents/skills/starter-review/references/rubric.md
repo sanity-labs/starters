@@ -111,13 +111,13 @@ must appear in that list. If the eval builds its own version of what the
 runtime builds, the claim is decorative.
 
 **Good** — `buildTranslateParams()`
-(`agentic-localization/packages/l10n/src/prompts/promptAssembly.ts:199`) is a
-named migration invariant: the production handler
-(`packages/l10n/src/effects/translateLocale.ts:170,280`) and the eval
-(`packages/l10n/src/prompts/evals/translate.ts:2`) call the _same_ function. A
-diverging call path was defined as a failed PR — otherwise the eval suite passes
-while proving nothing about production, and the quality claim silently decouples
-from the runtime.
+(`agentic-localization/packages/l10n/src/prompts/promptAssembly.ts`) is a named
+invariant: the production handler
+(`packages/l10n/src/effects/translateLocale.ts`) and the eval
+(`packages/l10n/src/prompts/evals/translate.ts`) call the _same_ function. A
+diverging call path is a failed PR — otherwise the eval suite passes while
+proving nothing about production, and the quality claim silently decouples from
+the runtime.
 
 **Slop signature** — an eval, benchmark or demo that reconstructs the prompt,
 the query, or the request its runtime counterpart builds; a README claim whose
@@ -267,7 +267,7 @@ an undocumented answer is a finding. Confirm each entrypoint tolerates env in
 _either_ the workspace or the root.
 
 **Good** — the two-directory / two-suffix cascade in
-`agentic-localization/studio/sanity.cli.ts:3-11`, mirrored in
+`agentic-localization/studio/sanity.cli.ts`, mirrored in
 `apps/frontend/next.config.ts` and the manual jiti parse in
 `sanity.blueprint.ts`; infrastructure declared in the blueprint rather than
 listed as README prose.

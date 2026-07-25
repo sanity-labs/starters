@@ -84,11 +84,12 @@ end to end and read the console and network panels. Definition-of-done for UI
 work, not an optional extra.
 
 Worked example: bulk translation failed with a `release.ref` error that no
-suite caught — the workflow deployment declared only the workflows dataset, so
+suite caught — the hand-built engine declared only the workflows dataset, so
 release refs minted against the content dataset had nowhere to resolve. The fix
-was `resourceAliases` in `sanity.workflow.ts` plus `resourceClients` on the
-engine (commit `a3158ce`), and the close condition on the ledger row was an
-explicit **visual repro**, not a passing test.
+was a `resourceClients` resolver on the engine (commits `a3158ce`, `c8fdae8`);
+the first diagnosis, `resourceAliases` in `sanity.workflow.ts`, was wrong and
+cost a deploy cycle. The close condition on the ledger row was an explicit
+**visual repro**, not a passing test.
 
 ## 6. Decision records
 
@@ -135,16 +136,16 @@ Use it for any starter whose orchestration should become engine-owned.
 
 Each stage lands as its own PR and is green before the next begins.
 
-| #   | Stage                   | Deliverable                                                                                                                                                                                                                                 | Gate                                                                                |
-| --- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| 0   | **Platform floor**      | Studio v6 (the workflow Studio plugin needs 6.3+; there is no v5 path). Exact-pin the whole `@sanity/workflow-*` set in the catalog.                                                                                                        | existing suites green                                                               |
-| 1   | **Definitions + bench** | The workflow definitions, alone, in a React-free package entry. No runtime yet.                                                                                                                                                             | the bench suite — this is the design gate                                           |
-| 2   | **Dataset + deploy**    | A dedicated workflows dataset (blueprint resource), `sanity.workflow.ts`, deploy wired into bootstrap. First real contact; it surfaces deployment assumptions the bench cannot.                                                             | `sanity-workflows deploy --check`, then a real deploy and an empty `--dry-run` diff |
-| 3   | **Handlers + runtime**  | One effect handler per effect name; the runtime Functions (drain, heartbeat, start, delete-handling) in the blueprint. Old Functions deleted here.                                                                                          | quality eval at its threshold                                                       |
-| 4   | **Surfaces**            | Studio and dashboard re-sourced onto engine state via the engine's own hooks. No raw patches on instances.                                                                                                                                  | visual flow verification                                                            |
-| 5   | **Deletions**           | The superseded pipelines, limiters, status vocabularies and schema fields, per the inventory.                                                                                                                                               | net-negative diff                                                                   |
-| 6   | **Further tiers**       | Field-level or additional document types onto the same definitions. Prove the divergence (e.g. N children patching one array) on the bench first.                                                                                           | bench, then e2e                                                                     |
-| 7   | **Agent entry point**   | Wire `@sanity/workflow-mcp` (same exact-pin set) so agents operate instances and author definitions through the same verbs and guards as the Studio and the Functions. **(target; not wired in the north star — do not cite as prior art)** | an agent completes a review journey on its own token                                |
+| #   | Stage                   | Deliverable                                                                                                                                                                     | Gate                                                                                |
+| --- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 0   | **Platform floor**      | Studio v6 (the workflow Studio plugin needs 6.3+; there is no v5 path). Exact-pin the whole `@sanity/workflow-*` set in the catalog.                                            | existing suites green                                                               |
+| 1   | **Definitions + bench** | The workflow definitions, alone, in a React-free package entry. No runtime yet.                                                                                                 | the bench suite — this is the design gate                                           |
+| 2   | **Dataset + deploy**    | A dedicated workflows dataset (blueprint resource), `sanity.workflow.ts`, deploy wired into bootstrap. First real contact; it surfaces deployment assumptions the bench cannot. | `sanity-workflows deploy --check`, then a real deploy and an empty `--dry-run` diff |
+| 3   | **Handlers + runtime**  | One effect handler per effect name; the runtime Functions (drain, heartbeat, start, delete-handling) in the blueprint. Old Functions deleted here.                              | quality eval at its threshold                                                       |
+| 4   | **Surfaces**            | Studio and dashboard re-sourced onto engine state via the engine's own hooks. No raw patches on instances.                                                                      | visual flow verification                                                            |
+| 5   | **Deletions**           | The superseded pipelines, limiters, status vocabularies and schema fields, per the inventory.                                                                                   | net-negative diff                                                                   |
+| 6   | **Further tiers**       | Field-level or additional document types onto the same definitions. Prove the divergence (e.g. N children patching one array) on the bench first.                               | bench, then e2e                                                                     |
+| 7   | **Agent entry point**   | Wire `@sanity/workflow-mcp` (same exact-pin set) so agents operate instances and author definitions through the same verbs and guards as the Studio and the Functions.          | an agent completes a review journey on its own token                                |
 
 Then, in order: package split → dedup audit → e2e → skills + evals → docs canon.
 Split before docs so the docs describe the final shape.
@@ -186,5 +187,6 @@ not being readable in conditions, at-least-once effect delivery and the
 - `agentic-localization/skills/sanity-l10n/references/operating.md` (deploy
   order, reading a stuck run, failure triage)
 
-Read both before writing a definition. Append to them when a stage teaches you
-something; that file is the migration doc's permanent replacement.
+Read both before writing a definition, and append to them when a stage teaches
+you something the hard way. They are where that knowledge lives permanently — not
+a stage brief, not a plan file.

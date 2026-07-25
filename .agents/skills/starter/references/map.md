@@ -45,11 +45,11 @@ A starter is not a demo. It is a reference someone builds a complex system on.
 **Multiple entry points.** An engine-adopting starter exposes the _same_ workflow
 to three operator classes, not one:
 
-| Operator   | Entry point                                                                                                          |
-| ---------- | -------------------------------------------------------------------------------------------------------------------- |
-| Humans     | Studio and dashboard surfaces reading instance state through the engine's hooks                                      |
-| Automation | Functions runtime — event-triggered `startInstance` / drain / tick                                                   |
-| Agents     | `@sanity/workflow-mcp` — operate running instances and author definitions. **(target; not wired in the north star)** |
+| Operator   | Entry point                                                                                          |
+| ---------- | ---------------------------------------------------------------------------------------------------- |
+| Humans     | Studio and dashboard surfaces reading instance state through the engine's hooks                      |
+| Automation | Functions runtime — event-triggered `startInstance` / drain / tick                                   |
+| Agents     | `@sanity/workflow-mcp` — operate running instances and author definitions, registered in `.mcp.json` |
 
 Same verbs, same guards, same definitions for all three. **Authority travels with
 the token** — the operator-authority principle extended to non-human operators,
@@ -64,7 +64,7 @@ bypass.
 | Path                          | Job                                                                                                                              |
 | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `docs/decisions/adr-NNN-*.md` | One ADR per load-bearing decision: Decision, Drivers, Process (who argued what, which claims failed verification), Consequences. |
-| `docs/functions.md`           | Ops only — deploy, env, bundling rationale. **(target: lowercase; the north star still has `docs/FUNCTIONS.md`)**                |
+| `docs/functions.md`           | Ops only — deploy, env, bundling rationale.                                                                                      |
 
 The pattern narrative and the extension guide are **skill references**, not
 `docs/` — an agent loads them by task, not by browsing:
@@ -186,12 +186,12 @@ for (const dir of [__dirname, `${__dirname}/..`]) {
 }
 ```
 
-Anchors: `agentic-localization/studio/sanity.cli.ts:3-11`,
+Anchors: `agentic-localization/studio/sanity.cli.ts`,
 `apps/translations-dashboard/sanity.cli.ts`, `apps/frontend/next.config.ts`.
 
 Exception: files loaded by **jiti** (`sanity.blueprint.ts`, `sanity.workflow.ts`)
 have no `process.loadEnvFile` — parse `.env` manually. Anchor:
-`agentic-localization/sanity.blueprint.ts:9-24`.
+`agentic-localization/sanity.blueprint.ts`.
 
 **[ENFORCED]** Committed `.env` carries non-secret prefix mappings only;
 `.env.example` is the template; `.env.local` is gitignored.

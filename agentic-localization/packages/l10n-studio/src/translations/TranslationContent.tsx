@@ -8,8 +8,8 @@
  *   the source — review is one pass over the whole document, so the verbs live
  *   on the source side only.
  *
- * The locale coverage list the source side used to carry is gone: it said the
- * same thing as the grid's leftmost column, one screen further down.
+ * Coverage is read off the grid's leftmost column; there is no second list of
+ * it further down the panel.
  */
 
 import {TranslateIcon} from '@sanity/icons'

@@ -69,7 +69,7 @@ entries and [`packages/l10n-studio/README.md`](../../packages/l10n-studio/README
 for the Studio layer's, rather than asking for an export list.
 [`docs/decisions/`](../../docs/decisions/) records why the packages are shaped
 this way (adr-001) and why the loop is an observer rather than a phase
-(adr-002); [`docs/FUNCTIONS.md`](../../docs/FUNCTIONS.md) is the runtime map.
+(adr-002); [`docs/functions.md`](../../docs/functions.md) is the runtime map.
 
 ## Anti-patterns
 

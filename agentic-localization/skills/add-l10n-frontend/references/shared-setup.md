@@ -84,12 +84,14 @@ imports — keep whichever you pick to one declaration.
 valid tags with script subtags (`zh-Hans-CN`). Validating against the fetched
 locale codes, or with `Intl.Locale`, costs more and is correct.
 
-**Whether the frontend is in the typegen path.** Sanity TypeGen only generates
-result types for query files it is configured to scan (`sanity.cli.ts` in the
-Studio). The reference frontend is outside it, so it hand-writes its result types
-and augments `SanityQueries` by query string to reach `sanityFetch` — the same
-mechanism TypeGen's output uses, so call sites need no casts either way. Adding
-the frontend to the typegen `path` is the better answer for a real project.
+**Where the frontend's generated types come from.** TypeGen only scans the query
+files a `sanity.cli.ts` names, and extracting a schema needs a Studio config. The
+reference keeps the frontend out of `studio/sanity.cli.ts`'s glob so it stays a
+plain Next app you can lift out, and gives it a typegen-only
+`apps/frontend/sanity.cli.ts` that reads the schema the Studio extracts. Widening
+the Studio's glob is the other answer. Either way the result types are generated,
+never hand-written — the generated `SanityQueries` augmentation is what gives
+`sanityFetch` its typed `data`.
 
 ## Non-negotiables
 

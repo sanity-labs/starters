@@ -36,21 +36,12 @@ Action view: fill coverage gaps with AI translation, filter documents by status,
 
 ## Architecture
 
-The dashboard is powered by a single GROQ query (`useTranslationAggregateData`) that fetches the full translation corpus. Six pure derived hooks process this data into chart-ready shapes using `useMemo` — one real-time subscription, no polling.
-
-```
-useTranslationAggregateData (useQuery → single GROQ fetch)
-  ├── useTranslationSummary
-  ├── useStatusBreakdown
-  ├── useCoverageMatrix
-  ├── useGapDocuments
-  ├── useStatusFilteredDocuments
-  └── useStaleDocuments
-```
-
-One context wraps the app — `TranslationConfigProvider` (languages, default language, supported types, resolved config). Selection and batch state are local to the route; run progress comes from the workflow instance.
-
-For detailed SDK patterns and intentional guideline deviations, see [ARCHITECTURE.md](ARCHITECTURE.md).
+Two realtime sources — the content dataset and the engine's `workflows` dataset —
+joined once, with every derived hook a pure `useMemo` over the result. Nothing
+polls and nothing caches a status. Selection and batch state are local to the
+route; run progress comes from the workflow instance.
+[ARCHITECTURE.md](ARCHITECTURE.md) has the join, the hook tree and the write
+surface.
 
 ## Project Structure
 

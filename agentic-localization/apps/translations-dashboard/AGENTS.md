@@ -35,9 +35,9 @@ the status display map (`getStatusDisplay`). `@sanity/workflow-engine` owns
   assumes `client` addresses its own resource.
 - `useWorkflowInstances` returns in-flight instances only. `loading: false` with
   an empty list is a confirmed "none", not "still loading".
-- A cohort's `status` means _settled_, not _succeeded_. Read the child's `stage`.
-- Subworkflow rows accumulate across stage visits; the newest row per `rowKey` is
-  the current attempt.
+- Cohort semantics and spawn-row accumulation bite this app the same way they
+  bite a definition — read "What the engine does not document" in
+  `skills/sanity-l10n/references/extending.md` before reading a run's children.
 - `@sanity/workflow-components` ships no types. The ambient declaration in
   `src/types/workflow-components.d.ts` covers what the SDK re-exports.
 

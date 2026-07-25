@@ -49,7 +49,7 @@ Each one is a header comment at the site; this index only says where.
 | `packages/l10n/src/core/types.ts` (`InternationalizedArrayItem`, `TranslationReference`) | the plugins' declarations, re-stated and contract-tested            |
 | `packages/l10n/src/translate/imageUtils.ts` (`isSanityImageField`)                       | `@sanity/types`' `isImage`                                          |
 | `packages/l10n-studio/src/localeFilterState.ts`                                          | `@sanity/language-filter`'s selection; `sanity`'s key-value store   |
-| `apps/frontend/src/proxy.ts` (`localePattern`)                                           | `@starter/l10n`'s `isValidLocale`                                   |
+| `apps/frontend/src/negotiateLocale.ts` (`LOCALE_PATTERN`)                                | `@starter/l10n`'s `isValidLocale`                                   |
 | `apps/translations-dashboard/src/components/ErrorBoundary.tsx`                           | `@sanity/ui`'s `ErrorBoundary`                                      |
 | `apps/translations-dashboard/src/components/OpenInStudioButton.tsx`                      | `@sanity/sdk-react`'s `useNavigateToStudioDocument`                 |
 

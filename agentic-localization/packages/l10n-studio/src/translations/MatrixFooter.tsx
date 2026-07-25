@@ -2,11 +2,11 @@
  * The only verbs on this surface, and the machine's verdict compressed to fit
  * beside them.
  *
- * Materiality used to be the largest block on the panel — a heading and a
- * paragraph above the thing the reviewer came to read. It is a badge now, and
- * the analysis prose is one disclosure away. The two advisory flags collapse
- * into the same line: they qualify the decision, so they belong next to the
- * decision rather than four screens above it.
+ * Materiality is a badge and the analysis prose is one disclosure away, so the
+ * reviewer reaches the diff without scrolling past a verdict they did not ask
+ * for. The two advisory flags collapse into the same line: they qualify the
+ * decision, so they belong next to the decision rather than four screens above
+ * it.
  *
  * Run narration is deliberately absent. `@sanity/workflow-studio-plugin` already
  * ships the stage strip above the form, the Workflows tab, the footer chip and a

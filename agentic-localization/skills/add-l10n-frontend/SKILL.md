@@ -39,7 +39,7 @@ Already implemented. Modify these files rather than recreating them.
 | `apps/frontend/src/sanity/live.ts`                   | The client and `defineLive({strict: true})` — `sanityFetch` and `<SanityLive />`, `server-only`                            |
 | `apps/frontend/src/sanity/queries.ts`                | `defineQuery` GROQ: the locale list, the article resolution query, the sitemap query, `DEFAULT_LANGUAGE`                   |
 | `apps/frontend/src/sanity/locales.ts`                | Fallback-chain walk (multi-hop, cycle-safe) and the sibling list for a document                                            |
-| `apps/frontend/src/sanity/types.ts`                  | Result types, wired into `sanityFetch` by augmenting `SanityQueries` — the frontend is outside the typegen path            |
+| `apps/frontend/src/sanity/types.ts`                  | The app's vocabulary, projected out of the generated `sanity.types.ts` and its `SanityQueries` augmentation                |
 | `apps/frontend/src/app/[lang]/layout.tsx`            | `<html lang>`, `metadataBase`, `<SanityLive />`; `generateStaticParams` from the locale query                              |
 | `apps/frontend/src/app/[lang]/page.tsx`              | Article list for the locale                                                                                                |
 | `apps/frontend/src/app/[lang]/[slug]/page.tsx`       | Detail view: slug resolution, stale-URL redirect, the fallback decision, hreflang metadata                                 |
@@ -56,9 +56,10 @@ Every page body is a `'use cache'` boundary (`cacheComponents: true`), and
 
 Two known rough edges worth fixing rather than copying: `DEFAULT_LANGUAGE` is
 hardcoded in `queries.ts` — one declaration, imported everywhere, but still not
-derived from the locale documents — and `proxy.ts` matches locales with
-`/^[a-z]{2}-[A-Z]{2}$/`, which rejects script subtags like `zh-Hans-CN` that
-`LocaleSwitcher` handles correctly via `Intl.Locale`.
+derived from the locale documents — and `LOCALE_PATTERN` in
+`apps/frontend/src/negotiateLocale.ts` matches `/^[a-z]{2}-[A-Z]{2}$/`, which
+rejects script subtags like `zh-Hans-CN` that `LocaleSwitcher` handles correctly
+via `Intl.Locale`.
 
 ## Porting to another framework
 

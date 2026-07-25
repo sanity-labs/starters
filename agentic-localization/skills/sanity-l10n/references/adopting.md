@@ -82,7 +82,7 @@ Non-negotiable, and worth checking before promising a timeline:
 5. **Deploy infrastructure, then schema.** `sanity blueprints deploy` then
    `sanity schema deploy`. Functions must be built first
    (`pnpm --filter @starter/functions build`) — the blueprint points at
-   `functions/dist/<name>`, see [docs/FUNCTIONS.md](../../../docs/FUNCTIONS.md).
+   `functions/dist/<name>`, see [docs/functions.md](../../../docs/functions.md).
 6. **Deploy the definitions.** `pnpm workflows:deploy` (`sanity-workflows deploy`
    reading `sanity.workflow.ts`). All definitions go as one set: a parent cannot
    spawn a child that is not deployed.
