@@ -65,7 +65,8 @@ export interface TranslationCompareProps {
   onEditField?: (fieldPath: string) => void
 }
 
-function FieldDiff({change}: {change: FieldChange}) {
+/** One field's diff, routed by type. The matrix detail pane renders these too. */
+export function FieldDiff({change}: {change: FieldChange}) {
   const {fieldType, oldValue, newValue} = change
 
   if (fieldType === 'portableText' && Array.isArray(oldValue) && Array.isArray(newValue)) {

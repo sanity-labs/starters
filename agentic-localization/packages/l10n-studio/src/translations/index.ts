@@ -7,9 +7,22 @@ export {
 } from './useTranslationTargets'
 export {InlineDiff} from './InlineDiff'
 export {PortableTextDiff} from './PortableTextDiff'
-export {TranslationCompare, type TranslationCompareProps} from './TranslationCompare'
-export {LocalizationRun, type LocalizationRunProps} from './LocalizationRun'
+export {FieldDiff, TranslationCompare, type TranslationCompareProps} from './TranslationCompare'
+export {ReviewMatrix, type ReviewMatrixProps} from './ReviewMatrix'
+export {LocaleFieldGrid, type LocaleFieldGridProps} from './LocaleFieldGrid'
+export {
+  buildGrid,
+  CELL_GLYPH,
+  defaultSelection,
+  orderByImpact,
+  unionColumns,
+  type CellState,
+  type GridModel,
+  type GridRow,
+  type LocaleSnapshot,
+} from './gridModel'
 export {buildEditIntent, type EditIntent, type EditTarget} from './editIntent'
+export {useFocusFieldInPane, useOpenSiblingPane, type PaneTarget} from './paneNavigation'
 export {ReviewActions, type ReviewActionsProps} from './ReviewActions'
 export {
   LOCALIZE_DOCUMENT_DEFINITION,

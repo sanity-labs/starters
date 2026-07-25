@@ -14,7 +14,7 @@ export {
 export {InlineDiff} from './translations/InlineDiff'
 export {PortableTextDiff} from './translations/PortableTextDiff'
 export {TranslationCompare, type TranslationCompareProps} from './translations/TranslationCompare'
-export {LocalizationRun, type LocalizationRunProps} from './translations/LocalizationRun'
+export {ReviewMatrix, type ReviewMatrixProps} from './translations/ReviewMatrix'
 export {buildEditIntent, type EditIntent, type EditTarget} from './translations/editIntent'
 export {ReviewActions, type ReviewActionsProps} from './translations/ReviewActions'
 export {ErrorBoundary} from './translations/ErrorBoundary'
