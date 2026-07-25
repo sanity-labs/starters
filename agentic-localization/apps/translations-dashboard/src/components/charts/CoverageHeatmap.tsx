@@ -140,7 +140,7 @@ function CoverageHeatmap({activeCell, data, localeColumns, onCellClick}: Coverag
   return (
     <Card border padding={5} radius={4} tone="default">
       <Stack space={5}>
-        <Heading align="center" size={2}>
+        <Heading align="center" as="h2" size={2}>
           Translation Coverage
         </Heading>
 
