@@ -171,15 +171,26 @@ export const localizeDocument = defineWorkflow({
         }),
       ],
       transitions: [
-        defineTransition({name: 'to-failed', to: 'failed', when: '$anyActivityFailed'}),
+        defineTransition({
+          name: 'to-failed',
+          title: 'Analysis failed',
+          to: 'failed',
+          when: '$anyActivityFailed',
+        }),
         // The autonomous path: nothing worth retranslating, so finish without a
         // human. coalesce guards the case where the effect wrote no locales at all.
         defineTransition({
           name: 'nothing-to-do',
+          title: 'Nothing needs translating',
           to: 'done',
           when: '$allActivitiesDone && count(coalesce($fields.targetLocales, [])) == 0',
         }),
-        defineTransition({name: 'to-translating', to: 'translating', when: '$allActivitiesDone'}),
+        defineTransition({
+          name: 'to-translating',
+          title: 'Locales need work',
+          to: 'translating',
+          when: '$allActivitiesDone',
+        }),
       ],
     }),
     defineStage({
@@ -263,7 +274,12 @@ export const localizeDocument = defineWorkflow({
         }),
       ],
       transitions: [
-        defineTransition({name: 'to-review', to: 'review', when: '$allActivitiesDone'}),
+        defineTransition({
+          name: 'to-review',
+          title: 'Ready for review',
+          to: 'review',
+          when: '$allActivitiesDone',
+        }),
       ],
     }),
     defineStage({
@@ -379,16 +395,19 @@ export const localizeDocument = defineWorkflow({
       transitions: [
         defineTransition({
           name: 'to-approved',
+          title: 'Approved',
           to: 'approved',
           when: `$allActivitiesDone && $fields.decision == 'approve'`,
         }),
         defineTransition({
           name: 'back-to-translating',
+          title: 'Changes requested',
           to: 'translating',
           when: `$allActivitiesDone && $fields.decision == 'request-changes'`,
         }),
         defineTransition({
           name: 'back-to-analyzing',
+          title: 'Fresh analysis requested',
           to: 'analyzing',
           when: `$allActivitiesDone && $fields.decision == 'refresh'`,
         }),

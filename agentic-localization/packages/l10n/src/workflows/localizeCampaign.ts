@@ -81,7 +81,14 @@ export const localizeCampaign = defineWorkflow({
           ],
         }),
       ],
-      transitions: [defineTransition({name: 'to-ready', to: 'ready', when: '$allActivitiesDone'})],
+      transitions: [
+        defineTransition({
+          name: 'to-ready',
+          title: 'Every document settled',
+          to: 'ready',
+          when: '$allActivitiesDone',
+        }),
+      ],
     }),
     defineStage({
       name: 'ready',
@@ -126,7 +133,12 @@ export const localizeCampaign = defineWorkflow({
         }),
       ],
       transitions: [
-        defineTransition({name: 'to-publishing', to: 'publishing', when: '$allActivitiesDone'}),
+        defineTransition({
+          name: 'to-publishing',
+          title: 'Go-live decided',
+          to: 'publishing',
+          when: '$allActivitiesDone',
+        }),
       ],
     }),
     defineStage({
@@ -171,8 +183,18 @@ export const localizeCampaign = defineWorkflow({
         // re-queues the effect. Re-entering `ready` and firing go-live again is a
         // fresh visit, which re-arms it. The edge cannot spin on its own because
         // leaving `ready` requires a caller.
-        defineTransition({name: 'back-to-ready', to: 'ready', when: '$anyActivityFailed'}),
-        defineTransition({name: 'to-published', to: 'published', when: '$allActivitiesDone'}),
+        defineTransition({
+          name: 'back-to-ready',
+          title: 'Publishing failed',
+          to: 'ready',
+          when: '$anyActivityFailed',
+        }),
+        defineTransition({
+          name: 'to-published',
+          title: 'Release shipped',
+          to: 'published',
+          when: '$allActivitiesDone',
+        }),
       ],
     }),
     defineStage({name: 'published', title: 'Published'}),

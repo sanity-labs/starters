@@ -111,8 +111,18 @@ export const localizeLocale = defineWorkflow({
         // A failed activity is neither done nor skipped, so $allActivitiesDone stays
         // false and cannot race this edge; it is declared first regardless, so the
         // failure route is explicit rather than inferred from ordering.
-        defineTransition({name: 'to-failed', to: 'failed', when: '$anyActivityFailed'}),
-        defineTransition({name: 'to-translated', to: 'translated', when: '$allActivitiesDone'}),
+        defineTransition({
+          name: 'to-failed',
+          title: 'Translation failed',
+          to: 'failed',
+          when: '$anyActivityFailed',
+        }),
+        defineTransition({
+          name: 'to-translated',
+          title: 'Translation ready',
+          to: 'translated',
+          when: '$allActivitiesDone',
+        }),
       ],
     }),
     defineStage({name: 'translated', title: 'Translated'}),
