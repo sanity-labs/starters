@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: lts/*
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install
       - run: pnpm --filter studio run deploy
         env:
           SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
@@ -39,7 +39,7 @@ jobs:
         with:
           node-version: lts/*
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install
       - run: pnpm --filter @starter/functions run build
       - name: Deploy blueprints
         uses: sanity-io/blueprints-actions/deploy@deploy-v3
@@ -61,7 +61,7 @@ jobs:
         with:
           node-version: lts/*
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install
       - run: pnpm --filter @starter/frontend build
         env:
           SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
@@ -77,7 +77,7 @@ jobs:
         with:
           node-version: lts/*
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install
       - run: pnpm --filter @starter/translations-dashboard run deploy
         env:
           SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}

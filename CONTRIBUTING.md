@@ -24,7 +24,7 @@ Then customize it:
 When it's ready, wire it into the monorepo:
 
 - Add a job to `.github/workflows/ci.yml` (with `environment: <starter-name>`)
-- Create a GitHub Environment in repo settings with `SANITY_PROJECT_ID` and `SANITY_DATASET` (add `SANITY_AUTH_TOKEN` as a secret if the starter deploys)
+- Create a GitHub Environment in repo settings with `SANITY_PROJECT_ID` and `SANITY_DATASET` vars (add `SANITY_AUTH_TOKEN` as a secret if the starter deploys), then confirm the new job shows up in branch protection's required checks — an unrequired job goes red unnoticed
 - Add the starter name to the lint loop in `.husky/pre-commit`
 - Add a row to the table in `README.md`
 
@@ -41,6 +41,8 @@ All starters share these baseline conventions to keep things consistent for user
 - **Per-workspace `.env`** files — each workspace manages its own env, no cascading
 - **AGENT.md** with `CLAUDE.md` symlink for AI agent context
 - **Template validation** via `sanity-template-validate`
+
+A starter may record its architectural decisions under `<starter>/docs/decisions/` — read them before proposing structural changes to that starter.
 
 ## Lock files
 

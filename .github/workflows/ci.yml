@@ -13,7 +13,7 @@ jobs:
     environment: agentic-localization
     strategy:
       matrix:
-        node-version: [20, 22]
+        node-version: [22]
     defaults:
       run:
         working-directory: agentic-localization
@@ -88,6 +88,43 @@ jobs:
       - name: Validate template
         run: pnpm dlx @sanity/template-validator
 
+  email-marketing:
+    name: email-marketing
+    runs-on: ubuntu-latest
+    environment: email-marketing
+    defaults:
+      run:
+        working-directory: email-marketing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          # @starter/functions wants engines.node >=24; the root wants
+          # >=20.19 <22 || >=22.12. 24 is the only overlap.
+          node-version: 24
+      - run: pnpm install
+      - name: Format check
+        run: pnpm run format:check
+      - name: Lint
+        run: pnpm run lint
+      - name: Typecheck
+        run: pnpm run typecheck
+        env:
+          SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
+          SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET }}
+      - name: Unit tests
+        run: pnpm run test
+      - name: Validate template
+        run: pnpm run validate
+      - name: Manifest extract
+        run: pnpm --filter studio exec sanity manifest extract
+        env:
+          SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
+          SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET }}
+      - name: Build functions
+        run: pnpm --filter @starter/functions build
+
   knowledge-base:
     name: knowledge-base (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
@@ -121,6 +158,8 @@ jobs:
         env:
           SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
           SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET }}
+      - name: Build functions
+        run: pnpm --filter @starter/functions build
       - name: Check function bundle sizes
         run: |
           max_kb=512

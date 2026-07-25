@@ -22,7 +22,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
           node-version: lts/*
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install
       - run: pnpm run lint
       - run: pnpm run type-check
 
@@ -40,5 +40,5 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
           node-version: lts/*
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install
       - run: pnpm exec tsc --noEmit

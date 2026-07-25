@@ -1,5 +1,5 @@
 {
-  "description": "Check the readme: https://github.com/sanity-io/renovate-config/blob/main/README.md",
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Check the readme: https://github.com/sanity-io/renovate-config/blob/main/README.md",
   "extends": ["github>sanity-io/renovate-config:starter-template"]
 }

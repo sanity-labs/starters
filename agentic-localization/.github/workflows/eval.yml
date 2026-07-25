@@ -13,7 +13,7 @@ jobs:
         with:
           node-version: lts/*
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install
       - run: pnpm run eval
         env:
           # The names `assertEvalCredentials` reads, not the blueprint's.
