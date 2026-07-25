@@ -1,5 +1,5 @@
 import {createClient} from '@sanity/client'
-import {getUserToken} from './authToken'
+import {getUserToken} from '../../credentials'
 
 /**
  * Resolve the credentials the eval suite runs on, or explain what is missing.

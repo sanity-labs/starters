@@ -20,6 +20,10 @@
     "./effects": {
       "source": "./src/effects/index.ts",
       "default": "./src/effects/index.ts"
+    },
+    "./credentials": {
+      "source": "./src/credentials/index.ts",
+      "default": "./src/credentials/index.ts"
     }
   },
   "scripts": {

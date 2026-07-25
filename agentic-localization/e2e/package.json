@@ -1,0 +1,26 @@
+{
+  "name": "@starter/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e": "vitest run --config vitest.e2e.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@sanity/client": "catalog:",
+    "@sanity/functions": "^1.2.0",
+    "@sanity/id-utils": "^1.0.0",
+    "@sanity/workflow-engine": "catalog:",
+    "@starter/functions": "workspace:*",
+    "@starter/l10n": "workspace:*",
+    "@starter/tsconfig": "workspace:*",
+    "@types/node": "^22.19.13",
+    "racejar": "^2.0.5",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "//scripts": [
+    "Deliberately no `test` script: `pnpm -r test` runs in CI, which has no project credentials. `pnpm e2e` from the root, or the nightly workflow, is the only caller."
+  ]
+}

@@ -1,6 +1,7 @@
 packages:
   - studio
   - functions
+  - e2e
   - packages/*
   - apps/*
 

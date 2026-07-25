@@ -29,6 +29,8 @@
     "deploy": "pnpm -r deploy",
     "bootstrap": "pnpm --filter studio bootstrap",
     "test": "pnpm -r test",
+    "eval": "pnpm --filter @starter/l10n eval",
+    "e2e": "pnpm --filter @starter/e2e e2e",
     "lint": "eslint --cache --cache-location node_modules/.cache/eslint/ .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",

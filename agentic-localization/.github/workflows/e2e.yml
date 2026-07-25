@@ -1,0 +1,33 @@
+name: End-to-end journeys
+
+# Not part of CI: the suite drives a real project and CI has no credentials.
+# Nightly plus on demand, so a drift in the engine, the API or the datasets
+# surfaces the next morning rather than on the next release.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * *'
+
+jobs:
+  journeys:
+    name: Modes P + H
+    runs-on: ubuntu-latest
+    # Create this environment in repo settings and give it SANITY_AUTH_TOKEN —
+    # a token scoped to the throwaway datasets, not the production one.
+    environment: e2e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - run: pnpm install
+      - name: Run the journeys
+        run: pnpm --filter @starter/e2e e2e
+        env:
+          SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
+          SANITY_AUTH_TOKEN: ${{ secrets.SANITY_AUTH_TOKEN }}
+          # Dedicated datasets, created on first run if the token may.
+          SANITY_E2E_CONTENT_DATASET: e2e
+          SANITY_E2E_WORKFLOWS_DATASET: workflows-e2e

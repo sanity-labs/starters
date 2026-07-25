@@ -3,6 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./handle-deleted-subject": {
+      "source": "./handle-deleted-subject/index.ts",
+      "default": "./handle-deleted-subject/index.ts"
+    },
+    "./start-localization": {
+      "source": "./start-localization/index.ts",
+      "default": "./start-localization/index.ts"
+    }
+  },
   "scripts": {
     "build": "rolldown -c rolldown.config.ts",
     "typecheck": "tsc --noEmit",
@@ -19,5 +29,8 @@
     "@starter/l10n": "workspace:*",
     "@starter/tsconfig": "workspace:*",
     "rolldown": "catalog:"
-  }
+  },
+  "//exports": [
+    "Source entries, for `e2e/` only: the end-to-end suite drives the real handlers with synthesized event envelopes instead of reimplementing them. The deployed artifact is still `dist/`, built by rolldown from the same files."
+  ]
 }
