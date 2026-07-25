@@ -1,38 +1,40 @@
 /**
- * Core aggregation data layer for the translations dashboard.
+ * The dashboard's one data layer: content state from a single GROQ query,
+ * workflow state from the engine's live instance list, joined per document.
  *
- * Fetches ALL translation.metadata documents and locale definitions in a single
- * GROQ query, then provides the raw data for derived hooks to aggregate into
- * chart-ready shapes.
+ *   useTranslationAggregateData()
+ *     ├── useTranslationSummary()      → SummaryBar
+ *     ├── useStatusBreakdown()         → StatusCards
+ *     ├── useCoverageMatrix()          → CoverageHeatmap
+ *     ├── useGapDocuments()            → GapCloserView
+ *     ├── useStatusFilteredDocuments() → StatusFilterView
+ *     └── useStaleDocuments()          → StaleDocumentsSection
  *
- * Architecture: single fetch → derived hooks via useMemo
- *   useTranslationAggregateData() → raw data
- *     ├── useTranslationSummary()
- *     ├── useStatusBreakdown()
- *     ├── useCoverageMatrix()
- *     ├── useGapDocuments()
- *     ├── useRecentChanges()
- *     └── useStaleDocuments()
- *
- * Uses useQuery from @sanity/sdk-react which provides:
- *   - Suspense integration (suspends until first data)
- *   - Real-time reactivity via Live Content API (no polling needed)
- *   - isPending for transition states during param changes
+ * The derived hooks are pure `useMemo` over this; they fetch nothing. Both
+ * sources are realtime (Live Content API / the App SDK document store), so
+ * neither half is polled.
  */
 
-import type {LocalizedObject, TranslationWorkflowStatus, WorkflowStateEntry} from '@starter/l10n'
+import type {LocalizedObject} from '@starter/l10n'
 
 import {getFlagFromCode} from '@starter/l10n'
+import {DocumentId, getPublishedId} from '@sanity/id-utils'
 import {useQuery} from '@sanity/sdk-react'
 import {defineQuery} from 'groq'
 import {useMemo} from 'react'
 
+import type {LocalizationRun} from '../lib/localizationRun'
+
 import {useTranslationConfig} from '../contexts/TranslationConfigContext'
+import {useL10nEngine} from './useL10nEngine'
+import {useLocalizationRuns} from './useLocalizationRuns'
 
 // --- Types ---
 
 export type AggregateBaseDocument = {
   _id: string
+  /** The revision a run's idempotency key is derived from. */
+  _rev: string
   _type: string
   title: null | string
 }
@@ -41,6 +43,8 @@ export type AggregateData = {
   baseDocuments: AggregateBaseDocument[]
   locales: AggregateLocale[]
   metadata: AggregateMetadata[]
+  /** Open localization runs, keyed by the base document's own `_id`. */
+  runs: Map<string, LocalizationRun>
 }
 
 export type AggregateLocale = {
@@ -53,8 +57,6 @@ export type AggregateLocale = {
 export type AggregateMetadata = {
   _id: string
   translations: TranslationMetadataEntry[]
-  /** Per-locale workflow states. Null if not yet populated. */
-  workflowStates: null | WorkflowStateEntry[]
 }
 
 export type TranslationMetadataEntry = LocalizedObject & {
@@ -67,15 +69,14 @@ const AGGREGATE_QUERY = defineQuery(`{
   "baseDocuments": *[
     _type in $docTypes
     && @[$languageField] == $defaultLanguage
-  ]{ _id, _type, title },
+  ]{ _id, _rev, _type, title },
   "metadata": *[_type == "translation.metadata"]{
     _id,
     translations[]{
       _key,
       language,
       "ref": value._ref
-    },
-    workflowStates
+    }
   },
   "locales": *[_type == "l10n.locale"]{
     "tag": code,
@@ -85,11 +86,11 @@ const AGGREGATE_QUERY = defineQuery(`{
   }
 }`)
 
-// --- Hook ---
+type AggregateQueryResult = Omit<AggregateData, 'runs'>
 
-/**
- * Build a fallback locale lookup: localeTag → fallbackLocaleTag
- */
+// --- Aggregation Utilities ---
+
+/** Build a fallback locale lookup: localeTag → fallbackLocaleTag */
 export function buildFallbackMap(locales: AggregateLocale[]): Map<string, null | string> {
   const map = new Map<string, null | string>()
   for (const locale of locales) {
@@ -97,8 +98,6 @@ export function buildFallbackMap(locales: AggregateLocale[]): Map<string, null |
   }
   return map
 }
-
-// --- Aggregation Utilities ---
 
 export function buildMetadataLookup(
   baseDocuments: AggregateBaseDocument[],
@@ -120,52 +119,26 @@ export function buildMetadataLookup(
   return lookup
 }
 
-export function buildWorkflowStateMap(
-  workflowStates: null | WorkflowStateEntry[],
-): Map<string, WorkflowStateEntry> {
-  const map = new Map<string, WorkflowStateEntry>()
-  if (!workflowStates) return map
-  for (const entry of workflowStates) {
-    map.set(entry.language, entry)
+/** A document's translations by locale tag. */
+export function buildTranslationMap(
+  meta: AggregateMetadata | undefined,
+): Map<string, TranslationMetadataEntry> {
+  const map = new Map<string, TranslationMetadataEntry>()
+  for (const translation of meta?.translations ?? []) {
+    map.set(translation.language, translation)
   }
   return map
 }
 
-export function resolveWorkflowStatus(
-  localeTag: string,
-  workflowStateMap: Map<string, WorkflowStateEntry>,
-  translation: TranslationMetadataEntry | undefined,
-  fallbackTranslation: TranslationMetadataEntry | undefined,
-): TranslationWorkflowStatus {
-  const workflowEntry = workflowStateMap.get(localeTag)
-  if (workflowEntry) {
-    return workflowEntry.status
-  }
+// --- Hook ---
 
-  if (translation?.ref) {
-    return 'needsReview'
-  }
-
-  if (fallbackTranslation?.ref) {
-    return 'usingFallback'
-  }
-
-  return 'missing'
-}
-
-/**
- * Core data hook for the translations dashboard.
- *
- * Uses useQuery from @sanity/sdk-react which:
- *   - Suspends until first data resolves (parent must wrap in <Suspense>)
- *   - Provides real-time reactivity via Live Content API (replaces 30s polling)
- *   - Returns isPending=true during transition states (param changes)
- */
 export function useTranslationAggregateData(): {data: AggregateData; isPending: boolean} {
   const {defaultLanguage, translationsConfig} = useTranslationConfig()
   const lang = defaultLanguage ?? 'en-US'
+  const engine = useL10nEngine()
+  const {bySubject} = useLocalizationRuns(engine)
 
-  const {data: rawData, isPending} = useQuery<AggregateData>({
+  const {data: rawData, isPending} = useQuery<AggregateQueryResult>({
     params: {
       defaultLanguage: lang,
       docTypes: translationsConfig.internationalizedTypes,
@@ -174,15 +147,25 @@ export function useTranslationAggregateData(): {data: AggregateData; isPending: 
     query: AGGREGATE_QUERY,
   })
 
-  const data = useMemo(() => cleanAggregateData(rawData, lang), [rawData, lang])
+  const data = useMemo(
+    () => cleanAggregateData(rawData, lang, bySubject),
+    [rawData, lang, bySubject],
+  )
 
   return {data, isPending}
 }
 
 /**
- * Filter raw GROQ results to clean data before derived hooks see it.
+ * Filter raw GROQ results and join the runs before derived hooks see them.
+ *
+ * A run's subject is always the published id; the query reads raw, so drafts and
+ * release versions of the same document have to resolve back to it.
  */
-function cleanAggregateData(raw: AggregateData, defaultLanguage: string): AggregateData {
+function cleanAggregateData(
+  raw: AggregateQueryResult,
+  defaultLanguage: string,
+  runsBySubject: Map<string, LocalizationRun>,
+): AggregateData {
   const locales = raw.locales
     .filter((l) => l.tag !== defaultLanguage)
     .map((l) => ({...l, flag: l.flag || getFlagFromCode(l.tag)}))
@@ -193,5 +176,11 @@ function cleanAggregateData(raw: AggregateData, defaultLanguage: string): Aggreg
     return meta.translations.some((t) => baseDocIds.has(t.ref))
   })
 
-  return {baseDocuments: raw.baseDocuments, locales, metadata}
+  const runs = new Map<string, LocalizationRun>()
+  for (const doc of raw.baseDocuments) {
+    const run = runsBySubject.get(getPublishedId(DocumentId(doc._id)))
+    if (run) runs.set(doc._id, run)
+  }
+
+  return {baseDocuments: raw.baseDocuments, locales, metadata, runs}
 }

@@ -1,26 +1,21 @@
 /**
- * Derived hook: Documents filtered by workflow status.
+ * Derived hook: Documents filtered by status.
  *
- * Powers the StatusFilterView shown when navigating to
- * /translations?status=X from a StatusCard click.
- *
- * Iterates the shared aggregate data, filtering to documents that have at
- * least one locale with the given workflow status. Groups by base document,
- * lists affected locales per document.
- *
- * Data source: AggregateData (same single GROQ fetch as all other derived hooks).
+ * Powers StatusFilterView (`/translations?status=X`). Groups by base document
+ * and lists the locales that match, carrying the run behind them so a row can
+ * link to it.
  */
-
-import type {TranslationWorkflowStatus} from '@starter/l10n'
 
 import {useMemo} from 'react'
 
+import type {DashboardStatus} from '../lib/localizationRun'
+
+import {resolveLocaleStatus} from '../lib/localizationRun'
 import {
   type AggregateData,
   buildFallbackMap,
   buildMetadataLookup,
-  buildWorkflowStateMap,
-  resolveWorkflowStatus,
+  buildTranslationMap,
 } from './useTranslationAggregateData'
 
 // --- Types ---
@@ -34,13 +29,15 @@ export type FilteredLocaleEntry = {
 
 /** A base document with at least one locale matching the filtered status */
 export type StatusFilteredDocument = {
-  /** Base document ID */
   _id: string
-  /** Document type */
+  /** Needed to derive the run's idempotency key when starting one. */
+  _rev: string
   _type: string
-  /** Locales that have this status */
+  /** At least one locale of the open run failed. Advisory. */
+  hasFailedLocales: boolean
+  /** The open run this document sits in, if any. */
+  instanceId: null | string
   locales: FilteredLocaleEntry[]
-  /** Document title (null if untitled) */
   title: null | string
 }
 
@@ -52,29 +49,20 @@ export type StatusFilteredResult = {
 
 // --- Hook ---
 
-/**
- * @param aggregateData - The shared aggregate data
- * @param status - Workflow status to filter by
- * @param locale - Optional locale sub-filter
- * @param docType - Optional document type sub-filter
- */
 export function useStatusFilteredDocuments(
   aggregateData: AggregateData,
-  status: null | TranslationWorkflowStatus,
+  status: null | DashboardStatus,
   locale?: null | string,
   docType?: null | string,
 ): StatusFilteredResult {
   return useMemo(() => {
     if (!status) return {data: [], totalSlots: 0}
 
-    const {baseDocuments, locales, metadata} = aggregateData
+    const {baseDocuments, locales, metadata, runs} = aggregateData
     const metadataLookup = buildMetadataLookup(baseDocuments, metadata)
     const fallbackMap = buildFallbackMap(locales)
-
-    // Build locale display lookup
     const localeLookup = new Map(locales.map((l) => [l.tag, l]))
 
-    // Apply optional sub-filters
     const filteredDocs = docType ? baseDocuments.filter((d) => d._type === docType) : baseDocuments
     const filteredLocales = locale ? locales.filter((l) => l.tag === locale) : locales
 
@@ -82,35 +70,23 @@ export function useStatusFilteredDocuments(
     let totalSlots = 0
 
     for (const doc of filteredDocs) {
-      const meta = metadataLookup.get(doc._id)
-      const translationMap = new Map<string, NonNullable<typeof meta>['translations'][number]>()
-      const workflowStateMap = buildWorkflowStateMap(meta?.workflowStates ?? null)
-
-      if (meta?.translations) {
-        for (const t of meta.translations) {
-          translationMap.set(t.language, t)
-        }
-      }
-
+      const translations = buildTranslationMap(metadataLookup.get(doc._id))
+      const run = runs.get(doc._id)
       const matchingLocales: FilteredLocaleEntry[] = []
 
       for (const loc of filteredLocales) {
-        const translation = translationMap.get(loc.tag)
         const fallbackTag = fallbackMap.get(loc.tag)
-        const fallbackTranslation = fallbackTag ? translationMap.get(fallbackTag) : undefined
+        const resolved = resolveLocaleStatus({
+          fallbackTranslated: Boolean(fallbackTag && translations.get(fallbackTag)?.ref),
+          localeTag: loc.tag,
+          run,
+          translated: Boolean(translations.get(loc.tag)?.ref),
+        })
 
-        const resolvedStatus = resolveWorkflowStatus(
-          loc.tag,
-          workflowStateMap,
-          translation,
-          fallbackTranslation,
-        )
-
-        // For "missing" status filter, also include "usingFallback" —
-        // the Missing card folds in fallback count, so the drill-down
-        // should show both missing and fallback documents.
+        // The Missing card folds in the fallback count, so its drill-down does too.
         const matches =
-          resolvedStatus === status || (status === 'missing' && resolvedStatus === 'usingFallback')
+          resolved.status === status ||
+          (status === 'missing' && resolved.status === 'usingFallback')
 
         if (matches) {
           const localeInfo = localeLookup.get(loc.tag)
@@ -126,14 +102,17 @@ export function useStatusFilteredDocuments(
       if (matchingLocales.length > 0) {
         documents.push({
           _id: doc._id,
+          _rev: doc._rev,
           _type: doc._type,
+          hasFailedLocales: run?.hasFailedLocales ?? false,
+          instanceId: run?.instanceId ?? null,
           locales: matchingLocales,
           title: doc.title,
         })
       }
     }
 
-    // Sort by number of matching locales descending (worst gaps first)
+    // Worst gaps first
     documents.sort((a, b) => b.locales.length - a.locales.length)
 
     return {data: documents, totalSlots}

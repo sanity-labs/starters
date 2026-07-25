@@ -1,14 +1,11 @@
 /**
- * Status filter view -- TanStack Table rewrite with sortable columns.
+ * Status filter view — the drill-down from a status card.
  *
- * 4 columns: Document (sortable), Type (sortable), {Status} Locales (sortable
- * by count), Action (not sortable). Default sort: locales count descending
- * (worst gaps first).
- *
- * Batch CTA bar with inline release picker for missing/stale statuses.
+ * Sortable table plus, for the statuses a run can act on, one batch CTA and the
+ * "ships as" picker that decides whether the batch becomes N document runs or
+ * one campaign.
  */
 
-import type {TranslationWorkflowStatus} from '@starter/l10n'
 import type {ReleaseDocument} from '@sanity/sdk'
 import type {SortingState} from '@tanstack/react-table'
 
@@ -18,27 +15,26 @@ import {flexRender, getCoreRowModel, getSortedRowModel, useReactTable} from '@ta
 import React, {useMemo, useState} from 'react'
 
 import type {StatusFilteredDocument} from '../../hooks/useStatusFilteredDocuments'
+import type {DashboardStatus} from '../../lib/localizationRun'
+import type {CampaignTarget} from '../../hooks/useStartLocalization'
 
 import {BatchActionBar, CelebrationState, StatusSummaryCards} from './BatchActionBar'
 import {buildColumns} from './columns'
 
 /** Status-specific subtitle shown below the batch action bar */
-const STATUS_SUBTITLES: Partial<Record<TranslationWorkflowStatus, string>> = {
+const STATUS_SUBTITLES: Partial<Record<DashboardStatus, string>> = {
   approved: 'These translations have been reviewed and approved.',
-  needsReview: 'Open each document in Studio to review and approve translations.',
+  needsReview: 'Open the run to review and approve, or review in Studio.',
+  stale: 'The source moved while these runs were open for review. The reviewer decides.',
+  translating: 'The engine is working on these. Open a run to watch it.',
 }
 
 interface StatusFilterViewProps {
-  /** Batch translation progress */
-  batchProgress?: {completed: number; total: number} | null
   data: StatusFilteredDocument[]
-  /** Whether a batch translation is in progress */
-  isBatchTranslating?: boolean
-  /** Callback for batch translate -- receives selected release ID */
-  onBatchTranslate?: (targetReleaseId?: string) => void
-  /** Active releases for the release picker */
+  isStarting?: boolean
+  onStart?: (target: CampaignTarget) => void
   releases?: ReleaseDocument[]
-  status: TranslationWorkflowStatus
+  status: DashboardStatus
   totalSlots: number
 }
 
@@ -60,10 +56,9 @@ const tdStyle: React.CSSProperties = {
 // --- Status Filter View ---
 
 function StatusFilterView({
-  batchProgress,
   data,
-  isBatchTranslating,
-  onBatchTranslate,
+  isStarting,
+  onStart,
   releases = [],
   status,
   totalSlots,
@@ -71,10 +66,8 @@ function StatusFilterView({
   const display = getStatusDisplay(status)
   const Icon = display.icon
 
-  // Release picker state
-  const [selectedReleaseId, setSelectedReleaseId] = useState('')
+  const [target, setTarget] = useState<CampaignTarget>({kind: 'drafts'})
 
-  // TanStack Table setup
   const columns = useMemo(() => buildColumns(status), [status])
   const [sorting, setSorting] = useState<SortingState>([{desc: true, id: 'locales'}])
 
@@ -87,7 +80,6 @@ function StatusFilterView({
     state: {sorting},
   })
 
-  // Celebration state: 0 documents for this status
   if (data.length === 0) {
     return (
       <Stack space={4}>
@@ -108,7 +100,6 @@ function StatusFilterView({
 
   return (
     <Stack space={4}>
-      {/* Header */}
       <Stack space={3} style={{textAlign: 'center'}}>
         <Flex align="center" gap={2} justify="center">
           <Text size={3}>
@@ -120,29 +111,24 @@ function StatusFilterView({
         </Flex>
       </Stack>
 
-      {/* Summary cards */}
       <StatusSummaryCards data={data} status={status} totalSlots={totalSlots} />
 
-      {/* Batch action bar with release picker (missing/stale only) */}
       <BatchActionBar
-        batchProgress={batchProgress}
-        isBatchTranslating={isBatchTranslating}
-        onBatchTranslate={onBatchTranslate}
+        documentCount={data.length}
+        isStarting={isStarting}
+        onStart={onStart}
         releases={releases}
-        selectedReleaseId={selectedReleaseId}
-        setSelectedReleaseId={setSelectedReleaseId}
+        setTarget={setTarget}
         status={status}
-        totalSlots={totalSlots}
+        target={target}
       />
 
-      {/* Status-specific subtitle */}
       {subtitle && (
         <Text muted size={0}>
           {subtitle}
         </Text>
       )}
 
-      {/* Document table -- TanStack Table with @sanity/ui rendering */}
       <Card border radius={2} style={{overflow: 'hidden'}}>
         <table style={{borderCollapse: 'collapse', width: '100%'}}>
           <thead>
@@ -168,7 +154,8 @@ function StatusFilterView({
                       role={canSort ? 'columnheader' : undefined}
                       style={{
                         ...thStyle(canSort),
-                        width: header.id === 'type' ? 120 : header.id === 'action' ? 44 : undefined,
+                        width:
+                          header.id === 'type' ? 120 : header.id === 'action' ? 120 : undefined,
                       }}
                       tabIndex={canSort ? 0 : undefined}
                     >

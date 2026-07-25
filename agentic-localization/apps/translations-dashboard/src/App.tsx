@@ -5,21 +5,24 @@ import type {TranslationsConfig} from '@starter/l10n'
 import {createClient} from '@sanity/client'
 import {type SanityConfig} from '@sanity/sdk'
 import {SanityApp} from '@sanity/sdk-react'
+import {WorkflowTelemetryProvider} from '@sanity/workflow-sdk'
 import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import type {SanityClient} from 'sanity'
 
 import DashboardSkeleton from './components/DashboardSkeleton'
 import ErrorBoundary from './components/ErrorBoundary'
 import {DOCUMENT_INTERNATIONALIZATION_TYPES} from './consts/documentInternationalization'
-import {AppContextProvider} from './contexts/AppContext'
+import {CONTENT_DATASET, PROJECT_ID} from './consts/workflows'
+import {TranslationConfigProvider} from './contexts/TranslationConfigContext'
 import {getLocales} from './helpers/getLocales'
 import DashboardRoute from './routes/DashboardRoute'
+import RunRoute from './routes/RunRoute'
 import TranslationsRoute from './routes/TranslationsRoute'
 import SanityUI from './SanityUI'
 
 const SANITY_CONFIG: SanityConfig = {
-  dataset: import.meta.env.SANITY_APP_DATASET || 'production',
-  projectId: import.meta.env.SANITY_APP_PROJECT_ID,
+  dataset: CONTENT_DATASET,
+  projectId: PROJECT_ID,
   auth: {
     clientFactory: (config) =>
       createClient({...config, requestTagPrefix: `${config.requestTagPrefix}.agentic-l10n`}),
@@ -27,9 +30,8 @@ const SANITY_CONFIG: SanityConfig = {
 }
 
 /**
- * Translations configuration using the shared TranslationsConfig type.
- * This is the single source of truth for what document types are translatable,
- * what the base language is, and what field stores the language.
+ * Which document types are translatable, what the base language is, and which
+ * field carries the language. The one source of truth for the app.
  */
 const TRANSLATIONS_CONFIG: TranslationsConfig = {
   defaultLanguage: 'en-US',
@@ -52,16 +54,22 @@ function App() {
       <div className="w-[900px]">
         <SanityUI>
           <SanityApp config={SANITY_CONFIG} fallback={<DashboardSkeleton />}>
-            <AppContextProvider config={appConfig} translationsConfig={TRANSLATIONS_CONFIG}>
-              <ErrorBoundary featureName="Translations Dashboard">
-                <BrowserRouter>
-                  <Routes>
-                    <Route element={<DashboardRoute />} path="/" />
-                    <Route element={<TranslationsRoute />} path="/translations" />
-                  </Routes>
-                </BrowserRouter>
-              </ErrorBoundary>
-            </AppContextProvider>
+            <WorkflowTelemetryProvider>
+              <TranslationConfigProvider
+                config={appConfig}
+                translationsConfig={TRANSLATIONS_CONFIG}
+              >
+                <ErrorBoundary featureName="Translations Dashboard">
+                  <BrowserRouter>
+                    <Routes>
+                      <Route element={<DashboardRoute />} path="/" />
+                      <Route element={<TranslationsRoute />} path="/translations" />
+                      <Route element={<RunRoute />} path="/runs/:instanceId" />
+                    </Routes>
+                  </BrowserRouter>
+                </ErrorBoundary>
+              </TranslationConfigProvider>
+            </WorkflowTelemetryProvider>
           </SanityApp>
         </SanityUI>
       </div>

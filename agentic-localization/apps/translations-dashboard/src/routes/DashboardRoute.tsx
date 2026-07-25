@@ -1,35 +1,23 @@
 /**
  * Dashboard route — the "see" mode.
  *
- * Shows the translation overview: summary bar, status cards, coverage heatmap
- * (full width), stale documents section, and recent activity.
- *
- * StatusCards — 4 clickable cards (Missing, Needs Review, Stale, Approved)
- * that navigate to /translations?status=X.
- *
- * RecentActivity — "All Activity" / "Your Activity" tab bar using
- * useCurrentUser() for userId filtering. Per-section Suspense boundaries
- * provide error isolation and future query-splitting readiness.
- *
- * Heatmap cell click navigates to /translations with filters in URL params.
+ * Summary bar, status cards, coverage heatmap, the runs in flight, and the
+ * documents whose source moved while a review was open.
  */
 
 import {useCurrentUser} from '@sanity/sdk-react'
 import {Flex, Heading, Stack, Text} from '@sanity/ui'
-import {Suspense, useCallback, useRef} from 'react'
+import {Suspense, useCallback} from 'react'
 import {useNavigate} from 'react-router-dom'
 
+import ActiveRunsSection from '../components/ActiveRunsSection'
 import ChartSection from '../components/charts/ChartSection'
 import CoverageHeatmap from '../components/charts/CoverageHeatmap'
 import SummaryBar from '../components/charts/SummaryBar'
 import ErrorBoundary from '../components/ErrorBoundary'
-// TODO: Re-enable Recent Activity section when live data is ready
-// import RecentActivity from '../components/RecentActivity'
-import StaleBanner from '../components/StaleBanner'
 import StaleDocumentsSection from '../components/StaleDocumentsSection'
 import StatusCards from '../components/StatusCards'
 import {useCoverageMatrix} from '../hooks/useCoverageMatrix'
-// import {useRecentChanges} from '../hooks/useRecentChanges'
 import {useStaleDocuments} from '../hooks/useStaleDocuments'
 import {useStatusBreakdown} from '../hooks/useStatusBreakdown'
 import {useTranslationAggregateData} from '../hooks/useTranslationAggregateData'
@@ -98,23 +86,12 @@ function DashboardRoute() {
   const currentUser = useCurrentUser()
   const {data: aggregateData} = useTranslationAggregateData()
 
-  // Derived data for each section — all from the same aggregate fetch
+  // All derived from the same aggregate — no extra fetches
   const summaryData = useTranslationSummary(aggregateData, null, null)
   const statusBreakdownData = useStatusBreakdown(aggregateData, null, null)
   const coverageMatrix = useCoverageMatrix(aggregateData)
-  // const allChanges = useRecentChanges(aggregateData)
-  // const userChanges = useRecentChanges(aggregateData, 20, currentUser?.id ?? null)
   const staleResult = useStaleDocuments(aggregateData)
-  const staleSectionRef = useRef<HTMLDivElement>(null)
 
-  const staleCount = staleResult.totalCount
-
-  // Scroll to stale section when "View →" is clicked in the banner
-  const handleViewStale = useCallback(() => {
-    staleSectionRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'})
-  }, [])
-
-  // Heatmap cell click → navigate to translations route with filters
   const handleHeatmapCellClick = useCallback(
     (documentType: string, locale: string) => {
       const params = new URLSearchParams({locale, type: documentType})
@@ -129,17 +106,11 @@ function DashboardRoute() {
         Sanity Translations Dashboard
       </Heading>
       <div className="dashboard-content">
-        {/* Welcome header — subtle greeting with avatar */}
         {currentUser?.name && (
           <div className="px-4 pt-4 pb-0 flex justify-center">
             <WelcomeHeader name={currentUser.name} profileImage={currentUser.profileImage} />
           </div>
         )}
-
-        {/* Stale Banner — contextual alert on load when new stale docs exist */}
-        <div className="px-4 pt-4 pb-0">
-          <StaleBanner onViewStale={handleViewStale} staleCount={staleCount} />
-        </div>
 
         {/* Summary Bar — two hero metrics (Launch Readiness + Translated) */}
         <div className="px-4 pt-4 pb-2">
@@ -172,30 +143,23 @@ function DashboardRoute() {
           </Suspense>
         </div>
 
-        {/* Stale Documents — hidden when empty */}
-        <div className="px-4 pb-2" ref={staleSectionRef}>
+        {/* Runs in flight — hidden when nothing is running */}
+        <div className="px-4 pb-2">
           <Suspense fallback={<SectionSkeleton height={80} />}>
-            <ErrorBoundary featureName="Stale Documents">
-              <StaleDocumentsSection state={staleResult} totalStaleCount={staleCount} />
+            <ErrorBoundary featureName="Active Runs">
+              <ActiveRunsSection />
             </ErrorBoundary>
           </Suspense>
         </div>
 
-        {/* TODO: Recent Activity — coming soon. Uncomment when live data is ready.
+        {/* Source drift under review — hidden when empty */}
         <div className="px-4 pb-4">
-          <Suspense fallback={<SectionSkeleton height={160} />}>
-            <ErrorBoundary featureName="Recent Activity">
-              <RecentActivity
-                allData={allChanges}
-                currentUserId={currentUser?.id ?? null}
-                currentUserName={currentUser?.name}
-                currentUserProfileImage={currentUser?.profileImage}
-                userData={userChanges}
-              />
+          <Suspense fallback={<SectionSkeleton height={80} />}>
+            <ErrorBoundary featureName="Source Changed">
+              <StaleDocumentsSection state={staleResult} totalStaleCount={staleResult.totalCount} />
             </ErrorBoundary>
           </Suspense>
         </div>
-        */}
       </div>
     </Stack>
   )

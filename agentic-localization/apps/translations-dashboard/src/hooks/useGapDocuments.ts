@@ -1,63 +1,54 @@
 /**
  * Derived hook: Gap-closer document list for the Translations route.
  *
- * Given a document type and locale, identifies which base documents are
- * missing translations for that locale and fetches their source publish
- * status. Returns documents sorted by actionability (published first,
- * then in-release, then draft).
- *
- * A document is a "gap" if its workflow status is 'missing' or 'usingFallback' —
- * both need direct translations. 'stale' documents are also gaps since
- * they need re-translation.
- *
- * Powers the gap-closer action view — "12 articles need
- * translation in Mexican Spanish."
+ * "12 articles need translation in Mexican Spanish" — the documents whose
+ * status for one locale is missing, fallback-only, or stale, sorted by
+ * actionability (published sources first). Documents already inside an open run
+ * stay in the list carrying it, so the row shows progress instead of a CTA.
  */
-
-import type {TranslationWorkflowStatus} from '@starter/l10n'
 
 import {useMemo} from 'react'
 
+import type {DashboardStatus} from '../lib/localizationRun'
+
+import {resolveLocaleStatus} from '../lib/localizationRun'
 import {
   type AggregateData,
-  type TranslationMetadataEntry,
   buildFallbackMap,
   buildMetadataLookup,
-  buildWorkflowStateMap,
-  resolveWorkflowStatus,
+  buildTranslationMap,
 } from './useTranslationAggregateData'
 
 // --- Types ---
 
 export type GapDocument = {
-  /** Base document ID */
   documentId: string
-  /** Document type */
+  /** Needed to derive the run's idempotency key when starting one. */
+  documentRev: string
   documentType: string
+  /** The open run covering this locale, if any. */
+  instanceId: null | string
   /** Source document publish status */
   sourceStatus: 'draft' | 'inRelease' | 'published' | 'unknown'
-  /** Document title (null if untitled) */
   title: null | string
   /** Why this document is a gap */
-  workflowStatus: TranslationWorkflowStatus
+  workflowStatus: DashboardStatus
 }
 
 export type GapDocumentsData = {
   /** Documents sorted by actionability (published first) */
   documents: GapDocument[]
-  /** Source status breakdown counts */
   sourceBreakdown: {
     draft: number
     inRelease: number
     published: number
     unknown: number
   }
-  /** Total gap documents for this type+locale */
   totalMissing: number
-  /** Breakdown by workflow status */
   workflowBreakdown: {
     missing: number
     stale: number
+    translating: number
     usingFallback: number
   }
 }
@@ -70,16 +61,11 @@ const SOURCE_STATUS_ORDER: Record<GapDocument['sourceStatus'], number> = {
   unknown: 3,
 }
 
-/** Workflow statuses that represent a "gap" needing action */
-const GAP_STATUSES = new Set<TranslationWorkflowStatus>(['missing', 'usingFallback', 'stale'])
+/** Statuses that represent a gap needing action, or work already under way on one. */
+const GAP_STATUSES = new Set<DashboardStatus>(['missing', 'stale', 'translating', 'usingFallback'])
 
 // --- Hook ---
 
-/**
- * @param aggregateData - The shared aggregate data
- * @param docType - Document type to filter (e.g., 'article')
- * @param locale - Locale tag to check for missing translations (e.g., 'es-MX')
- */
 export function useGapDocuments(
   aggregateData: AggregateData,
   docType: null | string,
@@ -88,72 +74,57 @@ export function useGapDocuments(
   return useMemo(() => {
     if (!docType || !locale) return null
 
-    const {baseDocuments, locales, metadata} = aggregateData
+    const {baseDocuments, locales, metadata, runs} = aggregateData
     const metadataLookup = buildMetadataLookup(baseDocuments, metadata)
     const fallbackMap = buildFallbackMap(locales)
 
-    // Filter base documents by type
     const typeDocs = baseDocuments.filter((d) => d._type === docType)
-
-    // Find documents that are gaps for this locale
     const gapDocuments: GapDocument[] = []
 
     for (const doc of typeDocs) {
-      const meta = metadataLookup.get(doc._id)
-      const translationMap = new Map<string, TranslationMetadataEntry>()
-      const workflowStateMap = buildWorkflowStateMap(meta?.workflowStates ?? null)
-
-      if (meta?.translations) {
-        for (const t of meta.translations) {
-          translationMap.set(t.language, t)
-        }
-      }
-
-      const translation = translationMap.get(locale)
+      const translations = buildTranslationMap(metadataLookup.get(doc._id))
       const fallbackTag = fallbackMap.get(locale)
-      const fallbackTranslation = fallbackTag ? translationMap.get(fallbackTag) : undefined
 
-      const workflowStatus = resolveWorkflowStatus(
-        locale,
-        workflowStateMap,
-        translation,
-        fallbackTranslation,
-      )
+      const resolved = resolveLocaleStatus({
+        fallbackTranslated: Boolean(fallbackTag && translations.get(fallbackTag)?.ref),
+        localeTag: locale,
+        run: runs.get(doc._id),
+        translated: Boolean(translations.get(locale)?.ref),
+      })
 
-      if (!GAP_STATUSES.has(workflowStatus)) {
-        // Not a gap — approved or needsReview translations don't need action here
-        continue
-      }
+      if (!GAP_STATUSES.has(resolved.status)) continue
 
       const sourceStatus = inferSourceStatus(doc._id)
       if (sourceStatus === 'unknown') continue
 
       gapDocuments.push({
         documentId: doc._id,
+        documentRev: doc._rev,
         documentType: doc._type,
+        instanceId: resolved.instanceId,
         sourceStatus,
         title: doc.title,
-        workflowStatus,
+        workflowStatus: resolved.status,
       })
     }
 
-    // Sort by actionability: published first (most valuable to translate)
-    // Key is guaranteed valid — GapDocument['sourceStatus'] matches SOURCE_STATUS_ORDER keys
+    // Published first — the most valuable to translate
     gapDocuments.sort(
       (a, b) => SOURCE_STATUS_ORDER[a.sourceStatus] - SOURCE_STATUS_ORDER[b.sourceStatus],
     )
 
-    // Compute source status breakdown
     const sourceBreakdown = {draft: 0, inRelease: 0, published: 0, unknown: 0}
-    const workflowBreakdown = {missing: 0, stale: 0, usingFallback: 0}
+    const workflowBreakdown = {missing: 0, stale: 0, translating: 0, usingFallback: 0}
     for (const doc of gapDocuments) {
       sourceBreakdown[doc.sourceStatus]++
+      const status = doc.workflowStatus
       if (
-        doc.workflowStatus === 'missing' ||
-        doc.workflowStatus === 'usingFallback' ||
-        doc.workflowStatus === 'stale'
+        status === 'missing' ||
+        status === 'stale' ||
+        status === 'translating' ||
+        status === 'usingFallback'
       ) {
-        workflowBreakdown[doc.workflowStatus]++
+        workflowBreakdown[status]++
       }
     }
 
@@ -171,15 +142,8 @@ export function useGapDocuments(
 /**
  * Infer source document publish status from its ID.
  *
- * The aggregate query uses perspective: 'raw', which returns documents
- * with their actual IDs:
- *   - "drafts.xxx" = draft only (no published version)
- *   - "versions.releaseId.xxx" = in a release
- *   - "xxx" (plain) = published
- *
- * Note: With perspective: 'raw', a document that has BOTH a published
- * and draft version appears as the published ID. The draft is a separate
- * document. So a plain ID reliably means "has published version."
+ * The aggregate query reads raw, so ids arrive as written: `drafts.xxx`
+ * (draft only), `versions.<release>.xxx` (in a release), plain (published).
  */
 function inferSourceStatus(documentId: string): 'draft' | 'inRelease' | 'published' | 'unknown' {
   if (documentId.startsWith('drafts.')) return 'draft'

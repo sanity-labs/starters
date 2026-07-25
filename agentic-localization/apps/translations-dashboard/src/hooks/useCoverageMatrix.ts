@@ -1,29 +1,23 @@
 /**
  * Derived hook: Coverage matrix for the heatmap.
  *
- * Produces a document type × locale matrix showing translation coverage.
- * Each cell has counts by workflow status and a coverage percentage for coloring.
- *
- * Heatmap metric: "has direct translation" (not "what's approved?").
- * The heatmap answers "where are the gaps?"
- *
- * Three-color heatmap:
- * - Red (critical): missing — no content at all
- * - Yellow (caution): usingFallback — covered by fallback, no direct translation
- * - Green (positive): needsReview + approved + stale — has direct translation content
+ * A document type × locale matrix. Each cell counts by status and carries a
+ * coverage percentage for colouring: red (missing), yellow (fallback only),
+ * green (has a direct translation, whatever its review state).
  */
-
-import type {TranslationWorkflowStatus} from '@starter/l10n'
 
 import {useMemo} from 'react'
 
+import type {DashboardStatus} from '../lib/localizationRun'
+
 import {useTranslationConfig} from '../contexts/TranslationConfigContext'
+import {documentTypeLabels} from '../consts/documentInternationalization'
+import {resolveLocaleStatus} from '../lib/localizationRun'
 import {
   type AggregateData,
   buildFallbackMap,
   buildMetadataLookup,
-  buildWorkflowStateMap,
-  resolveWorkflowStatus,
+  buildTranslationMap,
 } from './useTranslationAggregateData'
 
 // --- Types ---
@@ -37,40 +31,32 @@ export type CoverageCell = {
   needsReview: number
   /** Coverage percentage: (needsReview + approved + stale) / total * 100 — "has direct translation" */
   percentage: number
-  /** Stale translations (source changed) */
+  /** Stale translations (source changed under an open review) */
   stale: number
   /** Total documents */
   total: number
+  /** Locales inside an open run right now */
+  translating: number
   /** Translations covered by fallback */
   usingFallback: number
 }
 
 export type CoverageMatrixRow = {
-  /** Document type identifier */
   documentType: string
-  /** Human-readable document type label */
   documentTypeLabel: string
-  /** Per-locale coverage data */
   locales: Record<string, CoverageCell>
 }
 
 export type CoverageMatrixResult = {
   data: CoverageMatrixRow[]
-  /** Locale list in display order */
   localeColumns: Array<{flag: string; tag: string; title: string}>
-}
-
-// --- Document type labels ---
-// TODO: These should come from schema metadata, not hardcoded
-const DOC_TYPE_LABELS: Record<string, string> = {
-  article: 'Articles',
 }
 
 export function useCoverageMatrix(aggregateData: AggregateData): CoverageMatrixResult {
   const {translationsConfig} = useTranslationConfig()
 
   return useMemo(() => {
-    const {baseDocuments, locales, metadata} = aggregateData
+    const {baseDocuments, locales, metadata, runs} = aggregateData
     const metadataLookup = buildMetadataLookup(baseDocuments, metadata)
     const fallbackMap = buildFallbackMap(locales)
 
@@ -90,52 +76,38 @@ export function useCoverageMatrix(aggregateData: AggregateData): CoverageMatrixR
         const localeData: Record<string, CoverageCell> = {}
 
         for (const locale of locales) {
-          const counts: Record<TranslationWorkflowStatus, number> = {
+          const counts: Record<DashboardStatus, number> = {
             approved: 0,
             missing: 0,
             needsReview: 0,
             stale: 0,
+            translating: 0,
             usingFallback: 0,
           }
 
           for (const doc of docs) {
-            const meta = metadataLookup.get(doc._id)
-            const translationMap = new Map<
-              string,
-              NonNullable<typeof meta>['translations'][number]
-            >()
-            const workflowStateMap = buildWorkflowStateMap(meta?.workflowStates ?? null)
-
-            if (meta?.translations) {
-              for (const t of meta.translations) {
-                translationMap.set(t.language, t)
-              }
-            }
-
-            const translation = translationMap.get(locale.tag)
+            const translations = buildTranslationMap(metadataLookup.get(doc._id))
             const fallbackTag = fallbackMap.get(locale.tag)
-            const fallbackTranslation = fallbackTag ? translationMap.get(fallbackTag) : undefined
 
-            const status = resolveWorkflowStatus(
-              locale.tag,
-              workflowStateMap,
-              translation,
-              fallbackTranslation,
-            )
+            const {status} = resolveLocaleStatus({
+              fallbackTranslated: Boolean(fallbackTag && translations.get(fallbackTag)?.ref),
+              localeTag: locale.tag,
+              run: runs.get(doc._id),
+              translated: Boolean(translations.get(locale.tag)?.ref),
+            })
             counts[status]++
           }
 
           const total = docs.length
+          const translated = counts.needsReview + counts.approved + counts.stale
           localeData[locale.tag] = {
             approved: counts.approved,
             missing: counts.missing,
             needsReview: counts.needsReview,
-            percentage:
-              total > 0
-                ? Math.round(((counts.needsReview + counts.approved + counts.stale) / total) * 100)
-                : 0,
+            percentage: total > 0 ? Math.round((translated / total) * 100) : 0,
             stale: counts.stale,
             total,
+            translating: counts.translating,
             usingFallback: counts.usingFallback,
           }
         }
@@ -157,8 +129,6 @@ export function useCoverageMatrix(aggregateData: AggregateData): CoverageMatrixR
   }, [aggregateData, translationsConfig.internationalizedTypes])
 }
 
-// --- Hook ---
-
 function getDocTypeLabel(type: string): string {
-  return DOC_TYPE_LABELS[type] || type.charAt(0).toUpperCase() + type.slice(1)
+  return documentTypeLabels[type] || type.charAt(0).toUpperCase() + type.slice(1)
 }

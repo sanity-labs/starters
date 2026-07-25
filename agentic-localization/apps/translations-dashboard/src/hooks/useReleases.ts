@@ -22,8 +22,7 @@ export function useReleases() {
     () =>
       allReleases.filter((r) => {
         if (r.name.startsWith('agent-')) return false
-        const metadata = r.metadata as {cardinality?: string} | undefined
-        return metadata?.cardinality === 'many'
+        return r.metadata?.cardinality === 'many'
       }),
     [allReleases],
   )

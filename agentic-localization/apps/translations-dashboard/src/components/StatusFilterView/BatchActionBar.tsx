@@ -1,4 +1,3 @@
-import type {TranslationWorkflowStatus} from '@starter/l10n'
 import type {ReleaseDocument} from '@sanity/sdk'
 
 import {getStatusDisplay} from '@starter/l10n'
@@ -8,19 +7,20 @@ import {
   EarthGlobeIcon,
   SparklesIcon,
   SpinnerIcon,
-  TranslateIcon,
 } from '@sanity/icons'
-import {Button, Card, Flex, Label, Stack, Text} from '@sanity/ui'
-import React, {useMemo} from 'react'
+import {Button, Card, Flex, Stack, Text} from '@sanity/ui'
+import {useMemo} from 'react'
 
 import type {StatusFilteredDocument} from '../../hooks/useStatusFilteredDocuments'
+import type {DashboardStatus} from '../../lib/localizationRun'
+import type {CampaignTarget} from '../../hooks/useStartLocalization'
 
 import ReleaseSelector from '../ReleaseSelector'
 import SummaryCard from '../SummaryCard'
 
 // --- Celebration Empty State ---
 
-export function CelebrationState({status}: {status: TranslationWorkflowStatus}) {
+export function CelebrationState({status}: {status: DashboardStatus}) {
   const display = getStatusDisplay(status)
 
   return (
@@ -37,51 +37,6 @@ export function CelebrationState({status}: {status: TranslationWorkflowStatus}) 
         </Text>
       </Stack>
     </Card>
-  )
-}
-
-// --- Skeleton ---
-
-const skeletonBlock = (width: number | string, height: number): React.CSSProperties => ({
-  animation: 'pulse 1.5s ease-in-out infinite',
-  background: 'var(--card-border-color)',
-  borderRadius: 4,
-  height,
-  width,
-})
-
-export function StatusFilterSkeleton() {
-  return (
-    <Stack space={3}>
-      <style>{`@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }`}</style>
-      <div style={skeletonBlock(280, 24)} />
-      <div style={skeletonBlock(160, 16)} />
-      <div style={skeletonBlock(200, 40)} />
-      <Card border radius={2} style={{overflow: 'hidden'}}>
-        {/* Table header skeleton */}
-        <Flex padding={3} style={{borderBottom: '1px solid var(--card-border-color)'}}>
-          <div style={{...skeletonBlock('40%', 14), flex: 1}} />
-          <div style={skeletonBlock(80, 14)} />
-          <div style={skeletonBlock(120, 14)} />
-          <div style={skeletonBlock(40, 14)} />
-        </Flex>
-        {/* Row skeletons */}
-        {Array.from({length: 5}).map((_, i) => (
-          <Flex
-            align="center"
-            gap={3}
-            key={i}
-            padding={3}
-            style={{borderBottom: '1px solid var(--card-border-color)'}}
-          >
-            <div style={{...skeletonBlock('40%', 16), flex: 1}} />
-            <div style={skeletonBlock(80, 16)} />
-            <div style={skeletonBlock(100, 16)} />
-            <div style={skeletonBlock(28, 28)} />
-          </Flex>
-        ))}
-      </Card>
-    </Stack>
   )
 }
 
@@ -115,7 +70,7 @@ export function StatusSummaryCards({
   totalSlots,
 }: {
   data: StatusFilteredDocument[]
-  status: TranslationWorkflowStatus
+  status: DashboardStatus
   totalSlots: number
 }) {
   const topLocale = useMemo(() => computeTopLocale(data), [data])
@@ -123,7 +78,7 @@ export function StatusSummaryCards({
   return (
     <Flex gap={3}>
       <SummaryCard icon={DocumentsIcon} label="Total Documents" value={data.length} />
-      <SummaryCard icon={TranslateIcon} label="Missing Locales" value={totalSlots} />
+      <SummaryCard icon={EarthGlobeIcon} label="Locales" value={totalSlots} />
       {topLocale && (status === 'missing' || status === 'stale') && (
         <SummaryCard
           icon={EarthGlobeIcon}
@@ -138,84 +93,63 @@ export function StatusSummaryCards({
 // --- Batch Action Bar ---
 
 /** SpinnerIcon wrapper that spins -- for use as Button icon prop */
-const SpinningBatchIcon = () => <SpinnerIcon style={{animation: 'spin 0.5s linear infinite'}} />
+const SpinningBatchIcon = () => <SpinnerIcon className="spinner" />
+
+/**
+ * Only the statuses a run can act on get a CTA. `stale` is a source that moved
+ * under an open review, so its run already exists — starting is a no-op that
+ * ticks it, which is exactly what "re-check the source" means here.
+ */
+const STARTABLE: ReadonlySet<DashboardStatus> = new Set<DashboardStatus>([
+  'missing',
+  'stale',
+  'usingFallback',
+])
 
 interface BatchActionBarProps {
-  batchProgress?: {completed: number; total: number} | null
-  isBatchTranslating?: boolean
-  onBatchTranslate?: (targetReleaseId?: string) => void
+  documentCount: number
+  isStarting?: boolean
+  onStart?: (target: CampaignTarget) => void
   releases?: ReleaseDocument[]
-  selectedReleaseId: string
-  setSelectedReleaseId: (id: string) => void
-  status: TranslationWorkflowStatus
-  totalSlots: number
+  setTarget: (target: CampaignTarget) => void
+  status: DashboardStatus
+  target: CampaignTarget
 }
 
 export function BatchActionBar({
-  batchProgress,
-  isBatchTranslating,
-  onBatchTranslate,
+  documentCount,
+  isStarting,
+  onStart,
   releases = [],
-  selectedReleaseId,
-  setSelectedReleaseId,
+  setTarget,
   status,
-  totalSlots,
+  target,
 }: BatchActionBarProps) {
-  // Only missing and stale get batch CTAs
-  if (status !== 'missing' && status !== 'stale') return null
-  if (!onBatchTranslate) return null
-
-  // Release name for CTA label suffix
-  const selectedRelease = releases.find((r) => r.name === selectedReleaseId)
-  const releaseSuffix =
-    selectedRelease && selectedReleaseId
-      ? ` → ${selectedRelease.metadata.title || selectedRelease.name}`
-      : ''
+  if (!STARTABLE.has(status)) return null
+  if (!onStart) return null
 
   const label =
-    status === 'missing'
-      ? `Translate All Missing (${totalSlots})${releaseSuffix}`
-      : `Re-translate All Stale (${totalSlots})${releaseSuffix}`
-
-  const progressLabel = batchProgress
-    ? `Translating ${batchProgress.completed} of ${batchProgress.total}...`
-    : 'Translating...'
-
-  const progressPercent =
-    batchProgress && batchProgress.total > 0
-      ? (batchProgress.completed / batchProgress.total) * 100
-      : 0
+    status === 'stale'
+      ? `Re-check ${documentCount} document${documentCount === 1 ? '' : 's'}`
+      : `Localize ${documentCount} document${documentCount === 1 ? '' : 's'}`
 
   return (
-    <Flex direction="column" gap={2}>
-      <Flex align="center" gap={3}>
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-        <Flex direction="column" gap={2}>
-          <Label size={2}>Action</Label>
-          <Button
-            disabled={isBatchTranslating || totalSlots === 0}
-            fontSize={1}
-            icon={isBatchTranslating ? SpinningBatchIcon : SparklesIcon}
-            onClick={() => onBatchTranslate(selectedReleaseId || undefined)}
-            padding={3}
-            style={
-              isBatchTranslating
-                ? {
-                    backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.14) ${progressPercent}%, transparent ${progressPercent}%)`,
-                  }
-                : undefined
-            }
-            text={isBatchTranslating ? progressLabel : label}
-            tone="suggest"
-          />
-        </Flex>
-        <ReleaseSelector
-          disabled={isBatchTranslating}
-          onSelectRelease={setSelectedReleaseId}
-          releases={releases}
-          selectedRelease={selectedReleaseId}
-        />
-      </Flex>
+    <Flex align="flex-end" gap={3} wrap="wrap">
+      <Button
+        disabled={isStarting || documentCount === 0}
+        fontSize={1}
+        icon={isStarting ? SpinningBatchIcon : SparklesIcon}
+        onClick={() => onStart(target)}
+        padding={3}
+        text={label}
+        tone="suggest"
+      />
+      <ReleaseSelector
+        disabled={isStarting}
+        onChange={setTarget}
+        releases={releases}
+        value={target}
+      />
     </Flex>
   )
 }

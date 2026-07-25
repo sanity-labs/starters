@@ -1,12 +1,13 @@
-import type {TranslationWorkflowStatus} from '@starter/l10n'
-
-import {Badge, Box, Flex, Text, Tooltip} from '@sanity/ui'
+import {WarningOutlineIcon} from '@sanity/icons'
+import {Badge, Box, Button, Flex, Text, Tooltip} from '@sanity/ui'
 import {createColumnHelper} from '@tanstack/react-table'
+import {useNavigate} from 'react-router-dom'
 
 import type {StatusFilteredDocument} from '../../hooks/useStatusFilteredDocuments'
+import type {DashboardStatus} from '../../lib/localizationRun'
 
+import {documentTypeLabels} from '../../consts/documentInternationalization'
 import {formatDocId} from '../../lib/utils'
-import {documentTypeLabels} from '../DocumentTypeSelector'
 import OpenInStudioButton from '../OpenInStudioButton'
 
 function getDocTypeLabel(type: string): string {
@@ -14,23 +15,68 @@ function getDocTypeLabel(type: string): string {
 }
 
 /** Status-contextual column header for the locales column */
-export const LOCALE_COLUMN_LABELS: Record<TranslationWorkflowStatus, string> = {
+export const LOCALE_COLUMN_LABELS: Record<DashboardStatus, string> = {
   approved: 'Approved Locales',
   missing: 'Missing Locales',
   needsReview: 'Locales to Review',
   stale: 'Stale Locales',
+  translating: 'Locales in Progress',
   usingFallback: 'Fallback Locales',
 }
 
 const columnHelper = createColumnHelper<StatusFilteredDocument>()
 
-export function buildColumns(status: TranslationWorkflowStatus) {
+/** A row inside an open run links to it; everything else links to Studio. */
+function RowAction({doc}: {doc: StatusFilteredDocument}) {
+  const navigate = useNavigate()
+  const instanceId = doc.instanceId
+
+  if (!instanceId) {
+    return (
+      <OpenInStudioButton
+        doc={{documentId: doc._id, documentType: doc._type}}
+        mode="bleed"
+        title="Open in Studio"
+      />
+    )
+  }
+
+  return (
+    <Button
+      fontSize={1}
+      mode="bleed"
+      onClick={() => navigate(`/runs/${instanceId}`)}
+      padding={2}
+      text="View run"
+    />
+  )
+}
+
+export function buildColumns(status: DashboardStatus) {
   return [
     columnHelper.accessor((row) => row.title || formatDocId(row._id, true), {
       cell: (info) => (
-        <Text size={1} weight="medium">
-          {info.getValue()}
-        </Text>
+        <Flex align="center" gap={2}>
+          <Text size={1} weight="medium">
+            {info.getValue()}
+          </Text>
+          {/* Partial failure is surfaced, never blocking. */}
+          {info.row.original.hasFailedLocales && (
+            <Tooltip
+              content={
+                <Box padding={2}>
+                  <Text size={0}>A locale in this run failed</Text>
+                </Box>
+              }
+              placement="top"
+              portal
+            >
+              <Text size={1} style={{color: 'var(--card-critical-fg-color)'}}>
+                <WarningOutlineIcon />
+              </Text>
+            </Tooltip>
+          )}
+        </Flex>
       ),
       header: 'Document',
       id: 'document',
@@ -69,16 +115,7 @@ export function buildColumns(status: TranslationWorkflowStatus) {
       id: 'locales',
     }),
     columnHelper.display({
-      cell: (info) => (
-        <OpenInStudioButton
-          doc={{
-            documentId: info.row.original._id,
-            documentType: info.row.original._type,
-          }}
-          mode="bleed"
-          title="Open in Studio"
-        />
-      ),
+      cell: (info) => <RowAction doc={info.row.original} />,
       enableSorting: false,
       header: '',
       id: 'action',

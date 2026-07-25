@@ -68,6 +68,7 @@ function getCellTooltip(
 ): string {
   const parts = [`${row.documentTypeLabel} in ${locale.title}:`]
 
+  if (cell.translating > 0) parts.push(`${cell.translating} in progress`)
   if (cell.approved > 0) parts.push(`${cell.approved} approved`)
   if (cell.needsReview > 0) parts.push(`${cell.needsReview} awaiting review`)
   if (cell.stale > 0) parts.push(`${cell.stale} stale`)

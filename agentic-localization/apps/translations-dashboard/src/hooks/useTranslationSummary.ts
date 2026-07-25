@@ -1,26 +1,20 @@
 /**
  * Derived hook: Translation summary for the summary bar.
  *
- * Aggregates from useTranslationAggregateData into counts by workflow status,
- * with optional locale/docType filtering.
- *
- * Summary tracks: missing, usingFallback, needsReview, approved, stale.
- *
- * Metrics:
  *   Launch Readiness % = approved / total
- *   Translated % = (approved + needsReview + usingFallback + stale) / total
+ *   Translated %       = (approved + needsReview + usingFallback + stale) / total
  */
-
-import type {TranslationWorkflowStatus} from '@starter/l10n'
 
 import {useMemo} from 'react'
 
+import type {DashboardStatus} from '../lib/localizationRun'
+
+import {resolveLocaleStatus} from '../lib/localizationRun'
 import {
   type AggregateData,
   buildFallbackMap,
   buildMetadataLookup,
-  buildWorkflowStateMap,
-  resolveWorkflowStatus,
+  buildTranslationMap,
 } from './useTranslationAggregateData'
 
 // --- Types ---
@@ -34,9 +28,9 @@ export type TranslationSummary = {
   localesAffected: string[]
   /** Translations that are completely missing (no fallback) */
   missing: number
-  /** Translations pending human review (AI-generated or pre-migration) */
+  /** Translations pending human review */
   needsReview: number
-  /** Translations where source document changed since translation */
+  /** Translations whose source moved under an open review */
   stale: number
   /** Total number of base-language documents */
   totalDocuments: number
@@ -44,68 +38,54 @@ export type TranslationSummary = {
   totalPossible: number
   /** Translated %: (approved + needsReview + usingFallback + stale) / total */
   translatedPercentage: number
+  /** Locales inside an open run right now */
+  translating: number
   /** Translations covered by a fallback locale */
   usingFallback: number
 }
 
 // --- Hook ---
 
-/**
- * @param aggregateData - The shared aggregate data from useTranslationAggregateData
- * @param selectedLocale - Optional locale filter for locale-specific summary
- * @param selectedDocType - Optional document type filter
- */
 export function useTranslationSummary(
   aggregateData: AggregateData,
   selectedLocale?: null | string,
   selectedDocType?: null | string,
 ): TranslationSummary {
   return useMemo(() => {
-    const {baseDocuments, locales, metadata} = aggregateData
+    const {baseDocuments, locales, metadata, runs} = aggregateData
     const metadataLookup = buildMetadataLookup(baseDocuments, metadata)
     const fallbackMap = buildFallbackMap(locales)
 
-    // Filter base documents by type if specified
     const filteredDocs = selectedDocType
       ? baseDocuments.filter((d) => d._type === selectedDocType)
       : baseDocuments
 
-    // Filter locales if specified
     const filteredLocales = selectedLocale
       ? locales.filter((l) => l.tag === selectedLocale)
       : locales
 
-    const counts: Record<TranslationWorkflowStatus, number> = {
+    const counts: Record<DashboardStatus, number> = {
       approved: 0,
       missing: 0,
       needsReview: 0,
       stale: 0,
+      translating: 0,
       usingFallback: 0,
     }
     const localesWithTranslations = new Set<string>()
 
     for (const doc of filteredDocs) {
-      const meta = metadataLookup.get(doc._id)
-      const translationMap = new Map<string, NonNullable<typeof meta>['translations'][number]>()
-      const workflowStateMap = buildWorkflowStateMap(meta?.workflowStates ?? null)
-
-      if (meta?.translations) {
-        for (const t of meta.translations) {
-          translationMap.set(t.language, t)
-        }
-      }
+      const translations = buildTranslationMap(metadataLookup.get(doc._id))
+      const run = runs.get(doc._id)
 
       for (const locale of filteredLocales) {
-        const translation = translationMap.get(locale.tag)
         const fallbackTag = fallbackMap.get(locale.tag)
-        const fallbackTranslation = fallbackTag ? translationMap.get(fallbackTag) : undefined
-
-        const status = resolveWorkflowStatus(
-          locale.tag,
-          workflowStateMap,
-          translation,
-          fallbackTranslation,
-        )
+        const {status} = resolveLocaleStatus({
+          fallbackTranslated: Boolean(fallbackTag && translations.get(fallbackTag)?.ref),
+          localeTag: locale.tag,
+          run,
+          translated: Boolean(translations.get(locale.tag)?.ref),
+        })
         counts[status]++
 
         if (status !== 'missing') {
@@ -131,6 +111,7 @@ export function useTranslationSummary(
       totalDocuments: filteredDocs.length,
       totalPossible,
       translatedPercentage,
+      translating: counts.translating,
       usingFallback: counts.usingFallback,
     }
   }, [aggregateData, selectedLocale, selectedDocType])

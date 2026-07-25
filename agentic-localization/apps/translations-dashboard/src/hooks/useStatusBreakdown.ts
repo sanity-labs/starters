@@ -1,50 +1,40 @@
 /**
  * Derived hook: Status breakdown for StatusCards.
  *
- * Shows the distribution of workflow statuses across the corpus,
- * optionally filtered by locale and/or document type.
- *
- * 5 entries: approved, needsReview, stale, usingFallback, missing.
- *
- * All statuses are always present (no filtering of zero counts) so
- * StatusCards can render zero-count cards as ghost/muted. Shows the
- * full taxonomy ("oh, nothing is stale — good") rather than a shifting
- * card count.
+ * Every status is always present, zero counts included, so the cards show the
+ * whole taxonomy ("nothing is stale — good") rather than a shifting card count.
  */
 
-import type {TranslationWorkflowStatus} from '@starter/l10n'
 import type {BadgeTone} from '@sanity/ui'
 
 import {getStatusDisplay} from '@starter/l10n'
 import {useMemo} from 'react'
 
+import type {DashboardStatus} from '../lib/localizationRun'
+
+import {resolveLocaleStatus} from '../lib/localizationRun'
 import {
   type AggregateData,
   buildFallbackMap,
   buildMetadataLookup,
-  buildWorkflowStateMap,
-  resolveWorkflowStatus,
+  buildTranslationMap,
 } from './useTranslationAggregateData'
 
 // --- Types ---
 
 export type StatusBreakdownEntry = {
-  /** Count of translations in this status */
   count: number
-  /** Human-readable label from design language */
   label: string
-  /** Percentage of total */
   percentage: number
-  /** Workflow status */
-  status: TranslationWorkflowStatus
+  status: DashboardStatus
   /** @sanity/ui Badge tone — typed from getStatusDisplay() return */
   tone: BadgeTone
 }
 
 // --- Hook ---
 
-/** Display order: approved → needsReview → stale → usingFallback → missing */
-const WORKFLOW_STATUS_ORDER: TranslationWorkflowStatus[] = [
+const STATUS_ORDER: DashboardStatus[] = [
+  'translating',
   'approved',
   'needsReview',
   'stale',
@@ -52,18 +42,13 @@ const WORKFLOW_STATUS_ORDER: TranslationWorkflowStatus[] = [
   'missing',
 ]
 
-/**
- * @param aggregateData - The shared aggregate data
- * @param selectedLocale - Optional locale filter
- * @param selectedDocType - Optional document type filter
- */
 export function useStatusBreakdown(
   aggregateData: AggregateData,
   selectedLocale?: null | string,
   selectedDocType?: null | string,
 ): StatusBreakdownEntry[] {
   return useMemo(() => {
-    const {baseDocuments, locales, metadata} = aggregateData
+    const {baseDocuments, locales, metadata, runs} = aggregateData
     const metadataLookup = buildMetadataLookup(baseDocuments, metadata)
     const fallbackMap = buildFallbackMap(locales)
 
@@ -75,43 +60,34 @@ export function useStatusBreakdown(
       ? locales.filter((l) => l.tag === selectedLocale)
       : locales
 
-    const counts: Record<TranslationWorkflowStatus, number> = {
+    const counts: Record<DashboardStatus, number> = {
       approved: 0,
       missing: 0,
       needsReview: 0,
       stale: 0,
+      translating: 0,
       usingFallback: 0,
     }
 
     for (const doc of filteredDocs) {
-      const meta = metadataLookup.get(doc._id)
-      const translationMap = new Map<string, NonNullable<typeof meta>['translations'][number]>()
-      const workflowStateMap = buildWorkflowStateMap(meta?.workflowStates ?? null)
-
-      if (meta?.translations) {
-        for (const t of meta.translations) {
-          translationMap.set(t.language, t)
-        }
-      }
+      const translations = buildTranslationMap(metadataLookup.get(doc._id))
+      const run = runs.get(doc._id)
 
       for (const locale of filteredLocales) {
-        const translation = translationMap.get(locale.tag)
         const fallbackTag = fallbackMap.get(locale.tag)
-        const fallbackTranslation = fallbackTag ? translationMap.get(fallbackTag) : undefined
-
-        const status = resolveWorkflowStatus(
-          locale.tag,
-          workflowStateMap,
-          translation,
-          fallbackTranslation,
-        )
+        const {status} = resolveLocaleStatus({
+          fallbackTranslated: Boolean(fallbackTag && translations.get(fallbackTag)?.ref),
+          localeTag: locale.tag,
+          run,
+          translated: Boolean(translations.get(locale.tag)?.ref),
+        })
         counts[status]++
       }
     }
 
     const total = Object.values(counts).reduce((sum, c) => sum + c, 0)
 
-    return WORKFLOW_STATUS_ORDER.map((status): StatusBreakdownEntry => {
+    return STATUS_ORDER.map((status): StatusBreakdownEntry => {
       const display = getStatusDisplay(status)
       const count = counts[status]
       return {

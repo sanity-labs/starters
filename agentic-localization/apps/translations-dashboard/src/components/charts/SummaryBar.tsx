@@ -46,6 +46,7 @@ function SummaryBar({data, selectedLocale, selectedLocaleName}: SummaryBarProps)
 
   // Tooltip: full breakdown
   const breakdownTooltip = [
+    data.translating > 0 ? `${data.translating} in progress` : null,
     `${data.approved} approved`,
     data.needsReview > 0 ? `${data.needsReview} awaiting review` : null,
     data.stale > 0 ? `${data.stale} stale` : null,

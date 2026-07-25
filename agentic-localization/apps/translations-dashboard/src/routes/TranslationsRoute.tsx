@@ -1,244 +1,178 @@
 /**
  * Translations route — the "act" mode.
  *
- * Three states:
- * 1. With type+locale params (?type=article&locale=es-MX) → GapCloserView
- *    Focused action screen: "12 articles need translation in Mexican Spanish"
- *    with source status breakdown, hero batch CTA, and actionability-sorted list.
+ * 1. `?type=&locale=` → GapCloserView, one gap at a time.
+ * 2. `?status=`       → StatusFilterView, the drill-down from a status card.
+ * 3. no params        → GapSelectorView, "choose a gap to close".
  *
- * 2. With status param (?status=missing) → StatusFilterView
- *    Actionable document list with batch CTAs for missing/stale and
- *    "Open in Studio →" deep links for single-doc actions.
- *
- * 3. Without params → GapSelectorView
- *    "Choose a gap to close" with top gaps from the coverage matrix as cards.
- *    The Translations route is always purposeful — no generic browse mode.
+ * Acting means starting a run: one `localize-document` per document when the
+ * batch ships as drafts, one `localize-campaign` when it ships as a release.
+ * Everything after that belongs to the engine.
  */
 
-import type {TranslationWorkflowStatus} from '@starter/l10n'
-import type {DocumentId} from '@sanity/id-utils'
-
 import {ArrowLeftIcon} from '@sanity/icons'
-import {Button, Stack} from '@sanity/ui'
-import {useCallback, useMemo, useState} from 'react'
+import {Button, Stack, useToast} from '@sanity/ui'
+import {useCallback, useMemo, useState, useTransition} from 'react'
 import {useNavigate, useSearchParams} from 'react-router-dom'
 
-import {documentTypeLabels} from '../components/DocumentTypeSelector'
+import type {DashboardStatus} from '../lib/localizationRun'
+import type {CampaignTarget, LocalizationTarget, StartReport} from '../hooks/useStartLocalization'
+
+import {documentTypeLabels} from '../consts/documentInternationalization'
+import DuplicateRunDialog from '../components/DuplicateRunDialog'
 import ErrorBoundary from '../components/ErrorBoundary'
 import GapCloserView from '../components/GapCloserView'
 import GapSelectorView from '../components/GapSelectorView'
 import StatusFilterView from '../components/StatusFilterView'
-import {useApp} from '../contexts/AppContext'
 import {useCoverageMatrix} from '../hooks/useCoverageMatrix'
-import {useCreateMissingTranslations} from '../hooks/useCreateMissingTranslations'
 import {useGapDocuments} from '../hooks/useGapDocuments'
 import {useReleases} from '../hooks/useReleases'
-import {type RetranslateTarget, useRetranslateStale} from '../hooks/useRetranslateStale'
+import {useStartLocalization} from '../hooks/useStartLocalization'
 import {useStatusFilteredDocuments} from '../hooks/useStatusFilteredDocuments'
 import {useTranslationAggregateData} from '../hooks/useTranslationAggregateData'
+import {useTranslationConfig} from '../contexts/TranslationConfigContext'
 
-/** Valid workflow statuses for the ?status= param */
+/** Valid statuses for the ?status= param */
 const VALID_STATUSES = new Set<string>([
+  'approved',
   'missing',
   'needsReview',
   'stale',
-  'approved',
+  'translating',
   'usingFallback',
 ])
 
+function isDashboardStatus(value: null | string): value is DashboardStatus {
+  return value !== null && VALID_STATUSES.has(value)
+}
+
+/** A batch waiting on the operator's answer to the duplicate-run pre-check. */
+interface PendingBatch {
+  running: Set<string>
+  target: CampaignTarget
+  targets: LocalizationTarget[]
+}
+
+function summarise(report: StartReport): string {
+  const parts: string[] = []
+  if (report.campaignInstanceId) parts.push(`Campaign started for ${report.started.length}`)
+  else if (report.started.length > 0) parts.push(`Started ${report.started.length}`)
+  if (report.alreadyRunning.length > 0) {
+    parts.push(`${report.alreadyRunning.length} already running (advanced)`)
+  }
+  if (report.failed.length > 0) parts.push(`${report.failed.length} failed`)
+  return parts.join(' · ') || 'Nothing to start'
+}
+
 function TranslationsRoute() {
   const navigate = useNavigate()
+  const toast = useToast()
   const [searchParams] = useSearchParams()
-  const {defaultLanguage, languages} = useApp()
+  const {languages} = useTranslationConfig()
 
-  // Read filters from URL params
   const typeParam = searchParams.get('type')
   const localeParam = searchParams.get('locale')
   const statusParam = searchParams.get('status')
+  const validatedStatus = isDashboardStatus(statusParam) ? statusParam : null
 
-  // Validate status param
-  const validatedStatus =
-    statusParam && VALID_STATUSES.has(statusParam)
-      ? (statusParam as TranslationWorkflowStatus)
-      : null
-
-  // Three modes:
-  // 1. type + locale → GapCloserView (existing)
-  // 2. status (± locale, ± type) → StatusFilterView (NEW)
-  // 3. no params → GapSelectorView (existing)
   const hasGapFilter = typeParam !== null && localeParam !== null
   const hasStatusFilter = validatedStatus !== null
 
-  // Aggregate data — shared between all views
   const {data: aggregateData} = useTranslationAggregateData()
-
-  // Gap documents — only computed when type+locale filter params are present
   const gapData = useGapDocuments(aggregateData, typeParam, localeParam)
-
-  // Status-filtered documents — only computed when status param is present
   const statusFilterResult = useStatusFilteredDocuments(
     aggregateData,
     validatedStatus,
     localeParam,
     typeParam,
   )
-
-  // Batch translate hooks — shared between StatusFilterView and GapCloserView
-  const {createMissingTranslations, isCreating: isBatchCreating} = useCreateMissingTranslations()
-  const {
-    isRetranslating,
-    progress: retranslateProgress,
-    retranslateStale,
-  } = useRetranslateStale(aggregateData)
-
-  // Build batch translate handler for missing status
-  // Accepts targetReleaseId from the release picker in StatusFilterView
-  const handleBatchTranslateMissing = useCallback(
-    async (targetReleaseId?: string) => {
-      if (!statusFilterResult.data || validatedStatus !== 'missing') return
-
-      // For each document × locale pair, create missing translations
-      for (const doc of statusFilterResult.data) {
-        const targetLocales = doc.locales.map((l) => ({id: l.tag, title: l.name}))
-        await createMissingTranslations(
-          doc._id as DocumentId,
-          defaultLanguage,
-          targetLocales,
-          doc._type,
-          targetReleaseId,
-        )
-      }
-    },
-    [statusFilterResult.data, validatedStatus, createMissingTranslations, defaultLanguage],
-  )
-
-  // Build batch re-translate handler for stale status
-  const handleBatchRetranslateStale = useCallback(
-    async (targetReleaseId?: string) => {
-      if (!statusFilterResult.data || validatedStatus !== 'stale') return
-
-      const targets: RetranslateTarget[] = []
-      for (const doc of statusFilterResult.data) {
-        for (const locale of doc.locales) {
-          targets.push({
-            baseDocId: doc._id,
-            localeName: locale.name,
-            localeTag: locale.tag,
-          })
-        }
-      }
-
-      await retranslateStale(targets, targetReleaseId)
-    },
-    [statusFilterResult.data, validatedStatus, retranslateStale],
-  )
-
-  // Resolve which batch handler to use based on status
-  const batchTranslateHandler = useMemo<((targetReleaseId?: string) => void) | undefined>(() => {
-    if (validatedStatus === 'missing') return handleBatchTranslateMissing
-    if (validatedStatus === 'stale') return handleBatchRetranslateStale
-    return undefined
-  }, [validatedStatus, handleBatchTranslateMissing, handleBatchRetranslateStale])
-
-  const isBatchTranslating = isBatchCreating || isRetranslating
-  const batchProgress = retranslateProgress
-    ? {completed: retranslateProgress.completed, total: retranslateProgress.total}
-    : null
-
-  // GapCloserView translate handlers — wire real hooks instead of simulateTranslate
-  // Track which docs are translating/translated for per-row state in GapCloserView
-  const [gapTranslatingIds, setGapTranslatingIds] = useState<Set<string>>(new Set())
-  const [gapTranslatedIds, setGapTranslatedIds] = useState<Set<string>>(new Set())
-
-  const handleGapTranslateSingle = useCallback(
-    async (docId: string, docType: string, targetReleaseId?: string) => {
-      if (!localeParam) return
-      setGapTranslatingIds((prev) => new Set(prev).add(docId))
-      try {
-        await createMissingTranslations(
-          docId as DocumentId,
-          defaultLanguage,
-          [{id: localeParam, title: localeParam}],
-          docType,
-          targetReleaseId,
-        )
-        setGapTranslatedIds((prev) => new Set(prev).add(docId))
-      } finally {
-        setGapTranslatingIds((prev) => {
-          const next = new Set(prev)
-          next.delete(docId)
-          return next
-        })
-      }
-    },
-    [localeParam, defaultLanguage, createMissingTranslations],
-  )
-
-  const handleGapTranslateBatch = useCallback(
-    async (docIds: string[], docTypes: string[], targetReleaseId?: string) => {
-      if (!localeParam) return
-      // Mark all as translating
-      setGapTranslatingIds((prev) => {
-        const next = new Set(prev)
-        docIds.forEach((id) => next.add(id))
-        return next
-      })
-      // Translate sequentially (same pattern as StatusFilterView batch)
-      for (let i = 0; i < docIds.length; i++) {
-        try {
-          await createMissingTranslations(
-            docIds[i] as DocumentId,
-            defaultLanguage,
-            [{id: localeParam, title: localeParam}],
-            docTypes[i],
-            targetReleaseId,
-          )
-          setGapTranslatedIds((prev) => new Set(prev).add(docIds[i]))
-        } finally {
-          setGapTranslatingIds((prev) => {
-            const next = new Set(prev)
-            next.delete(docIds[i])
-            return next
-          })
-        }
-      }
-    },
-    [localeParam, defaultLanguage, createMissingTranslations],
-  )
-
-  // Coverage matrix — for the gap selector view
   const coverageMatrix = useCoverageMatrix(aggregateData)
-
-  // Active releases — for release picker
   const {releases} = useReleases()
 
-  // Resolve locale info
+  const {findRunning, startBatch} = useStartLocalization()
+  const [isStarting, startTransition] = useTransition()
+  const [pendingBatch, setPendingBatch] = useState<null | PendingBatch>(null)
+
+  const run = useCallback(
+    (targets: LocalizationTarget[], target: CampaignTarget) => {
+      startTransition(async () => {
+        const report = await startBatch(targets, target)
+        toast.push({
+          status: report.failed.length > 0 ? 'warning' : 'success',
+          title: summarise(report),
+        })
+        if (report.campaignInstanceId) navigate(`/runs/${report.campaignInstanceId}`)
+      })
+    },
+    [navigate, startBatch, toast],
+  )
+
+  /**
+   * The pre-check: ask the engine which of these already have an open run
+   * before starting anything, and let the operator decide. A start requirement
+   * would fail the whole batch because one document is busy.
+   */
+  const requestStart = useCallback(
+    (targets: LocalizationTarget[], target: CampaignTarget) => {
+      startTransition(async () => {
+        const running = await findRunning(targets)
+        if (running.size === 0) {
+          run(targets, target)
+          return
+        }
+        setPendingBatch({running, target, targets})
+      })
+    },
+    [findRunning, run],
+  )
+
+  const handleSkip = useCallback(() => {
+    if (!pendingBatch) return
+    const {running, target, targets} = pendingBatch
+    setPendingBatch(null)
+    run(
+      targets.filter((doc) => !running.has(doc._id)),
+      target,
+    )
+  }, [pendingBatch, run])
+
+  const handleTakeOver = useCallback(() => {
+    if (!pendingBatch) return
+    const {target, targets} = pendingBatch
+    setPendingBatch(null)
+    run(targets, target)
+  }, [pendingBatch, run])
+
+  const statusTargets = useMemo(
+    (): LocalizationTarget[] =>
+      statusFilterResult.data.map((doc) => ({_id: doc._id, _rev: doc._rev, _type: doc._type})),
+    [statusFilterResult.data],
+  )
+
+  const gapTargets = useMemo(
+    (): LocalizationTarget[] =>
+      (gapData?.documents ?? []).map((doc) => ({
+        _id: doc.documentId,
+        _rev: doc.documentRev,
+        _type: doc.documentType,
+      })),
+    [gapData],
+  )
+
   const localeInfo = useMemo(() => {
     if (!localeParam) return null
     const lang = languages.find((l) => l.id === localeParam)
     return lang ? {flag: lang.flag ?? '', name: lang.title} : {flag: '', name: localeParam}
   }, [localeParam, languages])
 
-  // Build locale info array for gap selector
   const allLocaleInfo = useMemo(
-    () =>
-      languages.map((l) => ({
-        flag: l.flag ?? '',
-        name: l.title,
-        tag: l.id,
-      })),
+    () => languages.map((l) => ({flag: l.flag ?? '', name: l.title, tag: l.id})),
     [languages],
   )
 
-  // Resolve doc type label
   const docTypeLabel = typeParam
     ? documentTypeLabels[typeParam] || typeParam.charAt(0).toUpperCase() + typeParam.slice(1)
     : ''
-
-  // Back to dashboard
-  const handleBackToDashboard = () => {
-    navigate('/')
-  }
 
   return (
     <Stack className="h-full overflow-y-auto" space={5}>
@@ -246,35 +180,36 @@ function TranslationsRoute() {
         <Button
           fontSize={1}
           icon={ArrowLeftIcon}
-          onClick={handleBackToDashboard}
+          onClick={() => navigate('/')}
           padding={3}
           text="Back to Dashboard"
           tone="neutral"
         />
       </div>
       <div className="dashboard-content">
-        {/* Content */}
         <div className="px-4 pb-4 flex-1">
           <ErrorBoundary featureName="Translations">
             {hasGapFilter && localeInfo && gapData ? (
               <GapCloserView
                 docTypeLabel={docTypeLabel}
                 gapData={gapData}
-                isTranslating={isBatchCreating}
+                isStarting={isStarting}
                 localeFlag={localeInfo.flag}
                 localeName={localeInfo.name}
-                onTranslateBatch={handleGapTranslateBatch}
-                onTranslateSingle={handleGapTranslateSingle}
+                onStart={(target) => requestStart(gapTargets, target)}
+                onStartOne={(doc, target) =>
+                  requestStart(
+                    [{_id: doc.documentId, _rev: doc.documentRev, _type: doc.documentType}],
+                    target,
+                  )
+                }
                 releases={releases}
-                translatedIds={gapTranslatedIds}
-                translatingIds={gapTranslatingIds}
               />
             ) : hasStatusFilter ? (
               <StatusFilterView
-                batchProgress={batchProgress}
                 data={statusFilterResult.data}
-                isBatchTranslating={isBatchTranslating}
-                onBatchTranslate={batchTranslateHandler}
+                isStarting={isStarting}
+                onStart={(target) => requestStart(statusTargets, target)}
                 releases={releases}
                 status={validatedStatus}
                 totalSlots={statusFilterResult.totalSlots}
@@ -285,6 +220,15 @@ function TranslationsRoute() {
           </ErrorBoundary>
         </div>
       </div>
+      {pendingBatch && (
+        <DuplicateRunDialog
+          onCancel={() => setPendingBatch(null)}
+          onSkip={handleSkip}
+          onTakeOver={handleTakeOver}
+          runningCount={pendingBatch.running.size}
+          totalCount={pendingBatch.targets.length}
+        />
+      )}
     </Stack>
   )
 }

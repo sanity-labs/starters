@@ -1,19 +1,17 @@
 /**
  * Gap-closer view — the focused "close this gap" action screen.
  *
- * Shows when user drills down from the heatmap with type+locale params:
- * - Scoped header: "🇲🇽 Articles missing in Mexican Spanish"
- * - Source status breakdown with progress bar
- * - Hero batch CTA with release picker
- * - TanStack Table document list sorted by source status (published first)
- *
+ * Row state is read from the open run, not from local state: a document inside
+ * a `localize-document` run shows its stage and links to it, everything else
+ * offers to start one.
  */
 
 import type {ReleaseDocument} from '@sanity/sdk'
 import type {SortingState} from '@tanstack/react-table'
 
+import {getStatusDisplay} from '@starter/l10n'
 import {CheckmarkCircleIcon, SparklesIcon, SpinnerIcon, TranslateIcon} from '@sanity/icons'
-import {Badge, Button, Card, Flex, Heading, Label, Stack, Text} from '@sanity/ui'
+import {Badge, Button, Card, Flex, Heading, Stack, Text} from '@sanity/ui'
 import {
   createColumnHelper,
   flexRender,
@@ -22,34 +20,25 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import {useMemo, useState} from 'react'
+import {useNavigate} from 'react-router-dom'
 
 import type {GapDocument, GapDocumentsData} from '../hooks/useGapDocuments'
+import type {CampaignTarget} from '../hooks/useStartLocalization'
 
 import ReleaseSelector from './ReleaseSelector'
 
 // --- Types ---
 
 interface GapCloserViewProps {
-  /** Document type label (e.g., "Articles") */
   docTypeLabel: string
-  /** Gap documents data from useGapDocuments */
   gapData: GapDocumentsData
-  /** Whether a batch translation is in progress */
-  isTranslating?: boolean
-  /** Locale flag emoji */
+  /** A start call is in flight — the engine takes it from there. */
+  isStarting?: boolean
   localeFlag: string
-  /** Locale display name (e.g., "Mexican Spanish") */
   localeName: string
-  /** Callback to translate multiple documents (published or all) */
-  onTranslateBatch?: (docIds: string[], docTypes: string[], targetReleaseId?: string) => void
-  /** Callback to translate a single document */
-  onTranslateSingle?: (docId: string, docType: string, targetReleaseId?: string) => void
-  /** Active releases for the release picker */
+  onStart?: (target: CampaignTarget) => void
+  onStartOne?: (doc: GapDocument, target: CampaignTarget) => void
   releases?: ReleaseDocument[]
-  /** Set of document IDs that have been translated */
-  translatedIds?: Set<string>
-  /** Set of document IDs currently being translated */
-  translatingIds?: Set<string>
 }
 
 // --- Source status display ---
@@ -77,26 +66,14 @@ const SOURCE_STATUS_ORDER: Record<GapDocument['sourceStatus'], number> = {
 const columnHelper = createColumnHelper<GapDocument>()
 
 function buildColumns(
-  translatingIds: Set<string>,
-  translatedIds: Set<string>,
-  onTranslateSingle:
-    | ((docId: string, docType: string, targetReleaseId?: string) => void)
-    | undefined,
-  selectedReleaseId: string,
-  releases: ReleaseDocument[],
+  onStartOne: ((doc: GapDocument) => void) | undefined,
+  onOpenRun: (instanceId: string) => void,
+  isStarting: boolean,
 ) {
   return [
     columnHelper.accessor((row) => row.title || 'Untitled', {
       cell: (info) => (
-        <Text
-          size={1}
-          style={{
-            textDecoration: translatedIds.has(info.row.original.documentId)
-              ? 'line-through'
-              : 'none',
-          }}
-          weight="medium"
-        >
+        <Text size={1} weight="medium">
           {info.getValue()}
         </Text>
       ),
@@ -118,48 +95,32 @@ function buildColumns(
     columnHelper.display({
       cell: (info) => {
         const doc = info.row.original
-        const isTranslated = translatedIds.has(doc.documentId)
-        const isTranslating = translatingIds.has(doc.documentId)
+        const display = getStatusDisplay(doc.workflowStatus)
 
-        if (isTranslated) {
+        if (doc.instanceId) {
           return (
             <Flex justify="flex-end">
               <Button
-                disabled
                 fontSize={2}
-                icon={CheckmarkCircleIcon}
+                icon={doc.workflowStatus === 'translating' ? SpinningIcon : display.icon}
+                mode="ghost"
+                onClick={() => onOpenRun(doc.instanceId ?? '')}
                 padding={3}
-                text="Translated"
-                tone="positive"
+                text={display.label}
               />
             </Flex>
           )
         }
-        if (isTranslating) {
-          return (
-            <Flex justify="flex-end">
-              <Button
-                disabled
-                fontSize={2}
-                icon={SpinningIcon}
-                padding={3}
-                text="Translating..."
-                tone="suggest"
-              />
-            </Flex>
-          )
-        }
-
-        const {label, releaseId} = resolveRowTarget(doc, selectedReleaseId, releases)
 
         return (
           <Flex justify="flex-end">
             <Button
+              disabled={isStarting}
               fontSize={2}
               icon={SparklesIcon}
-              onClick={() => onTranslateSingle?.(doc.documentId, doc.documentType, releaseId)}
+              onClick={() => onStartOne?.(doc)}
               padding={3}
-              text={`Translate → ${label}`}
+              text="Localize"
               tone="suggest"
             />
           </Flex>
@@ -172,47 +133,6 @@ function buildColumns(
   ]
 }
 
-/**
- * Extract the release ID from a versioned document ID (versions.{releaseId}.{docId}).
- */
-function extractReleaseId(documentId: string): string | undefined {
-  if (!documentId.startsWith('versions.')) return undefined
-  return documentId.split('.')[1]
-}
-
-/**
- * Resolve the effective target release and its display label for a given document row.
- * inRelease sources are forced into their source release, overriding user selection.
- */
-function resolveRowTarget(
-  doc: GapDocument,
-  selectedReleaseId: string,
-  releases: ReleaseDocument[],
-): {label: string; releaseId: string | undefined} {
-  if (doc.sourceStatus === 'inRelease') {
-    const sourceReleaseId = extractReleaseId(doc.documentId)
-    if (sourceReleaseId) {
-      const release = releases.find((r) => r.name === sourceReleaseId)
-      return {
-        label: release?.metadata?.title || release?.name || sourceReleaseId,
-        releaseId: sourceReleaseId,
-      }
-    }
-  }
-
-  if (selectedReleaseId) {
-    const release = releases.find((r) => r.name === selectedReleaseId)
-    return {
-      label: release?.metadata?.title || release?.name || selectedReleaseId,
-      releaseId: selectedReleaseId,
-    }
-  }
-
-  return {label: 'Drafts', releaseId: undefined}
-}
-
-// --- Animation Styles ---
-
 /** SpinnerIcon wrapper that spins — for use as Button icon prop */
 const SpinningIcon = () => <SpinnerIcon className="spinner" />
 
@@ -221,35 +141,27 @@ const SpinningIcon = () => <SpinnerIcon className="spinner" />
 function GapCloserView({
   docTypeLabel,
   gapData,
-  isTranslating = false,
+  isStarting = false,
   localeFlag,
   localeName,
-  onTranslateBatch,
-  onTranslateSingle,
+  onStart,
+  onStartOne,
   releases = [],
-  translatedIds = new Set(),
-  translatingIds = new Set(),
 }: GapCloserViewProps) {
-  const {documents, sourceBreakdown, totalMissing} = gapData
+  const navigate = useNavigate()
+  const {documents, sourceBreakdown, totalMissing, workflowBreakdown} = gapData
+  const [target, setTarget] = useState<CampaignTarget>({kind: 'drafts'})
 
-  const remainingCount = documents.length - translatedIds.size
-  const allDone = remainingCount === 0 && documents.length > 0
+  const startable = documents.filter((doc) => doc.instanceId === null)
 
-  // Release picker state
-  const [selectedReleaseId, setSelectedReleaseId] = useState('')
-
-  // Release name for CTA label suffix
-  const selectedRelease = releases.find((r) => r.name === selectedReleaseId)
-  const targetSuffix =
-    selectedRelease && selectedReleaseId
-      ? ` → ${selectedRelease.metadata.title || selectedRelease.name}`
-      : ''
-
-  // TanStack Table setup
   const columns = useMemo(
     () =>
-      buildColumns(translatingIds, translatedIds, onTranslateSingle, selectedReleaseId, releases),
-    [translatingIds, translatedIds, onTranslateSingle, selectedReleaseId, releases],
+      buildColumns(
+        onStartOne ? (doc) => onStartOne(doc, target) : undefined,
+        (instanceId) => navigate(`/runs/${instanceId}`),
+        isStarting,
+      ),
+    [onStartOne, target, navigate, isStarting],
   )
 
   const [sorting, setSorting] = useState<SortingState>([{desc: false, id: 'sourceStatus'}])
@@ -263,20 +175,6 @@ function GapCloserView({
     state: {sorting},
   })
 
-  // Batch translate handler — single CTA, published-first queue priority
-  const handleTranslateAll = () => {
-    if (!onTranslateBatch) return
-    const untranslated = documents
-      .filter((d) => !translatedIds.has(d.documentId))
-      .sort((a, b) => SOURCE_STATUS_ORDER[a.sourceStatus] - SOURCE_STATUS_ORDER[b.sourceStatus])
-    onTranslateBatch(
-      untranslated.map((d) => d.documentId),
-      untranslated.map((d) => d.documentType),
-      selectedReleaseId || undefined,
-    )
-  }
-
-  // Stacked progress bar segments
   const progressSegments = useMemo(() => {
     if (totalMissing === 0) return []
     const segments: Array<{color: string; percentage: number}> = []
@@ -297,12 +195,6 @@ function GapCloserView({
       segments.push({
         color: 'var(--card-caution-fg-color, #d4a024)',
         percentage: (sourceBreakdown.draft / totalMissing) * 100,
-      })
-    }
-    if (sourceBreakdown.unknown > 0) {
-      segments.push({
-        color: 'var(--card-fg-color, #8b8d90)',
-        percentage: (sourceBreakdown.unknown / totalMissing) * 100,
       })
     }
 
@@ -327,10 +219,6 @@ function GapCloserView({
     )
   }
 
-  // Progress percentage for batch CTA gradient fill
-  const batchProgress =
-    isTranslating && documents.length > 0 ? (translatedIds.size / documents.length) * 100 : 0
-
   return (
     <Stack space={4}>
       {/* Scoped header */}
@@ -340,13 +228,13 @@ function GapCloserView({
         </Heading>
         <Text align="center" muted size={1}>
           {totalMissing} {docTypeLabel.toLowerCase()} need translation
+          {workflowBreakdown.translating > 0 && ` · ${workflowBreakdown.translating} in progress`}
         </Text>
       </Stack>
 
-      {/* Action card — source status + CTAs + release picker */}
+      {/* Action card — source status + CTA + where the batch ships */}
       <Card border padding={4} radius={2}>
         <Stack space={4}>
-          {/* Source status breakdown */}
           <Stack space={3}>
             <Text className="uppercase tracking-widest" muted size={0} weight="semibold">
               Source document status
@@ -370,7 +258,6 @@ function GapCloserView({
             </Flex>
           </Stack>
 
-          {/* Stacked progress bar */}
           <div className="flex h-6 overflow-hidden rounded bg-card-border">
             {progressSegments.map((seg, i) => (
               <div
@@ -383,58 +270,27 @@ function GapCloserView({
             ))}
           </div>
 
-          {/* CTA + Release Picker */}
-          <Flex align="center" gap={3} wrap="wrap">
-            {!allDone && (
-              <Flex direction="column" gap={2}>
-                <Label size={2}>Action</Label>
-                <Button
-                  disabled={isTranslating}
-                  fontSize={1}
-                  icon={isTranslating ? SpinningIcon : TranslateIcon}
-                  onClick={handleTranslateAll}
-                  padding={3}
-                  style={
-                    isTranslating
-                      ? {
-                          backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.14) ${batchProgress}%, transparent ${batchProgress}%)`,
-                        }
-                      : undefined
-                  }
-                  text={
-                    isTranslating
-                      ? `Translating ${translatedIds.size} of ${documents.length}...`
-                      : `Translate ${remainingCount} document${remainingCount !== 1 ? 's' : ''}${targetSuffix}`
-                  }
-                  tone="suggest"
-                />
-              </Flex>
-            )}
-            {!allDone && releases.length > 0 && (
-              <ReleaseSelector
-                disabled={isTranslating}
-                onSelectRelease={setSelectedReleaseId}
-                releases={releases}
-                selectedRelease={selectedReleaseId}
-              />
-            )}
-            {allDone && (
-              <Card padding={3} radius={2} tone="positive">
-                <Flex align="center" gap={2}>
-                  <Text size={2}>
-                    <CheckmarkCircleIcon />
-                  </Text>
-                  <Text size={1} weight="semibold">
-                    All translations complete
-                  </Text>
-                </Flex>
-              </Card>
-            )}
+          <Flex align="flex-end" gap={3} wrap="wrap">
+            <Button
+              disabled={isStarting || startable.length === 0}
+              fontSize={1}
+              icon={isStarting ? SpinningIcon : TranslateIcon}
+              onClick={() => onStart?.(target)}
+              padding={3}
+              text={`Localize ${startable.length} document${startable.length === 1 ? '' : 's'}`}
+              tone="suggest"
+            />
+            <ReleaseSelector
+              disabled={isStarting}
+              onChange={setTarget}
+              releases={releases}
+              value={target}
+            />
           </Flex>
         </Stack>
       </Card>
 
-      {/* Document table — TanStack Table */}
+      {/* Document table */}
       <Stack space={2}>
         <Text muted size={0}>
           Sorted by source status: published first
@@ -505,47 +361,4 @@ function GapCloserView({
   )
 }
 
-// --- Sub-components ---
-
-function GapCloserSkeleton() {
-  return (
-    <Stack space={4}>
-      <Stack space={2}>
-        <div className="skeleton" style={{height: 28, width: 384}} />
-        <div className="skeleton" style={{height: 16, width: 192}} />
-      </Stack>
-      <Card border padding={4} radius={2}>
-        <Stack space={4}>
-          <div className="skeleton" style={{height: 16, width: 128}} />
-          <Flex gap={4}>
-            <div className="skeleton" style={{height: 20, width: 96}} />
-            <div className="skeleton" style={{height: 20, width: 80}} />
-          </Flex>
-          <div className="skeleton" style={{height: 4, width: '100%'}} />
-          <div className="skeleton" style={{height: 40, width: 288}} />
-        </Stack>
-      </Card>
-      <Stack space={2}>
-        <div className="skeleton" style={{height: 16, width: 192}} />
-        <Card border radius={2}>
-          {Array.from({length: 5}).map((_, i) => (
-            <Flex
-              align="center"
-              className="border-b border-black/[0.06]"
-              gap={3}
-              key={i}
-              padding={3}
-            >
-              <div className="skeleton" style={{flex: 1, height: 16, width: '100%'}} />
-              <div className="skeleton" style={{height: 24, width: 64}} />
-              <div className="skeleton" style={{height: 28, width: 80}} />
-            </Flex>
-          ))}
-        </Card>
-      </Stack>
-    </Stack>
-  )
-}
-
-export {GapCloserSkeleton}
 export default GapCloserView
