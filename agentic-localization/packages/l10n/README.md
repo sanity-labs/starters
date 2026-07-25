@@ -59,6 +59,7 @@ improves translations.
 | `localizeCampaign`, `localizeDocument`, `localizeLocale`                              | The definitions individually                                                                                               |
 | `ANALYZE_SOURCE`, `TRANSLATE_LOCALE`, `PUBLISH_RELEASE`, `EFFECT_NAMES`, `EffectName` | Effect names — a registry key, unique per definition                                                                       |
 | `APPROVED_STAGE`                                                                      | The stage an approved run rests in. The `distill-review` filter interpolates it                                            |
+| `IN_PROGRESS_STAGES`, `SETTLED_STAGES`                                                | `localize-document` stages, for surfaces bucketing a run by the stage it is in                                             |
 | `WORKFLOW_TAG`, `WORKFLOWS_DATASET`                                                   | The engine coordinates. A mismatch reads an empty partition                                                                |
 | `SOURCE_LANGUAGE`                                                                     | The language a run reads from. Static, because deployed definitions are                                                    |
 | `projectResourceClients`, `ProjectResourceClients`                                    | Sibling clients for the project's other datasets — without them the engine refuses every ref outside the workflow resource |

@@ -3,6 +3,7 @@
  */
 
 import type {SubjectRun, TranslationWorkflowStatus} from '@starter/l10n'
+import {IN_PROGRESS_STAGES, SETTLED_STAGES} from '@starter/l10n/workflows'
 
 /** The workflow statuses plus the in-flight one an open run adds. */
 export type DashboardStatus = 'translating' | TranslationWorkflowStatus
@@ -15,12 +16,6 @@ export interface LocaleStatus {
   sourceChanged: boolean
   status: DashboardStatus
 }
-
-/** Stages where the engine is doing the work. */
-const IN_PROGRESS_STAGES = new Set(['analyzing', 'translating'])
-
-/** Terminal-success stages, seen only before the instance settles out of the list. */
-const SETTLED_STAGES = new Set(['approved', 'done'])
 
 export function resolveLocaleStatus(args: {
   /** A fallback locale carries a direct translation. */

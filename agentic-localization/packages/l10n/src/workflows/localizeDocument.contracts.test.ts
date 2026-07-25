@@ -2,7 +2,8 @@ import {EffectOutputsInvalidError} from '@sanity/workflow-engine'
 import {createBench, subjectField} from '@sanity/workflow-engine-test'
 import {expect, test} from 'vitest'
 
-import {ANALYZE_SOURCE, TRANSLATE_LOCALE} from './effects'
+import {ANALYZE_SOURCE, IN_PROGRESS_STAGES, SETTLED_STAGES, TRANSLATE_LOCALE} from './effects'
+import {localizeDocument} from './localizeDocument'
 import {localizationWorkflows} from './index'
 
 const T0 = '2026-07-24T09:00:00.000Z'
@@ -393,6 +394,32 @@ test('the engine reports where a run stops being autonomous', async () => {
     'request-changes',
   ])
   expect(humanGates.every((wait) => wait.stage === 'review')).toBe(true)
+})
+
+/**
+ * The stage vocabulary the surfaces filter on, against the deployed definition.
+ * `SubjectRun.stage` is an untyped string, so a renamed stage would silently
+ * empty an inbox section or a dashboard column instead of failing to compile.
+ */
+test('every stage the surfaces filter on is a real stage of the definition', async () => {
+  const bench = createBench({now: T0})
+  await bench.deployDefinitions({expectedMinReaderModel: 4, definitions: localizationWorkflows})
+
+  const declared = new Map(localizeDocument.stages.map((stage) => [stage.name, stage]))
+
+  // In progress means the run leaves under its own steam — nothing for a
+  // surface to do but say so.
+  for (const stage of IN_PROGRESS_STAGES) {
+    expect(declared.has(stage)).toBe(true)
+    expect(declared.get(stage)?.transitions ?? []).not.toEqual([])
+  }
+
+  // Settled means terminal: no transition can move the run back out.
+  for (const stage of SETTLED_STAGES) {
+    expect(declared.has(stage)).toBe(true)
+    expect(declared.get(stage)?.transitions ?? []).toEqual([])
+    expect(declared.get(stage)?.activities ?? []).toEqual([])
+  }
 })
 
 test('approving is projected as the action that ends the stage', async () => {

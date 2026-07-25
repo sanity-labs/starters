@@ -13,6 +13,7 @@
  */
 
 import type {SubjectRun} from '@starter/l10n'
+import {IN_PROGRESS_STAGES} from '@starter/l10n/workflows'
 import {BehaviorSubject} from 'rxjs'
 
 export const RUN_SECTIONS = [
@@ -32,9 +33,6 @@ export const EMPTY_RUN_SECTIONS: RunSections = {
   'source-changed': [],
   'failed-locales': [],
 }
-
-/** Stages where the engine is doing the work. */
-const IN_PROGRESS_STAGES = new Set(['analyzing', 'translating'])
 
 /**
  * Every section this run belongs in. `failed-locales` covers the whole-run
