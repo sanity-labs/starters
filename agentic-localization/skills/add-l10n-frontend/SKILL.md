@@ -55,16 +55,16 @@ Every page body is a `'use cache'` boundary (`cacheComponents: true`), and
 `draftMode()` and `cookies()` outside the boundary and pass the result in.
 
 Two known rough edges worth fixing rather than copying: `DEFAULT_LANGUAGE` is
-hardcoded in both `queries.ts` and `proxy.ts` rather than derived from the locale
-documents, and `proxy.ts` matches locales with `/^[a-z]{2}-[A-Z]{2}$/`, which
-rejects script subtags like `zh-Hans-CN` that `LocaleSwitcher` handles correctly
-via `Intl.Locale`.
+hardcoded in `queries.ts` — one declaration, imported everywhere, but still not
+derived from the locale documents — and `proxy.ts` matches locales with
+`/^[a-z]{2}-[A-Z]{2}$/`, which rejects script subtags like `zh-Hans-CN` that
+`LocaleSwitcher` handles correctly via `Intl.Locale`.
 
 ## Porting to another framework
 
 Read `references/shared-setup.md` for the framework-agnostic parts — the shape of
 the queries, the fallback decision, and the two Studio conventions the frontend
-depends on. Then map four concerns onto your framework:
+depends on. Then map five concerns onto your framework:
 
 | Concern         | Next.js (reference)  | Astro               | SvelteKit            |
 | --------------- | -------------------- | ------------------- | -------------------- |

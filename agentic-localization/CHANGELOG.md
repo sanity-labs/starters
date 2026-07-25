@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **Localization runs on [Editorial Workflows](https://www.sanity.io/docs/editorial-workflows/concepts)** — three definitions (`localize-campaign` → `localize-document` → `localize-locale`) own analysis, fan-out, retries, guards and the review gate. Run state lives on the workflow instance; content documents carry content only. Definitions are proven against the real engine in memory (`@sanity/workflow-engine-test`) before they deploy
-- **Five Sanity Functions as the engine's runtime** — `start-localization`, `drain-effects`, `handle-deleted-subject`, `distill-review`, and an opt-in scheduled `heartbeat`. The definitions hold at most one pending effect per instance, so one drain is at most one AI call ([docs/FUNCTIONS.md](docs/FUNCTIONS.md))
+- **Four Sanity Functions as the engine's runtime** — `start-localization`, `drain-effects`, `handle-deleted-subject`, `distill-review` — plus an opt-in scheduled `heartbeat`. The definitions hold at most one pending effect per instance, so one drain is at most one AI call ([docs/FUNCTIONS.md](docs/FUNCTIONS.md))
 - **A dedicated `workflows` dataset** for engine storage, declared in the blueprint, plus `sanity.workflow.ts` and `pnpm workflows:deploy` for the definition deploy
 - **The distillation loop** — what a reviewer corrects becomes draft `l10n.proposal` documents (glossary entries, style-guide rules, eval-case coordinates) that a human accepts. Prompt assembly reads only published, approved context, so two human acts stand between automation and a prompt ([adr-002](docs/decisions/adr-002-learning-loop.md))
 - **Both localization tiers on the same three definitions** — only the effect handler's write target differs

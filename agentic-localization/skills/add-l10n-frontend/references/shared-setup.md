@@ -77,8 +77,8 @@ than to a URL that will 404.
 
 **Where the default locale comes from.** Deriving it from the locale documents
 costs a query in the redirect path; hardcoding it costs a deploy when it changes.
-The reference hardcodes it in two places, which is the worst of both — pick one
-and keep it in one place.
+The reference hardcodes it, in one place (`queries.ts`) that everything else
+imports — keep whichever you pick to one declaration.
 
 **How strictly to match a locale segment.** A `xx-XX` regex is cheap and rejects
 valid tags with script subtags (`zh-Hans-CN`). Validating against the fetched

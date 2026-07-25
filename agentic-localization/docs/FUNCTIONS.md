@@ -1,17 +1,18 @@
 # Sanity Functions
 
-Five [Functions](https://www.sanity.io/docs/functions) are the runtime of the
-Editorial Workflows engine — it has no daemon of its own. Triggers, filters,
-timeouts and env are declared in [`sanity.blueprint.ts`](../sanity.blueprint.ts),
-which is the source of truth; this page says what each one is _for_.
+Four [Functions](https://www.sanity.io/docs/functions) are the runtime of the
+Editorial Workflows engine — it has no daemon of its own. A fifth, `heartbeat`,
+is built but commented out in the blueprint. Triggers, filters, timeouts and env
+are declared in [`sanity.blueprint.ts`](../sanity.blueprint.ts), which is the
+source of truth; this page says what each one is _for_.
 
-| Function                 | Trigger                                                                            | Verb                                                                                                                                                           |
-| ------------------------ | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `drain-effects`          | write to a `sanity.workflow.instance` carrying pending effects (workflows dataset) | `drainEffects` then `tick`. The definitions keep at most one effect pending per instance, so an invocation is at most one AI call.                             |
-| `start-localization`     | publish of a source `article`                                                      | `startInstance` under a revision-derived id (start's idempotency key). A run already open is `tick`ed instead, which is what makes `sourceChanged` observable. |
-| `handle-deleted-subject` | delete of an `article`                                                             | `abortInstance` on every run watching the deleted document. A deleted source would otherwise park its run in review forever.                                   |
-| `distill-review`         | instance reaching `approved` (workflows dataset)                                   | `distillReview` — diff the machine draft against the approved text, gate before spending, write DRAFT `l10n.proposal` documents. At most one AI call per run.  |
-| `heartbeat`              | every 15 minutes (`defineScheduleFunction`, `@alpha`)                              | `sweepStaleClaims` → `drainEffects` → `tick` across in-flight instances. Best-effort: the pipeline runs without it.                                            |
+| Function                 | Trigger                                                                                                                       | Verb                                                                                                                                                           |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `drain-effects`          | write to a `sanity.workflow.instance` carrying pending effects (workflows dataset)                                            | `drainEffects` then `tick`. The definitions keep at most one effect pending per instance, so an invocation is at most one AI call.                             |
+| `start-localization`     | publish of an `article` in the source language, or of a `person`                                                              | `startInstance` under a revision-derived id (start's idempotency key). A run already open is `tick`ed instead, which is what makes `sourceChanged` observable. |
+| `handle-deleted-subject` | delete of an `article` or a `person`                                                                                          | `abortInstance` on every run watching the deleted document. A deleted source would otherwise park its run in review forever.                                   |
+| `distill-review`         | instance reaching `approved` (workflows dataset)                                                                              | `distillReview` — diff the machine draft against the approved text, gate before spending, write DRAFT `l10n.proposal` documents. At most one AI call per run.  |
+| `heartbeat` (opt-in)     | every 15 minutes (`defineScheduleFunction`, `@alpha`). Commented out: a schedule deploys only to an organization-scoped stack | `sweepStaleClaims` → `drainEffects` → `tick` across in-flight instances. Best-effort: the pipeline runs without it.                                            |
 
 All five construct the same engine through
 [`functions/engine.ts`](../functions/engine.ts). The effect handlers it registers
@@ -20,7 +21,7 @@ are `@starter/l10n/effects`; the definitions they satisfy are
 in [adr-002](decisions/adr-002-learning-loop.md).
 
 ```
-article (en-US) published            article deleted        every 15 min
+source published                     subject deleted     every 15 min (opt-in)
         │                                   │                    │
         ▼                                   ▼                    ▼
  start-localization              handle-deleted-subject      heartbeat

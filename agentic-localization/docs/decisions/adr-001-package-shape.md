@@ -68,5 +68,7 @@ full-Studio import.
   zone banning Studio imports from the node package.
 - Entry → package promotion is a `git mv` if anything is ever published —
   the discipline (explicit barrels, no deep imports) already exists.
-- The prerelease `@sanity/workflow-*` pins split 1/3 across the two
-  manifests; the workspace catalog keeps them in lockstep.
+- The prerelease `@sanity/workflow-*` pins split 2/4 across the two
+  manifests — `engine` plus `engine-test` on the node floor, `engine`,
+  `react`, `sdk` and `studio` in the Studio layer; the workspace catalog
+  keeps them in lockstep.

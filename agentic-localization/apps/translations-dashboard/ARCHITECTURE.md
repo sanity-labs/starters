@@ -11,7 +11,8 @@ Both are realtime. Nothing polls, nothing caches a status.
 
 ## The join
 
-`hooks/useTranslationAggregateData.ts` is the only fetch. It runs the GROQ query,
+`hooks/useTranslationAggregateData.ts` is the only content-GROQ fetch — releases
+come from `useActiveReleases` and runs from `useWorkflowInstances`. It runs the query,
 takes the open runs from `hooks/useLocalizationRuns.ts`, and keys them by base
 document id. Every other hook is a pure `useMemo` over the result:
 
@@ -45,5 +46,6 @@ here.
 
 - Definitions (stage names, actions, fields): `packages/l10n/src/workflows/`
 - Engine behaviour the docs do not cover: `skills/sanity-l10n/references/extending.md`
-- Engine coordinates (dataset, tag): `src/consts/workflows.ts`, mirroring
-  `sanity.blueprint.ts` and `sanity.workflow.ts`
+- Engine coordinates (dataset, tag): `src/consts/workflows.ts`, which re-exports
+  them from `@starter/l10n/workflows` — the same source `sanity.blueprint.ts` and
+  `sanity.workflow.ts` read, so they cannot drift

@@ -217,6 +217,6 @@ deploy`, `pnpm workflows:deploy`.
   path means context drift and an unmeasurable prompt.
 - **New context types get new schema, not new fields on the run.** Context is
   content; state is the instance. This holds for extensions too.
-- **Add a Function only when a trigger demands it.** The five that exist are the
-  engine's runtime, not one per feature. `docs/FUNCTIONS.md` documents the add
-  path (three steps) and why the artifacts are pre-bundled.
+- **Add a Function only when a trigger demands it.** The four declared in the
+  blueprint are the engine's runtime, not one per feature. `docs/FUNCTIONS.md`
+  documents the add path (three steps) and why the artifacts are pre-bundled.

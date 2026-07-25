@@ -45,7 +45,7 @@ the status display map (`getStatusDisplay`). `@sanity/workflow-engine` owns
 
 ```bash
 pnpm --filter @starter/translations-dashboard dev        # port 3334
-pnpm --filter @starter/translations-dashboard test       # localizationRun spec
+pnpm --filter @starter/translations-dashboard test       # localizationRun + useL10nEngine specs
 pnpm --filter @starter/translations-dashboard typecheck
 pnpm lint && npx oxfmt --check .                         # from the repo root
 ```

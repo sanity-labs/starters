@@ -56,7 +56,8 @@ drafts — the gatherer must handle version ids or exclude release-scoped
 runs (design before implementation); the Function needs the content-dataset
 name in its blueprint env; claim documents live in the content dataset (the
 Studio surface requires it); `distill-review` is excluded from the e2e
-stack so journeys don't spend AI per test run.
+stack so journeys don't spend AI per test run — superseded in
+implementation, see the last item below.
 
 ## Consequences
 
@@ -86,7 +87,8 @@ sourceRev`), materialized into fixtures by a script; approved runs with
 - **A non-404 History failure is not `history-unavailable`.** Swallowing every
   error would report a bad token as "nothing to learn" — the silence that makes a
   dead loop look healthy. Only 404 degrades.
-- **The Function needs one injectable dependency.** The loop makes an Agent
-  Actions call, so the e2e suite must own its content client;
-  `createDistillHandler(clientFor)` takes it and `handler` is the production
-  wiring. The deployed artifact has no test-only branch.
+- **The Function needs one injectable dependency, so the e2e stack keeps it.**
+  The loop makes an Agent Actions call, so the e2e suite must own its content
+  client; `createDistillHandler(clientFor)` takes it and `handler` is the
+  production wiring. The deployed artifact has no test-only branch — and with
+  that seam the journeys drive the real handler rather than excluding it.

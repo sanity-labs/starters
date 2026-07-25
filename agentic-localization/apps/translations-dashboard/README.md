@@ -36,7 +36,7 @@ Action view: fill coverage gaps with AI translation, filter documents by status,
 
 ## Architecture
 
-The dashboard is powered by a single GROQ query (`useTranslationAggregateData`) that fetches the full translation corpus. Seven pure derived hooks process this data into chart-ready shapes using `useMemo` — one real-time subscription, no polling.
+The dashboard is powered by a single GROQ query (`useTranslationAggregateData`) that fetches the full translation corpus. Six pure derived hooks process this data into chart-ready shapes using `useMemo` — one real-time subscription, no polling.
 
 ```
 useTranslationAggregateData (useQuery → single GROQ fetch)
@@ -44,18 +44,11 @@ useTranslationAggregateData (useQuery → single GROQ fetch)
   ├── useStatusBreakdown
   ├── useCoverageMatrix
   ├── useGapDocuments
-  ├── useRecentChanges
-  ├── useStaleDocuments
-  └── useStatusFilteredDocuments
+  ├── useStatusFilteredDocuments
+  └── useStaleDocuments
 ```
 
-Three focused contexts compose in a provider chain:
-
-```
-TranslationConfigProvider (languages, config, client)
-  └── SelectionProvider (selected documents, types, batch mode)
-        └── TranslationProgressProvider (translation progress, creation status)
-```
+One context wraps the app — `TranslationConfigProvider` (languages, default language, supported types, resolved config). Selection and batch state are local to the route; run progress comes from the workflow instance.
 
 For detailed SDK patterns and intentional guideline deviations, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -67,12 +60,12 @@ src/
 ├── routes/
 │   ├── DashboardRoute.tsx     Summary view
 │   └── TranslationsRoute.tsx  Action view
-├── contexts/                  Provider chain (config, selection, progress)
+├── contexts/                  TranslationConfigContext — languages, config, supported types
 ├── hooks/                     Data + action hooks
 ├── components/                UI components, charts, document views
 ├── queries/                   GROQ projection strings
-├── lib/                       Translation execution, metadata ops
-├── types/                     TypeScript interfaces
+├── lib/                       Run-stage interpretation, status-icon binding, class-name helpers
+├── types/                     One ambient module declaration for @sanity/workflow-components
 └── consts/                    Document type lists, status constants
 ```
 

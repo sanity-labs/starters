@@ -1,6 +1,7 @@
 # Skill evals
 
-Evals for the two skills in `skills/`. Split by what they cost to run.
+Evals for the two skills in `skills/`, and the drift checks over the rest of the
+repo's prose. Split by what they cost to run.
 
 ```sh
 pnpm --filter @starter/skill-evals test   # deterministic — no project, no model, runs in CI
@@ -27,6 +28,12 @@ would be handed over with them.
   trigger surface with explicit negatives that name where a request belongs
   instead, references are reachable from SKILL.md, and no routing query leaks a
   skill name to the router.
+
+**`repo.test.ts`** — the same discipline over every markdown file in the repo.
+Every path named exists; every Function declared in the blueprint has a source
+directory and a build entry; every symbol a package README's export table claims
+is on that entry's barrel; every `@sanity/workflow-*` version written in prose
+matches the catalog pin.
 
 **`routing.live.ts`** — description discriminability. Each query goes to the
 grader with the skill roster and nothing else, which is all a real loader has.

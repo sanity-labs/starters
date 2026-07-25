@@ -138,9 +138,10 @@ action in `packages/l10n-studio/src/proposals/`.
 
 ## The runtime
 
-The engine has no daemon. Five Sanity Functions are its runtime, declared as
-blueprint resources — see [`docs/FUNCTIONS.md`](../../../docs/FUNCTIONS.md) for
-the trigger-to-verb table. The load-bearing property: the definitions keep at
+The engine has no daemon. Four Sanity Functions are its runtime, declared as
+blueprint resources, plus an opt-in scheduled `heartbeat` that ships built but
+commented out — see [`docs/FUNCTIONS.md`](../../../docs/FUNCTIONS.md) for the
+trigger-to-verb table. The load-bearing property: the definitions keep at
 most one effect pending per instance, so one `drain-effects` invocation is at
 most one AI call. `packages/l10n/src/workflows/pendingEffects.test.ts` proves it
 on the bench.

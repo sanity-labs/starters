@@ -8,7 +8,7 @@ Without structured context, AI translates "Releases" as "Veröffentlichungen" in
 
 - **Translation metadata as content** — Glossaries, style guides, and locale rules are Sanity documents that content teams manage in the Studio
 - **Automated stale detection** — On publish, AI analyses what actually changed and retranslates only the locales it affects; cosmetic edits complete without involving a person
-- **Durable localization runs** — Fan-out, review gates, retries, guards and audit are [Editorial Workflows](https://www.sanity.io/docs/editorial-workflows/concepts) definitions, dispatched by five Sanity Functions
+- **Durable localization runs** — Fan-out, review gates, retries, guards and audit are [Editorial Workflows](https://www.sanity.io/docs/editorial-workflows/concepts) definitions, dispatched by four Sanity Functions (plus an opt-in scheduled sweep)
 - **A review gate that teaches** — What a reviewer corrects is distilled into draft glossary entries and style-guide rules for the next run
 - **Translations inspector** — Studio UI for the open run: per-locale progress, source-versus-translation diff, approve or request changes
 - **Translations dashboard** — Real-time overview of coverage, gaps, and stale documents across all locales (Sanity App SDK)
@@ -106,7 +106,7 @@ they are pinned exactly in `pnpm-workspace.yaml` and must be upgraded as one set
 ```
 sanity.blueprint.ts              Infrastructure-as-code: datasets, CORS, robot token, Functions
 sanity.workflow.ts               Which definitions deploy, and where the engine stores them
-functions/                       The engine's runtime: five Functions — see docs/FUNCTIONS.md
+functions/                       The engine's runtime: four Functions — see docs/FUNCTIONS.md
 packages/l10n/                   Node floor: primitives, prompt assembly, definitions, handlers
 packages/l10n-studio/            Studio layer: plugin, schema types, Translations inspector
 studio/                          Studio workspace: schemas, locale seeding, bootstrap

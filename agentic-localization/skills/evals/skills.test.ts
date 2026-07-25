@@ -5,6 +5,7 @@
  * Three properties, and each one has caught a real defect:
  *  1. Drift — every repo path a skill names still exists. The rewrite these
  *     evals ship with replaced a dozen paths that had silently moved.
+ *     `repo.test.ts` runs the same check over every markdown file in the repo.
  *  2. Coverage — for each scenario in `cases/scenarios.json`, the files an agent
  *     would load actually name the file, entry or command the answer needs.
  *     A rubric can be argued with; a missing filename cannot.
@@ -20,6 +21,7 @@ import routingCases from './cases/routing.json' with {type: 'json'}
 import scenarios from './cases/scenarios.json' with {type: 'json'}
 
 import {corpusFor, isSkillName, REPO_ROOT, skills, SKILL_NAMES} from './corpus'
+import {codeSpanPaths, linkTargets} from './docs'
 
 /**
  * Paths that used to be real and are the most likely thing to be reintroduced
@@ -36,37 +38,6 @@ const STALE_TOKENS = [
   'kit.agentic-l10n',
   'src/middleware.ts',
 ]
-
-/** Directories a repo-relative path token can start with. */
-const REPO_ROOTS = [
-  'apps/',
-  'docs/',
-  'e2e/',
-  'functions/',
-  'packages/',
-  'skills/',
-  'studio/',
-  '.github/',
-]
-
-function isPathCandidate(token: string): boolean {
-  if (/[*<>$\s]/.test(token)) return false
-  return REPO_ROOTS.some((root) => token.startsWith(root))
-}
-
-/** Repo-relative paths named in inline code spans. */
-function codeSpanPaths(text: string): string[] {
-  return [...text.matchAll(/`([^`\n]+)`/g)]
-    .map((match) => match[1].trim().replace(/[.,)]$/, ''))
-    .filter(isPathCandidate)
-}
-
-/** Markdown link targets, resolved against the file that holds them. */
-function linkTargets(text: string): string[] {
-  return [...text.matchAll(/\]\(([^)\s]+)\)/g)]
-    .map((match) => match[1].split('#')[0])
-    .filter((target) => target.length > 0 && !/^[a-z]+:/.test(target))
-}
 
 describe.each(skills)('$name', (skill) => {
   test('frontmatter name matches the directory', () => {
