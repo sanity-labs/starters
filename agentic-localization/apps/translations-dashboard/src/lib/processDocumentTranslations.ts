@@ -15,7 +15,7 @@ import {MAX_CONCURRENT_TRANSLATIONS} from '../consts/translation'
 import {awaitAgentResult} from './awaitAgentResult'
 import {createReference} from './createReference'
 import {fetchOrCreateMetadata, writeWorkflowState} from './metadataOperations'
-import {postProcessTranslation} from './postTranslationProcessing'
+import {postProcessTranslation} from '@starter/l10n/translate'
 
 type AvailableLanguage = {
   id: string

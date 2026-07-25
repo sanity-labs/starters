@@ -9,15 +9,14 @@ const shared = {
   platform: 'node',
 } satisfies Partial<RolldownOptions>
 
-export default defineConfig([
-  {
-    input: {index: 'analyze-stale-translations/index.ts'},
+// One config object per function, not one config with several entries:
+// `codeSplitting: false` only guarantees no chunks *within* an entry.
+const functions = ['drain-effects', 'start-localization', 'handle-deleted-subject', 'heartbeat']
+
+export default defineConfig(
+  functions.map((name) => ({
+    input: {index: `${name}/index.ts`},
     ...shared,
-    output: {...shared.output, dir: 'dist/analyze-stale-translations', cleanDir: true},
-  },
-  {
-    input: {index: 'mark-translations-stale/index.ts'},
-    ...shared,
-    output: {...shared.output, dir: 'dist/mark-translations-stale', cleanDir: true},
-  },
-])
+    output: {...shared.output, dir: `dist/${name}`, cleanDir: true},
+  })),
+)

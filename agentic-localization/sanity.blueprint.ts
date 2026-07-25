@@ -26,6 +26,18 @@ const projectId = process.env.SANITY_STUDIO_PROJECT_ID!
 const datasetName =
   process.env.BLUEPRINT_DATASET ?? process.env.SANITY_STUDIO_DATASET ?? 'production'
 
+/** Engine storage. The tag partitions instances within it; see sanity.workflow.ts. */
+const WORKFLOWS_DATASET = 'workflows'
+const WORKFLOW_TAG = 'production'
+const workflowsDatasetId = `${projectId}.${WORKFLOWS_DATASET}`
+
+/** What a Function needs to reach the engine's store from a content event. */
+const workflowsEnv = {
+  WORKFLOW_TAG,
+  WORKFLOWS_DATASET_ID: workflowsDatasetId,
+  WORKFLOWS_DATASET_NAME: WORKFLOWS_DATASET,
+}
+
 export default defineBlueprint({
   resources: [
     // ── Dataset ──────────────────────────────────────────────────────
@@ -46,7 +58,7 @@ export default defineBlueprint({
     // owned by the stack.
     defineDataset({
       name: 'workflows-dataset',
-      datasetName: 'workflows',
+      datasetName: WORKFLOWS_DATASET,
       aclMode: 'private',
       lifecycle: {
         deletionPolicy: 'retain',
@@ -73,31 +85,75 @@ export default defineBlueprint({
       memberships: [{resourceType: 'project', resourceId: projectId, roleNames: ['editor']}],
     }),
 
-    // ── Document Functions ───────────────────────────────────────────
+    // ── Runtime Functions ────────────────────────────────────────────
+    // The engine has no runtime of its own: these four are it. Effect handlers
+    // live in `@starter/l10n/handlers`; the definitions they satisfy in
+    // `@starter/l10n/workflows`.
+
+    // Dispatches an instance's pending effects, then advances it. The filter
+    // cuts the self-trigger churn from the drainer's own completion writes.
     defineDocumentFunction({
-      name: 'mark-translations-stale',
-      src: 'functions/dist/mark-translations-stale',
+      name: 'drain-effects',
+      src: 'functions/dist/drain-effects',
+      robotToken: '$.resources.fn-robot.token',
+      event: {
+        on: ['create', 'update'],
+        filter: "_type == 'sanity.workflow.instance' && count(pendingEffects) > 0",
+        projection: '{_id, _type}',
+        resource: {type: 'dataset', id: workflowsDatasetId},
+      },
+      env: {WORKFLOW_TAG, WORKFLOWS_DATASET_ID: workflowsDatasetId},
+      timeout: 120,
+      memory: 1,
+    }),
+
+    // Publishing a source document starts a run, or ticks the open one so its
+    // `sourceChanged` trigger sees the new revision.
+    defineDocumentFunction({
+      name: 'start-localization',
+      src: 'functions/dist/start-localization',
       robotToken: '$.resources.fn-robot.token',
       event: {
         on: ['publish'],
+        // Inlined, not imported: the blueprint is loaded by jiti, and the
+        // deployed definitions carry the same literal (workflows/effects.ts).
         filter: "_type == 'article' && language == 'en-US'",
         projection: '{_id, _rev, _type, language}',
         resource: {type: 'dataset', id: `${projectId}.${datasetName}`},
       },
-      timeout: 15,
+      env: workflowsEnv,
+      timeout: 30,
     }),
+
+    // A deleted source leaves its run parked in review, holding a publish
+    // guard on a document that no longer exists.
     defineDocumentFunction({
-      name: 'analyze-stale-translations',
-      src: 'functions/dist/analyze-stale-translations',
+      name: 'handle-deleted-subject',
+      src: 'functions/dist/handle-deleted-subject',
       robotToken: '$.resources.fn-robot.token',
       event: {
-        on: ['update'],
-        filter: "_type == 'translation.metadata' && count(workflowStates[status == 'stale']) > 0",
-        projection: '{_id, _rev, _type}',
+        on: ['delete'],
+        filter: "_type == 'article'",
+        projection: '{_id, _type}',
         resource: {type: 'dataset', id: `${projectId}.${datasetName}`},
       },
-      timeout: 120,
-      memory: 1,
+      env: workflowsEnv,
+      timeout: 30,
     }),
+
+    // Opt-in: scheduled Functions deploy only to organization-scoped stacks
+    // (`sanity blueprints promote`), and `sanity init` creates project-scoped
+    // ones. The pipeline runs without it — start-localization ticks on every
+    // publish — this sweep only speeds up recovery of orphaned effect claims.
+    // To enable: promote the stack, re-add defineScheduleFunction to the
+    // imports, and uncomment.
+    // defineScheduleFunction({
+    //   name: 'heartbeat',
+    //   src: 'functions/dist/heartbeat',
+    //   robotToken: '$.resources.fn-robot.token',
+    //   event: {minute: '*/15', hour: '*', dayOfMonth: '*', month: '*', dayOfWeek: '*'},
+    //   env: {...workflowsEnv, SANITY_PROJECT_ID: projectId},
+    //   timeout: 60,
+    // }),
   ],
 })

@@ -28,6 +28,14 @@
       "source": "./src/workflows/index.ts",
       "default": "./src/workflows/index.ts"
     },
+    "./handlers": {
+      "source": "./src/handlers/index.ts",
+      "default": "./src/handlers/index.ts"
+    },
+    "./translate": {
+      "source": "./src/translate/index.ts",
+      "default": "./src/translate/index.ts"
+    },
     "./core": {
       "source": "./src/core/index.ts",
       "default": "./src/core/index.ts"

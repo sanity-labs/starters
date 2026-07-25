@@ -99,6 +99,10 @@ export const localizeDocument = defineWorkflow({
         {type: 'string', name: 'reason'},
       ],
     }),
+    // The analysis in the reviewer's own language: why these locales, why this
+    // materiality. Prose for a person to read — nothing branches on it, so it
+    // carries no closed list and no validation beyond being text.
+    defineField({type: 'text', name: 'explanation', title: 'Why this verdict'}),
     // The source revision the analysis ran against. Kept so a later edit to the
     // source can be detected while this run is still open.
     defineField({type: 'string', name: 'analyzedRev', title: 'Analyzed revision'}),

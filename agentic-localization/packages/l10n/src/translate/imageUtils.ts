@@ -30,6 +30,8 @@ export type SanityImageHotspot = {
   y?: null | number
 }
 
+const HOTSPOT_KEYS = ['x', 'y', 'width', 'height'] as const
+
 export function isSanityImageField(obj: unknown): obj is SanityImageField {
   return typeof obj === 'object' && obj !== null && '_type' in obj && obj._type === 'image'
 }
@@ -44,7 +46,7 @@ export function restoreImageCropHotspot(base: unknown, translated: unknown): unk
     return translated.map((tItem, i) => restoreImageCropHotspot(base[i], tItem))
   }
 
-  if (base && translated && typeof base === 'object' && typeof translated === 'object') {
+  if (isRecord(base) && isRecord(translated)) {
     if (isSanityImageField(translated)) {
       const baseImg = isSanityImageField(base) ? base : null
 
@@ -59,10 +61,7 @@ export function restoreImageCropHotspot(base: unknown, translated: unknown): unk
         }
 
         const hotspotEmpty =
-          !translated.hotspot ||
-          ['x', 'y', 'width', 'height'].every(
-            (k) => translated.hotspot?.[k as keyof SanityImageHotspot] == null,
-          )
+          !translated.hotspot || HOTSPOT_KEYS.every((k) => translated.hotspot?.[k] == null)
         if (hotspotEmpty && baseImg.hotspot) {
           translated.hotspot = baseImg.hotspot
         }
@@ -71,12 +70,16 @@ export function restoreImageCropHotspot(base: unknown, translated: unknown): unk
       return translated
     }
 
-    const out: Record<string, unknown> = {...(translated as Record<string, unknown>)}
+    const out: Record<string, unknown> = {...translated}
     for (const key of Object.keys(out)) {
-      out[key] = restoreImageCropHotspot((base as Record<string, unknown>)[key], out[key])
+      out[key] = restoreImageCropHotspot(base[key], out[key])
     }
     return out
   }
 
   return translated
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

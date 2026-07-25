@@ -151,6 +151,30 @@ test('materiality is a closed list', async () => {
   ).rejects.toThrow()
 })
 
+test('the analysis explains its verdict to the reviewer', async () => {
+  const {bench, instanceId} = await startRun()
+  const explanation =
+    'The body was rewritten; de-DE is the only market whose translation predates it.'
+
+  await bench.completePendingEffect({
+    instanceId,
+    effect: ANALYZE_SOURCE,
+    status: 'done',
+    ops: [
+      localesOp(['de-DE']),
+      {
+        type: 'field.set',
+        target: {scope: 'workflow', field: 'explanation'},
+        value: {type: 'literal', value: explanation},
+      },
+    ],
+  })
+
+  // Prose, unlike the verdict beside it: no closed list to fall foul of, and the
+  // review surface reads it from the same scope the engine's conditions see.
+  expect(await bench.queryInScope({instanceId, groq: '$fields.explanation'})).toBe(explanation)
+})
+
 // --- Discovery --------------------------------------------------------------
 
 test('only source-language documents are offered a localization run', async () => {

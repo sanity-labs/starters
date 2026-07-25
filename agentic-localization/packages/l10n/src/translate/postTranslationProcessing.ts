@@ -1,0 +1,64 @@
+/**
+ * Shared post-processing for translated documents: slug generation,
+ * field cleanup, and image crop/hotspot restoration.
+ */
+
+import {generateLocalizedSlug} from './generateLocalizedSlug'
+import {restoreImageCropHotspot} from './imageUtils'
+
+/**
+ * The single read this module needs. Structural rather than `SanityClient` so
+ * both a Studio client and the workflow engine's effect client satisfy it.
+ */
+export interface SourceDocumentReader {
+  fetch: <T>(
+    query: string,
+    params?: Record<string, unknown>,
+    options?: {tag?: string},
+  ) => Promise<T>
+}
+
+interface PostProcessOptions {
+  baseDocumentId: string
+  baseLanguage: string
+  client: SourceDocumentReader
+  documentType: string
+  targetLocaleId: string
+  translatedResult: Record<string, unknown>
+}
+
+/**
+ * Apply slug generation, field cleanup, and image crop/hotspot restoration
+ * to a freshly translated document result. Returns the processed result.
+ */
+export async function postProcessTranslation({
+  baseDocumentId,
+  baseLanguage,
+  client,
+  documentType,
+  targetLocaleId,
+  translatedResult,
+}: PostProcessOptions): Promise<Record<string, unknown>> {
+  const processedResult = {...translatedResult}
+
+  if (typeof processedResult.title === 'string' && targetLocaleId !== baseLanguage) {
+    processedResult.slug = generateLocalizedSlug(processedResult.title, targetLocaleId)
+
+    if (documentType === 'article') {
+      delete processedResult.audioSummary
+    }
+  }
+
+  const baseDoc = await client.fetch<unknown>(
+    `*[_id == $id][0]`,
+    {id: baseDocumentId},
+    {tag: 'restore-images'},
+  )
+  const restored = restoreImageCropHotspot(baseDoc, processedResult)
+
+  return isRecord(restored) ? restored : processedResult
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}

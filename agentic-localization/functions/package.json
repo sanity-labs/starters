@@ -15,12 +15,9 @@
     "@sanity/client": "catalog:",
     "@sanity/functions": "^1.2.0",
     "@sanity/id-utils": "^1.0.0",
+    "@sanity/workflow-engine": "catalog:",
     "@starter/l10n": "workspace:*",
-    "@starter/sanity-types": "workspace:*",
     "@starter/tsconfig": "workspace:*",
-    "diff": "^8.0.3",
-    "groq": "catalog:",
-    "rolldown": "1.0.0-rc.6",
-    "sanity": "catalog:"
+    "rolldown": "1.0.0-rc.6"
   }
 }

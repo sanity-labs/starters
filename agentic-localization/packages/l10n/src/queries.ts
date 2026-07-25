@@ -53,3 +53,32 @@ export const STYLE_GUIDE_FOR_LOCALE_QUERY = defineQuery(`*[
   tone,
   additionalInstructions
 }`)
+
+/**
+ * Code + title for named locales — the projection `buildTranslateParams` wants
+ * for its `toLanguage` / `fromLanguage` pair.
+ *
+ * Parameters: $codes (string[]) — BCP-47 codes
+ */
+export const LOCALES_BY_CODE_QUERY = defineQuery(
+  `*[_type == "${localeTypeName}" && code in $codes]{code, title}`,
+)
+
+/** Every configured locale code. */
+export const LOCALE_CODES_QUERY = defineQuery(`*[_type == "${localeTypeName}"].code`)
+
+/**
+ * The `translation.metadata` join document for a source document, with each
+ * language's target resolved to a bare document id.
+ *
+ * Parameters: $metadataId (string), $publishedId (string)
+ */
+export const TRANSLATIONS_FOR_DOCUMENT_QUERY = defineQuery(`*[
+  _id == $metadataId || (
+    _type == "translation.metadata" &&
+    $publishedId in translations[].value._ref
+  )
+][0]{
+  _id,
+  "translations": translations[]{language, "ref": value._ref}
+}`)

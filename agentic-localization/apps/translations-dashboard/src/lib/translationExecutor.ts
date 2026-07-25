@@ -13,7 +13,7 @@ import type {LanguageStatus} from '../contexts/TranslationStatusContext'
 
 import {awaitAgentResult} from './awaitAgentResult'
 import {type MetadataDoc, patchMetadataTranslation, writeWorkflowState} from './metadataOperations'
-import {postProcessTranslation} from './postTranslationProcessing'
+import {postProcessTranslation} from '@starter/l10n/translate'
 
 export interface TranslationExecutionResult {
   documentId: string

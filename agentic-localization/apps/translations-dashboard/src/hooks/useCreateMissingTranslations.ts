@@ -5,7 +5,7 @@ import {useClient, useCurrentUser} from '@sanity/sdk-react'
 import {useCallback} from 'react'
 
 import {useApp} from '../contexts/AppContext'
-import {generateLocalizedSlug} from '../helpers/generateLocalizedSlug'
+import {generateLocalizedSlug} from '@starter/l10n/translate'
 import {createReference} from '../lib/createReference'
 import {METADATA_WITH_TRANSLATIONS_QUERY} from '../queries/metadataQueries'
 
