@@ -33,22 +33,23 @@ plain Next app. Its only coupling to the Studio is by convention: the
 
 Already implemented. Modify these files rather than recreating them.
 
-| File                                                 | What it does                                                                                                               |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `apps/frontend/src/proxy.ts`                         | Next 16 proxy (the old `middleware.ts` convention): unprefixed path → 307 to `/{locale}`, reading the `NEXT_LOCALE` cookie |
-| `apps/frontend/src/sanity/live.ts`                   | The client and `defineLive({strict: true})` — `sanityFetch` and `<SanityLive />`, `server-only`                            |
-| `apps/frontend/src/sanity/queries.ts`                | `defineQuery` GROQ: the locale list, the article resolution query, the sitemap query, `DEFAULT_LANGUAGE`                   |
-| `apps/frontend/src/sanity/locales.ts`                | Fallback-chain walk (multi-hop, cycle-safe) and the sibling list for a document                                            |
-| `apps/frontend/src/sanity/types.ts`                  | The app's vocabulary, projected out of the generated `sanity.types.ts` and its `SanityQueries` augmentation                |
-| `apps/frontend/src/app/[lang]/layout.tsx`            | `<html lang>`, `metadataBase`, `<SanityLive />`; `generateStaticParams` from the locale query                              |
-| `apps/frontend/src/app/[lang]/page.tsx`              | Article list for the locale                                                                                                |
-| `apps/frontend/src/app/[lang]/[slug]/page.tsx`       | Detail view: slug resolution, stale-URL redirect, the fallback decision, hreflang metadata                                 |
-| `apps/frontend/src/app/sitemap.ts`                   | Per-locale entries with `alternates.languages`                                                                             |
-| `apps/frontend/src/components/SiteNav.tsx`           | Nav rendered per page — only a page knows the current document's slug in the other locales                                 |
-| `apps/frontend/src/components/LocaleSwitcher.tsx`    | Links each locale to its own slug, persists `NEXT_LOCALE`, flags via `Intl.Locale`                                         |
-| `apps/frontend/src/components/FallbackBanner.tsx`    | The "this is not a translation" notice                                                                                     |
-| `apps/frontend/src/components/PortableText.tsx`      | Portable Text renderer                                                                                                     |
-| `apps/frontend/src/app/[lang]/architecture/page.tsx` | An in-app illustrated tour. Prose, not a source of truth — parts of it lag the code                                        |
+| File                                                 | What it does                                                                                                                     |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/frontend/src/proxy.ts`                         | Next 16 proxy (the old `middleware.ts` convention): unprefixed path → 307 to `/{locale}`, cookie first, then negotiation         |
+| `apps/frontend/src/negotiateLocale.ts`               | RFC 9110 `Accept-Language` negotiation (`Intl.Locale` maximize) and `LOCALE_PATTERN`; proxy sets `Vary: Accept-Language, Cookie` |
+| `apps/frontend/src/sanity/live.ts`                   | The client and `defineLive({strict: true})` — `sanityFetch` and `<SanityLive />`, `server-only`                                  |
+| `apps/frontend/src/sanity/queries.ts`                | `defineQuery` GROQ: the locale list, the article resolution query, the sitemap query, `DEFAULT_LANGUAGE`                         |
+| `apps/frontend/src/sanity/locales.ts`                | Fallback-chain walk (multi-hop, cycle-safe) and the sibling list for a document                                                  |
+| `apps/frontend/src/sanity/types.ts`                  | The app's vocabulary, projected out of the generated `sanity.types.ts` and its `SanityQueries` augmentation                      |
+| `apps/frontend/src/app/[lang]/layout.tsx`            | `<html lang>`, `metadataBase`, `<SanityLive />`; `generateStaticParams` from the locale query                                    |
+| `apps/frontend/src/app/[lang]/page.tsx`              | Article list for the locale                                                                                                      |
+| `apps/frontend/src/app/[lang]/[slug]/page.tsx`       | Detail view: slug resolution, stale-URL redirect, the fallback decision, hreflang metadata                                       |
+| `apps/frontend/src/app/sitemap.ts`                   | Per-locale entries with `alternates.languages`                                                                                   |
+| `apps/frontend/src/components/SiteNav.tsx`           | Nav rendered per page — only a page knows the current document's slug in the other locales                                       |
+| `apps/frontend/src/components/LocaleSwitcher.tsx`    | Links each locale to its own slug, persists `NEXT_LOCALE`, flags via `Intl.Locale`                                               |
+| `apps/frontend/src/components/FallbackBanner.tsx`    | The "this is not a translation" notice                                                                                           |
+| `apps/frontend/src/components/PortableText.tsx`      | Portable Text renderer                                                                                                           |
+| `apps/frontend/src/app/[lang]/architecture/page.tsx` | An in-app illustrated tour. Prose, not a source of truth — parts of it lag the code                                              |
 
 Every page body is a `'use cache'` boundary (`cacheComponents: true`), and
 `sanityFetch` calls `cacheTag`/`cacheLife` — so it only works inside one. Read

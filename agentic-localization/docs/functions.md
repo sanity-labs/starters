@@ -54,18 +54,12 @@ Every dependency, `@sanity/*` included, is inlined into a single file.
 
 ### Why pre-bundle
 
-The Functions CLI (`@sanity/runtime-cli`) transpiles with Vite
-(`external: [/node_modules/]`) and then runs `@architect/hydrate` to install npm
-deps into the artifact. In a pnpm workspace that breaks: `@starter/l10n` resolves
-through a symlink outside `node_modules/`, so Vite inlines it while leaving its
-transitive deps external — and hydrate has no function-level `package.json` to
-resolve them from. The pnpm-side fixes all cost more than they save
-(`shamefully-hoist` defeats strict resolution repo-wide; `pnpm deploy` or a
-per-function `package.json` is a second deployment pipeline).
-
-Pre-bundling is the better serverless artifact regardless: one file to parse at
-cold start, tree-shaken, no deploy-time install, and identical locally and in
-production.
+The Functions CLI (`@sanity/runtime-cli` ≥14.3) bundles workspace dependencies
+itself, so a pnpm monorepo deploys without help. Rolldown stays for the
+artifact: the CLI hardcodes `minify: false` and ships the inlined TypeScript's
+sourcemaps in the zip, where this config minifies and drops the maps — one
+tree-shaken file to parse at cold start, no source shipped to the runtime, and
+the same file locally and in production.
 
 ### How the CLI bypass works
 
