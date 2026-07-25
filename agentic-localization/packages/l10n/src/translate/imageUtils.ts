@@ -7,11 +7,15 @@
  * from the base document so published images stay correctly framed.
  */
 
+import type {SanityImageCrop, SanityImageHotspot} from '@sanity/asset-utils'
 import type {Image} from '@sanity/types'
+
+import {DEFAULT_CROP, DEFAULT_HOTSPOT, isDefaultCrop, isDefaultHotspot} from '@sanity/asset-utils'
 
 import {isRecord} from '../core/isRecord'
 
-const HOTSPOT_KEYS = ['x', 'y', 'width', 'height'] as const
+const CROP_KEYS = Object.keys(DEFAULT_CROP)
+const HOTSPOT_KEYS = Object.keys(DEFAULT_HOTSPOT)
 
 /**
  * Not `@sanity/types`' `isImage`: that keys on the asset reference
@@ -23,10 +27,63 @@ export function isSanityImageField(value: unknown): value is Image {
   return isRecord(value) && value._type === 'image'
 }
 
+function readCrop(value: unknown): SanityImageCrop | undefined {
+  if (!isRecord(value)) return undefined
+  const {top, bottom, left, right} = value
+  if (
+    typeof top !== 'number' ||
+    typeof bottom !== 'number' ||
+    typeof left !== 'number' ||
+    typeof right !== 'number'
+  ) {
+    return undefined
+  }
+  return {top, bottom, left, right}
+}
+
+function readHotspot(value: unknown): SanityImageHotspot | undefined {
+  if (!isRecord(value)) return undefined
+  const {x, y, width, height} = value
+  if (
+    typeof x !== 'number' ||
+    typeof y !== 'number' ||
+    typeof width !== 'number' ||
+    typeof height !== 'number'
+  ) {
+    return undefined
+  }
+  return {x, y, width, height}
+}
+
 /**
- * Recursively walk `translated` and copy crop/hotspot from
- * the corresponding `base` node whenever the translated version
- * has empty or null values.
+ * Does this region frame the image at all?
+ *
+ * Two shapes mean "no". The one the translate agent leaves behind: keys absent
+ * or explicitly null. And the one it echoes: a region equal to
+ * `@sanity/asset-utils`' default, which _is_ the whole image — a zeroed crop
+ * crops nothing, a centred full-size hotspot focuses nothing. Ours used to test
+ * only the first, so an echoed default overwrote framing a person had chosen
+ * with itself. Restoring is the safe branch for both: the fallback is the base
+ * document's own framing, never a guess.
+ */
+function framesWithCrop(region: unknown): boolean {
+  if (!isRecord(region)) return false
+  if (CROP_KEYS.every((key) => region[key] == null)) return false
+  const parsed = readCrop(region)
+  // Partially written — not the default, and not nothing either.
+  return parsed ? !isDefaultCrop(parsed) : true
+}
+
+function framesWithHotspot(region: unknown): boolean {
+  if (!isRecord(region)) return false
+  if (HOTSPOT_KEYS.every((key) => region[key] == null)) return false
+  const parsed = readHotspot(region)
+  return parsed ? !isDefaultHotspot(parsed) : true
+}
+
+/**
+ * Recursively walk `translated` and copy crop/hotspot from the corresponding
+ * `base` node whenever the translated version frames nothing.
  */
 export function restoreImageCropHotspot(base: unknown, translated: unknown): unknown {
   if (Array.isArray(base) && Array.isArray(translated)) {
@@ -38,18 +95,10 @@ export function restoreImageCropHotspot(base: unknown, translated: unknown): unk
       const baseImg = isSanityImageField(base) ? base : null
 
       if (baseImg) {
-        if (
-          !translated.crop ||
-          Object.keys(translated.crop).filter((k) => k !== '_type').length === 0
-        ) {
-          if (baseImg.crop && Object.keys(baseImg.crop).length > 0) {
-            translated.crop = baseImg.crop
-          }
+        if (!framesWithCrop(translated.crop) && framesWithCrop(baseImg.crop)) {
+          translated.crop = baseImg.crop
         }
-
-        const hotspotEmpty =
-          !translated.hotspot || HOTSPOT_KEYS.every((k) => translated.hotspot?.[k] == null)
-        if (hotspotEmpty && baseImg.hotspot) {
+        if (!framesWithHotspot(translated.hotspot) && framesWithHotspot(baseImg.hotspot)) {
           translated.hotspot = baseImg.hotspot
         }
       }

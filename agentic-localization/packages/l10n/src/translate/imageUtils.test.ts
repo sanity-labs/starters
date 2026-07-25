@@ -25,6 +25,58 @@ describe('restoreImageCropHotspot', () => {
     })
   })
 
+  it('restores over a crop the machine echoed at the default', () => {
+    // `{top:0,bottom:0,left:0,right:0}` is `@sanity/asset-utils`' DEFAULT_CROP —
+    // it crops nothing. Key-absence alone read this as framing and kept it,
+    // dropping the framing a person had chosen.
+    const base = {cover: {_type: 'image', crop: CROP}}
+    const translated = {
+      cover: {
+        _type: 'image',
+        crop: {_type: 'sanity.imageCrop', top: 0, bottom: 0, left: 0, right: 0},
+      },
+    }
+
+    expect(restoreImageCropHotspot(base, translated)).toEqual({
+      cover: {_type: 'image', crop: CROP},
+    })
+  })
+
+  it('restores over a hotspot the machine echoed at the default', () => {
+    // DEFAULT_HOTSPOT is the centred, full-size region — it focuses nothing.
+    const base = {cover: {_type: 'image', hotspot: HOTSPOT}}
+    const translated = {
+      cover: {
+        _type: 'image',
+        hotspot: {_type: 'sanity.imageHotspot', x: 0.5, y: 0.5, width: 1, height: 1},
+      },
+    }
+
+    expect(restoreImageCropHotspot(base, translated)).toEqual({
+      cover: {_type: 'image', hotspot: HOTSPOT},
+    })
+  })
+
+  it('keeps a default crop when the base frames nothing either', () => {
+    const defaultCrop = {_type: 'sanity.imageCrop', top: 0, bottom: 0, left: 0, right: 0}
+    const base = {cover: {_type: 'image'}}
+    const translated = {cover: {_type: 'image', crop: defaultCrop}}
+
+    expect(restoreImageCropHotspot(base, translated)).toEqual({
+      cover: {_type: 'image', crop: defaultCrop},
+    })
+  })
+
+  it('keeps a partially written crop, which is neither absent nor the default', () => {
+    const partial = {_type: 'sanity.imageCrop', top: 0, bottom: 0}
+    const base = {cover: {_type: 'image', crop: CROP}}
+    const translated = {cover: {_type: 'image', crop: partial}}
+
+    expect(restoreImageCropHotspot(base, translated)).toEqual({
+      cover: {_type: 'image', crop: partial},
+    })
+  })
+
   it('treats an all-null hotspot as empty', () => {
     const base = {cover: {_type: 'image', hotspot: HOTSPOT}}
     const translated = {

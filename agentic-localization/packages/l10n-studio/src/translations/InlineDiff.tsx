@@ -1,22 +1,21 @@
 /**
  * Word-level inline diff component for string fields.
  *
- * Uses `jsdiff`'s `diffWords` for word-level diffs — the right granularity
- * for natural language content. Character-level diffs (fast-diff) produced
- * noisy, unusable output for prose.
- *
- * Renders deletions as red strikethrough, additions as green highlight,
- * with 20% opacity backgrounds per @ux spec.
+ * The segments come from `@starter/l10n`'s `diffTextSegments` — `@sanity/diff`
+ * word-aligned — so this component and the AI analysis prompt read the same
+ * diff. Rendering only: deletions as red strikethrough, additions as green
+ * highlight, with 20% opacity backgrounds per @ux spec.
  *
  * Also exports SimpleValueDiff and ArrayDiffSummary for non-text field types.
  */
 
 import {Card, Flex, SrOnly, Text} from '@sanity/ui'
-import type {Change} from 'diff'
-import {diffWords} from 'diff'
 import {useCallback, useMemo, useState} from 'react'
 import {useTranslation} from 'sanity'
 
+import type {TextSegment} from '@starter/l10n'
+
+import {diffTextSegments} from '@starter/l10n'
 import {l10nLocaleNamespace} from '../i18n'
 
 // --- Constants ---
@@ -48,16 +47,16 @@ interface InlineDiffProps {
 
 // --- Helpers ---
 
-/** Count words in diff segments of a given type */
-function countWords(changes: Change[], type: 'added' | 'removed'): number {
-  return changes
-    .filter((c) => c[type])
-    .reduce((count, c) => count + c.value.trim().split(/\s+/).filter(Boolean).length, 0)
+/** Count words in diff segments of a given action */
+function countWords(segments: TextSegment[], action: 'added' | 'removed'): number {
+  return segments
+    .filter((segment) => segment.action === action)
+    .reduce((count, segment) => count + segment.text.trim().split(/\s+/).filter(Boolean).length, 0)
 }
 
 /** Compute total character length of all diff segments */
-function totalLength(changes: Change[]): number {
-  return changes.reduce((sum, c) => sum + c.value.length, 0)
+function totalLength(segments: TextSegment[]): number {
+  return segments.reduce((sum, segment) => sum + segment.text.length, 0)
 }
 
 // --- Main component ---
@@ -68,35 +67,35 @@ export function InlineDiff({oldValue, newValue, maxLength = DEFAULT_MAX_LENGTH}:
   const toggleFull = useCallback(() => setShowFull((prev) => !prev), [])
 
   // Memoize the diff computation — don't recompute on every render
-  const changes = useMemo(() => diffWords(oldValue, newValue), [oldValue, newValue])
+  const segments = useMemo(() => diffTextSegments(oldValue, newValue), [oldValue, newValue])
 
-  const wordsRemoved = useMemo(() => countWords(changes, 'removed'), [changes])
-  const wordsAdded = useMemo(() => countWords(changes, 'added'), [changes])
+  const wordsRemoved = useMemo(() => countWords(segments, 'removed'), [segments])
+  const wordsAdded = useMemo(() => countWords(segments, 'added'), [segments])
 
-  const isTruncated = !showFull && totalLength(changes) > maxLength
+  const isTruncated = !showFull && totalLength(segments) > maxLength
 
   // Build truncated diff segments if needed
-  const visibleChanges = useMemo(() => {
-    if (!isTruncated) return changes
+  const visibleSegments = useMemo(() => {
+    if (!isTruncated) return segments
 
-    const result: Change[] = []
+    const result: TextSegment[] = []
     let charCount = 0
 
-    for (const change of changes) {
+    for (const segment of segments) {
       if (charCount >= maxLength) break
 
       const remaining = maxLength - charCount
-      if (change.value.length <= remaining) {
-        result.push(change)
-        charCount += change.value.length
+      if (segment.text.length <= remaining) {
+        result.push(segment)
+        charCount += segment.text.length
       } else {
-        result.push({...change, value: change.value.slice(0, remaining)})
+        result.push({...segment, text: segment.text.slice(0, remaining)})
         charCount = maxLength
       }
     }
 
     return result
-  }, [changes, isTruncated, maxLength])
+  }, [segments, isTruncated, maxLength])
 
   return (
     <Card padding={3} radius={2} tone="transparent" border>
@@ -106,22 +105,22 @@ export function InlineDiff({oldValue, newValue, maxLength = DEFAULT_MAX_LENGTH}:
 
       {/* Inline diff content */}
       <Text size={1} style={{lineHeight: 1.6, wordBreak: 'break-word'}}>
-        {visibleChanges.map((change, i) => {
-          if (change.removed) {
+        {visibleSegments.map((segment, i) => {
+          if (segment.action === 'removed') {
             return (
-              <span key={i} style={DELETION_STYLE} aria-label={`removed: ${change.value}`}>
-                {change.value}
+              <span key={i} style={DELETION_STYLE} aria-label={`removed: ${segment.text}`}>
+                {segment.text}
               </span>
             )
           }
-          if (change.added) {
+          if (segment.action === 'added') {
             return (
-              <span key={i} style={ADDITION_STYLE} aria-label={`added: ${change.value}`}>
-                {change.value}
+              <span key={i} style={ADDITION_STYLE} aria-label={`added: ${segment.text}`}>
+                {segment.text}
               </span>
             )
           }
-          return <span key={i}>{change.value}</span>
+          return <span key={i}>{segment.text}</span>
         })}
         {isTruncated && (
           <span

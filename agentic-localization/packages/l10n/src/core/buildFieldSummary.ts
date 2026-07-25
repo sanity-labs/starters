@@ -10,15 +10,16 @@
  * The caller is responsible for populating `textExtracts` — the function
  * uses `pt::text()` GROQ projection for current docs and `extractBlockText()`
  * for historical docs; the client uses `extractBlockText()` for both.
+ *
+ * The PT regions come from `core/textDiff`, the same segments the reviewer's
+ * rendered diff reads, so the prompt and the UI can never disagree about what
+ * changed.
  */
 
 import type {FieldChange} from './computeFieldChanges'
+import type {TextSegment} from './textDiff'
 
-/** Diff function signature — injected by caller to avoid bundler issues with transitive deps. */
-export type DiffWordsFn = (
-  oldStr: string,
-  newStr: string,
-) => Array<{value: string; added?: boolean; removed?: boolean}>
+import {diffTextSegments} from './textDiff'
 
 /** Pre-extracted plain text for PT fields. */
 export interface TextExtracts {
@@ -63,64 +64,51 @@ interface ChangeRegion {
 
 /**
  * A segment from the diff output — either unchanged text or a change group.
- * Pre-processing diffWords output into this structure makes region building
+ * Collapsing the removed/added pair into one entry makes region building
  * straightforward without complex index management.
  */
 type DiffSegment =
   | {type: 'unchanged'; text: string}
   | {type: 'change'; removed: string; added: string}
 
-/**
- * Collapse raw diffWords output into alternating unchanged/change segments.
- * Contiguous removed+added entries become a single change segment.
- */
-function collapseDiffSegments(
-  rawChanges: Array<{value: string; added?: boolean; removed?: boolean}>,
-): DiffSegment[] {
-  const segments: DiffSegment[] = []
+/** Collapse contiguous removed+added segments into a single change segment. */
+function collapseDiffSegments(segments: readonly TextSegment[]): DiffSegment[] {
+  const collapsed: DiffSegment[] = []
   let i = 0
 
-  while (i < rawChanges.length) {
-    const entry = rawChanges[i]!
+  while (i < segments.length) {
+    const segment = segments[i]!
 
-    if (!entry.added && !entry.removed) {
-      segments.push({type: 'unchanged', text: entry.value})
+    if (segment.action === 'unchanged') {
+      collapsed.push({type: 'unchanged', text: segment.text})
       i++
       continue
     }
 
-    // Collect contiguous removed+added into one change segment
     let removed = ''
     let added = ''
-    while (i < rawChanges.length) {
-      const c = rawChanges[i]!
-      if (c.removed) {
-        removed += c.value
-        i++
-      } else if (c.added) {
-        added += c.value
-        i++
-      } else {
-        break
-      }
+    while (i < segments.length && segments[i]!.action !== 'unchanged') {
+      const change = segments[i]!
+      if (change.action === 'removed') removed += change.text
+      else added += change.text
+      i++
     }
-    segments.push({type: 'change', removed, added})
+    collapsed.push({type: 'change', removed, added})
   }
 
-  return segments
+  return collapsed
 }
 
 /**
  * Build diff-aware text extraction for PT fields.
  *
  * Instead of showing two full text blobs (which truncate identically when
- * edits are in the tail), finds the actual change regions using jsdiff and
- * extracts context windows around each one.
+ * edits are in the tail), finds the actual change regions and extracts context
+ * windows around each one.
  */
 export function buildDiffAwareExtract(
   oldText: string,
   newText: string,
-  diffWordsFn: DiffWordsFn,
   contextChars: number = CONTEXT_CHARS,
   totalBudget: number = PT_REGION_BUDGET,
 ): string {
@@ -129,8 +117,7 @@ export function buildDiffAwareExtract(
     return '  (text extraction unavailable)'
   }
 
-  const rawChanges = diffWordsFn(oldText, newText)
-  const segments = collapseDiffSegments(rawChanges)
+  const segments = collapseDiffSegments(diffTextSegments(oldText, newText))
 
   // Build regions: for each change segment, grab context from adjacent unchanged segments
   const regions: ChangeRegion[] = []
@@ -170,7 +157,7 @@ export function buildDiffAwareExtract(
     })
   }
 
-  // Edge case: diffWords found no changes (structural diff only)
+  // Edge case: the text diff found no changes (structural diff only)
   if (regions.length === 0) {
     return '  (no text-level differences detected — change may be in block structure or formatting)'
   }
@@ -258,11 +245,7 @@ function escapeQuotes(text: string): string {
  *
  * Only includes changed fields — the AI doesn't need to see unchanged ones.
  */
-export function buildFieldSummary(
-  changes: FieldChange[],
-  textExtracts: TextExtracts = {},
-  diffWordsFn?: DiffWordsFn,
-): string {
+export function buildFieldSummary(changes: FieldChange[], textExtracts: TextExtracts = {}): string {
   const lines: string[] = []
 
   for (const c of changes) {
@@ -279,10 +262,7 @@ export function buildFieldSummary(
       const newText = extract?.newText ?? ''
       // diff-aware extraction with char counts in header
       const ptHeader = `- ${c.fieldName} (${c.fieldType}): ${c.magnitude} change (old: ${oldText.length} chars, new: ${newText.length} chars)`
-      const diffExtract = diffWordsFn
-        ? buildDiffAwareExtract(oldText, newText, diffWordsFn)
-        : '  (diff function not provided — PT diff unavailable)'
-      lines.push(`${ptHeader}\n${diffExtract}`)
+      lines.push(`${ptHeader}\n${buildDiffAwareExtract(oldText, newText)}`)
     } else {
       const header = `- ${c.fieldName} (${c.fieldType}): ${c.magnitude} change`
       lines.push(header)

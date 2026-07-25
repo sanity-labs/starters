@@ -1,6 +1,10 @@
-import {describe, expect, it} from 'vitest'
 import type {ResolvedFieldEntry} from '@sanity/workflow-engine'
 
+import {createBench, subjectField} from '@sanity/workflow-engine-test'
+import {describe, expect, it} from 'vitest'
+
+import {ANALYZE_SOURCE} from '../workflows/effects'
+import {localizationWorkflows} from '../workflows'
 import {
   readDocumentId,
   readFlag,
@@ -83,5 +87,76 @@ describe('instanceFields', () => {
     expect(readReleaseName(fields, 'target')).toBeNull()
     expect(readProgress(fields, 'translationProgress')).toBe(60)
     expect(readProgress(fields, 'absent')).toBeNull()
+  })
+})
+
+/**
+ * The other half of `FieldSource`: a caller holding a whole instance — the Studio
+ * run surface, through the session's evaluation — reads through the engine's
+ * `resolveFieldEntry` at workflow scope rather than scanning `fields[]`. Driven
+ * against the real engine so the scope resolution is the engine's own.
+ */
+describe('instanceFields over a whole instance', () => {
+  async function runWithAnalysis() {
+    const source = {
+      _id: 'article-1',
+      _type: 'article',
+      title: 'Instance-scoped reads',
+      language: 'en-US',
+    }
+    const bench = createBench({now: '2026-07-24T09:00:00.000Z', documents: [source]})
+    await bench.deployDefinitions({
+      expectedMinReaderModel: 4,
+      definitions: localizationWorkflows,
+    })
+    const {instance} = await bench.startInstance({
+      definition: 'localize-document',
+      initialFields: [subjectField('article-1', {type: 'article'})],
+    })
+    return bench.completePendingEffect({
+      instanceId: instance._id,
+      effect: ANALYZE_SOURCE,
+      status: 'done',
+      ops: [
+        {
+          type: 'field.set',
+          target: {scope: 'workflow', field: 'materiality'},
+          value: {type: 'literal', value: 'material'},
+        },
+        {
+          type: 'field.set',
+          target: {scope: 'workflow', field: 'explanation'},
+          value: {type: 'literal', value: 'Pricing changed in three markets.'},
+        },
+        {
+          type: 'field.set',
+          target: {scope: 'workflow', field: 'sourceChanged'},
+          value: {type: 'literal', value: true},
+        },
+        {
+          type: 'field.set',
+          target: {scope: 'workflow', field: 'targetLocales'},
+          value: {
+            type: 'literal',
+            value: [{locale: 'de-DE', reason: 'body changed'}, {locale: 'fr-FR'}],
+          },
+        },
+      ],
+    })
+  }
+
+  it('reads every workflow-scope field the run surface renders', async () => {
+    const {instance} = await runWithAnalysis()
+
+    expect(readMateriality(instance)).toBe('material')
+    expect(readText(instance, 'explanation')).toBe('Pricing changed in three markets.')
+    expect(readFlag(instance, 'sourceChanged')).toBe(true)
+    expect(readFlag(instance, 'hasFailedLocales')).toBe(false)
+    expect(readLocaleRequests(instance, 'targetLocales')).toEqual([
+      {locale: 'de-DE', reason: 'body changed'},
+      {locale: 'fr-FR', reason: undefined},
+    ])
+    expect(readDocumentId(instance, 'subject')).toBe('article-1')
+    expect(readReleaseName(instance, 'release')).toBeNull()
   })
 })

@@ -10,6 +10,23 @@
  * locale's values. Diff rendering reuses the pure diff components; editing
  * hands the reviewer the field in the real editor rather than re-implementing
  * one here.
+ *
+ * Not the Studio's own review-changes tree. `sanity` does export `ChangeList`,
+ * `ChangeResolver`, `DiffCard`, `DiffTooltip`, `useDocumentChange` and
+ * `resolveDiffComponent`, and adopting them would delete most of this file — but
+ * every one of them is marked `@internal` in `sanity@6.6.0`'s `.d.ts` despite
+ * being publicly exported, so none carries a stability guarantee on a host that
+ * ships weekly. The disqualifier is structural rather than a version worry:
+ * `ChangeListProps.schemaType` is an `ObjectSchemaType`, and the field tier's
+ * side of the compare is `compareSides`' locale-reduced projection — a flat map
+ * keyed by dotted paths (`seo.metaTitle`) holding one locale's scalar values.
+ * No compiled schema type has those fields, and handing `ChangeList` the real
+ * `person` type instead would put every locale's array entries back on screen,
+ * which is exactly what the projection exists to remove.
+ *
+ * What we did take is the stable half of the same machinery: `@sanity/diff` is
+ * `@public`, and `core/textDiff` reads its `StringDiff`/`ArrayDiff` directly.
+ * This file renders those segments; it no longer computes any.
  */
 
 import {EditIcon} from '@sanity/icons'

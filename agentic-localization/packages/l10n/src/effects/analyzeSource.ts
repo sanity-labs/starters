@@ -18,7 +18,6 @@ import type {StaleAnalysisResult, StaleAnalysisSuggestion} from '../core/types'
 import {DocumentId, getPublishedId} from '@sanity/id-utils'
 import {createSafeJsonParser} from '@sanity/util/createSafeJsonParser'
 import {extractDocumentId} from '@sanity/workflow-engine'
-import {diffWords} from 'diff'
 
 import type {FieldChange} from '../core/computeFieldChanges'
 import type {InternationalizedField} from '../core/fieldTier'
@@ -118,7 +117,7 @@ export const analyzeSource: EffectHandler = async (params, ctx) => {
     }
   }
 
-  const fieldSummary = buildFieldSummary(fieldChanges, buildTextExtracts(fieldChanges), diffWords)
+  const fieldSummary = buildFieldSummary(fieldChanges, buildTextExtracts(fieldChanges))
   const response = await agentClient(client, ctx).agent.action.prompt({
     instruction: ANALYSIS_PROMPT_INSTRUCTION.replace('$fieldSummary', fieldSummary),
   })

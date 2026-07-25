@@ -94,6 +94,7 @@ export {
   type FieldType,
 } from './core/computeFieldChanges'
 export {buildDiffAwareExtract, buildFieldSummary, type TextExtracts} from './core/buildFieldSummary'
+export {diffBlockTexts, diffTextSegments, type BlockChange, type TextSegment} from './core/textDiff'
 export {ANALYSIS_PROMPT_INSTRUCTION} from './core/staleAnalysisPrompt'
 export {extractBlockText} from './core/extractBlockText'
 export {compareSides, type CompareSides, type CompareSidesArgs} from './core/compareSides'

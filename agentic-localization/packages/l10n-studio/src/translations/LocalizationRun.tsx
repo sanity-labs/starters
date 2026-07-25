@@ -5,6 +5,21 @@
  * the session — stage, materiality, the analysis narrative, the per-locale
  * children, the two advisory flags. Nothing is derived from content documents,
  * and nothing is written except through a session verb.
+ *
+ * The reads hand `evaluation.instance` to `@starter/l10n`'s readers rather than
+ * its bare `fields[]`, so the engine's own `resolveFieldEntry` owns scope
+ * resolution — a workflow-scope field resolves at workflow scope even if a stage
+ * ever declares the same name.
+ *
+ * Not the official recipes' `EditableFieldEvaluation` off
+ * `evaluation.editableFields`, which is the surface a field a person edits should
+ * use. The engine builds that list from `fieldSites(...).filter(site =>
+ * site.entry.editable !== undefined)`, so it is empty for `localize-document`:
+ * every field here is written by an effect's completion or a transition, and none
+ * declares `editable`. Reading through it would mean opening `materiality`,
+ * `explanation` and `targetLocales` to `session.editField` — turning the
+ * machine's verdict into a form — to gain nothing this surface renders. The
+ * reviewer's write seam is `session.fireAction`, below, and that is deliberate.
  */
 
 import {
@@ -262,7 +277,8 @@ export function LocalizationRun({instanceId, documentType, onEditField}: Localiz
   }
 
   const {evaluation} = session
-  const {fields, currentStage, subworkflows, perspective} = evaluation.instance
+  const {instance} = evaluation
+  const {currentStage, subworkflows, perspective} = instance
   const stage = STAGE_DISPLAY[currentStage] ?? {tone: 'default' as const, label: currentStage}
   const fieldTier = isFieldTier(documentType)
   // A field-tier run writes its translations into the subject, so it can only
@@ -271,10 +287,10 @@ export function LocalizationRun({instanceId, documentType, onEditField}: Localiz
   // notes), so a run started from the picker carries the drafts default and
   // reports itself as drift. Say so rather than let the flag lie.
   const driftUnreliable = fieldTier && perspective !== 'published'
-  const materiality = readMateriality(fields)
-  const explanation = readText(fields, 'explanation')
-  const targetLocales = readLocaleRequests(fields, 'targetLocales')
-  const releaseName = readReleaseName(fields, 'release')
+  const materiality = readMateriality(instance)
+  const explanation = readText(instance, 'explanation')
+  const targetLocales = readLocaleRequests(instance, 'targetLocales')
+  const releaseName = readReleaseName(instance, 'release')
   const runs = buildLocaleRuns({
     targetLocales,
     subworkflows: subworkflows ?? [],
@@ -305,7 +321,7 @@ export function LocalizationRun({instanceId, documentType, onEditField}: Localiz
 
       {materiality && <MaterialityCard explanation={explanation} materiality={materiality} />}
 
-      {readFlag(fields, 'sourceChanged') && (
+      {readFlag(instance, 'sourceChanged') && (
         <Banner icon={SyncIcon} tone="caution">
           {driftUnreliable
             ? 'The source revision moved while this run was open — but this run reads drafts, so its own translations moved it too. Check the source yourself; runs started from a publish read the published layer and can tell the difference.'
@@ -313,7 +329,7 @@ export function LocalizationRun({instanceId, documentType, onEditField}: Localiz
         </Banner>
       )}
 
-      {readFlag(fields, 'hasFailedLocales') && (
+      {readFlag(instance, 'hasFailedLocales') && (
         <Banner icon={ErrorOutlineIcon} tone="critical">
           {`${failedCount || 'Some'} locale${failedCount === 1 ? '' : 's'} failed to translate. Shipping the rest is your call.`}
         </Banner>

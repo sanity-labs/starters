@@ -1,11 +1,28 @@
 /**
- * Pure functions for computing field-level changes between document snapshots.
+ * Field-level changes between two document snapshots.
  *
- * Zero React/Sanity dependencies — safe to import in Sanity Functions runtime.
+ * The structural diff is `@sanity/diff`'s — `diffInput` over two wrapped
+ * documents returns an `ObjectDiff` whose per-field `Diff` already ignores the
+ * document envelope (`_id`/`_rev`/`_type`/timestamps) and drops `undefined`
+ * entries. What stays ours is the six-value editorial magnitude vocabulary,
+ * which the AI prompt and the reviewer's badge tones both read and which
+ * `@sanity/diff`'s four actions cannot express.
  *
- * Extracted from useStaleChangeSummary.ts so the analyze-stale-translations
- * function can use these without pulling in React.
+ * Magnitude is derived from the diff's own segment char counts rather than a
+ * positional scan. The scan it replaces mis-scored every insertion at the head
+ * of a string: shifting the text by one character made every later character
+ * compare unequal, so a two-character prefix read as a full rewrite.
+ *
+ * Zero React/Studio dependencies — safe to import in the Functions runtime.
  */
+
+import type {Diff} from '@sanity/diff'
+
+import {diffInput, wrap} from '@sanity/diff'
+import {isDeepEmpty, resolveTypeName} from '@sanity/util/content'
+
+import {isRecord} from './isRecord'
+import {changedCharCount, diffTextSegments} from './textDiff'
 
 // --- Types ---
 
@@ -44,126 +61,162 @@ export interface FieldChange {
 
 // --- Constants ---
 
-/** System fields to exclude from diff comparison */
-const SYSTEM_FIELDS = new Set([
-  '_id',
-  '_rev',
-  '_type',
-  '_createdAt',
-  '_updatedAt',
-  '_originalId',
-  'language',
-])
-
-/** Magnitude thresholds based on character delta percentage */
+/** Magnitude thresholds, as a share of the characters on both sides of the field. */
 const MINOR_THRESHOLD = 0.2
 const REWRITTEN_THRESHOLD = 0.7
 
+/**
+ * Not content, whatever the diff says. `@sanity/diff` already skips the document
+ * envelope; `language` is the locale marker every field-tier projection carries,
+ * and a leading underscore is Sanity's own namespace.
+ */
+function isSystemField(fieldName: string): boolean {
+  return fieldName.startsWith('_') || fieldName === 'language'
+}
+
 // --- Pure functions ---
 
+/** Portable Text — blocks with children — rather than any other array. */
+function isPortableText(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.some((item) => isRecord(item) && item._type === 'block' && 'children' in item)
+  )
+}
+
 /**
- * Detect the field type from a value using heuristics.
- * Uses the "most informative" value — prefers non-null.
- * If both old and new exist, uses new (it's the latest schema shape).
+ * Detect the field type from a value.
+ *
+ * `resolveTypeName` is the reader the Studio's own form layer uses: a declared
+ * `_type` wins, anything else falls back to its JS type. Uses the most
+ * informative value — prefers non-null, prefers new.
  */
 export function detectFieldType(oldValue: unknown, newValue: unknown): FieldType {
-  // Use the most informative value (prefer non-null, prefer new)
   const value = newValue ?? oldValue
-  if (value === null || value === undefined) return 'other'
 
-  if (typeof value === 'string') return 'string'
-  if (typeof value === 'number') return 'number'
-  if (typeof value === 'boolean') return 'boolean'
+  switch (resolveTypeName(value)) {
+    case 'string':
+      return 'string'
+    case 'number':
+      return 'number'
+    case 'boolean':
+      return 'boolean'
+    case 'image':
+      return 'image'
+    case 'reference':
+      return 'reference'
+    case 'array':
+      return isPortableText(value) ? 'portableText' : 'array'
+    default:
+      // A reference written without its `_type`, which the Studio tolerates.
+      return isRecord(value) && '_ref' in value ? 'reference' : 'other'
+  }
+}
 
-  if (Array.isArray(value)) {
-    // Check if this is Portable Text: array of objects with _type: 'block' and children
-    const isPortableText =
-      value.length > 0 &&
-      value.some(
-        (item) =>
-          typeof item === 'object' &&
-          item !== null &&
-          '_type' in item &&
-          (item as Record<string, unknown>)._type === 'block' &&
-          'children' in item,
+/** Every character of every string in a value — an added subtree's whole weight. */
+function textLength(value: unknown): number {
+  if (typeof value === 'string') return value.length
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value).length
+  if (Array.isArray(value))
+    return value.reduce<number>((total, item) => total + textLength(item), 0)
+  if (isRecord(value)) {
+    return Object.entries(value).reduce(
+      (total, [key, entry]) => (isSystemField(key) ? total : total + textLength(entry)),
+      0,
+    )
+  }
+  return 0
+}
+
+/** Characters the edit touched, and characters it had to work with. */
+interface CharCounts {
+  changed: number
+  total: number
+}
+
+function sum(counts: readonly CharCounts[]): CharCounts {
+  return counts.reduce(
+    (all, entry) => ({changed: all.changed + entry.changed, total: all.total + entry.total}),
+    {changed: 0, total: 0},
+  )
+}
+
+/** One whole side arrived or left — every character of it counts as touched. */
+function wholeSubtree(diff: Diff<null>): CharCounts {
+  const length = textLength(diff.fromValue) + textLength(diff.toValue)
+  return {changed: length, total: length}
+}
+
+/**
+ * Walk a diff and count the characters it moved.
+ *
+ * A string's own segments are the ground truth; containers sum their children,
+ * so an edit inside one span of one Portable Text block scores against the whole
+ * field rather than against that span.
+ */
+function diffCharCounts(diff: Diff<null>): CharCounts {
+  if (diff.action === 'added' || diff.action === 'removed') return wholeSubtree(diff)
+
+  switch (diff.type) {
+    case 'string':
+      if (!diff.isChanged) return {changed: 0, total: diff.fromValue.length * 2}
+      return {
+        changed: changedCharCount(diffTextSegments(diff.fromValue, diff.toValue)),
+        total: diff.fromValue.length + diff.toValue.length,
+      }
+    case 'object':
+      return sum(
+        Object.entries(diff.fields).flatMap(([key, field]) =>
+          isSystemField(key) ? [] : [diffCharCounts(field)],
+        ),
       )
-    return isPortableText ? 'portableText' : 'array'
+    case 'array':
+      return sum(diff.items.map((item) => diffCharCounts(item.diff)))
+    default:
+      return diff.isChanged ? wholeSubtree(diff) : {changed: 0, total: textLength(diff.toValue) * 2}
   }
-
-  if (typeof value === 'object') {
-    const obj = value as Record<string, unknown>
-    // Image: has _type: 'image' and asset
-    if (obj._type === 'image' && 'asset' in obj) return 'image'
-    // Reference: has _ref
-    if ('_ref' in obj) return 'reference'
-  }
-
-  return 'other'
 }
 
-/**
- * Stringify a field value for character-length comparison.
- * For Portable Text / arrays, JSON.stringify gives us a reasonable
- * character count without deep-diffing individual blocks.
- */
-function stringifyValue(value: unknown): string {
-  if (value === null || value === undefined) return ''
-  if (typeof value === 'string') return value
-  return JSON.stringify(value)
-}
+/** Score a diff against the editorial vocabulary. */
+function magnitudeOf(diff: Diff<null>): FieldChangeMagnitude {
+  const fromEmpty = isDeepEmpty(diff.fromValue)
+  const toEmpty = isDeepEmpty(diff.toValue)
 
-/**
- * Compute the magnitude of change between two field values.
- */
-export function computeMagnitude(oldValue: unknown, newValue: unknown): FieldChangeMagnitude {
-  const oldExists = oldValue !== null && oldValue !== undefined
-  const newExists = newValue !== null && newValue !== undefined
+  if (fromEmpty && toEmpty) return 'unchanged'
+  if (fromEmpty) return 'added'
+  if (toEmpty) return 'removed'
+  if (!diff.isChanged) return 'unchanged'
 
-  if (!oldExists && !newExists) return 'unchanged'
-  if (!oldExists && newExists) return 'added'
-  if (oldExists && !newExists) return 'removed'
+  const {changed, total} = diffCharCounts(diff)
+  if (total === 0 || changed === 0) return 'minor'
 
-  const oldStr = stringifyValue(oldValue)
-  const newStr = stringifyValue(newValue)
-
-  if (oldStr === newStr) return 'unchanged'
-
-  // Compute character delta percentage relative to the longer string
-  const maxLen = Math.max(oldStr.length, newStr.length)
-  if (maxLen === 0) return 'unchanged'
-
-  // Levenshtein is expensive — use length delta + content check as proxy.
-  // For short strings, any change is at least 'minor'.
-  // For longer strings, use character count difference as magnitude proxy.
-  const lenDelta = Math.abs(oldStr.length - newStr.length)
-  const deltaRatio = lenDelta / maxLen
-
-  // If lengths are similar but content differs, estimate based on
-  // how many characters are different (simple char-by-char scan)
-  if (deltaRatio < MINOR_THRESHOLD) {
-    // Lengths are similar — check content difference
-    let diffChars = 0
-    const minLen = Math.min(oldStr.length, newStr.length)
-    for (let i = 0; i < minLen; i++) {
-      if (oldStr[i] !== newStr[i]) diffChars++
-    }
-    diffChars += Math.abs(oldStr.length - newStr.length)
-    const contentDelta = diffChars / maxLen
-
-    if (contentDelta < MINOR_THRESHOLD) return 'minor'
-    if (contentDelta < REWRITTEN_THRESHOLD) return 'updated'
-    return 'rewritten'
-  }
-
-  if (deltaRatio < REWRITTEN_THRESHOLD) return 'updated'
+  const ratio = changed / total
+  if (ratio < MINOR_THRESHOLD) return 'minor'
+  if (ratio < REWRITTEN_THRESHOLD) return 'updated'
   return 'rewritten'
 }
 
 /**
- * Extract user-defined field names from a document, excluding system fields.
+ * Compute the magnitude of change between two field values.
+ *
+ * The vocabulary is the contract callers depend on; the derivation behind it is
+ * not.
  */
-function getUserFields(doc: Record<string, unknown>): string[] {
-  return Object.keys(doc).filter((key) => !SYSTEM_FIELDS.has(key) && !key.startsWith('_'))
+export function computeMagnitude(oldValue: unknown, newValue: unknown): FieldChangeMagnitude {
+  if (isDeepEmpty(oldValue) && isDeepEmpty(newValue)) return 'unchanged'
+  if (isDeepEmpty(oldValue)) return 'added'
+  if (isDeepEmpty(newValue)) return 'removed'
+  return magnitudeOf(diffInput<null>(wrap(oldValue, null), wrap(newValue, null)))
+}
+
+/** The magnitude vocabulary, most severe first. */
+const MAGNITUDE_ORDER: Record<FieldChangeMagnitude, number> = {
+  rewritten: 0,
+  removed: 1,
+  added: 2,
+  updated: 3,
+  minor: 4,
+  unchanged: 5,
 }
 
 /**
@@ -173,15 +226,17 @@ export function computeFieldChanges(
   historicalDoc: Record<string, unknown>,
   currentDoc: Record<string, unknown>,
 ): FieldChange[] {
-  // Union of all user fields from both documents
-  const allFields = new Set([...getUserFields(historicalDoc), ...getUserFields(currentDoc)])
+  const diff = diffInput<null>(wrap(historicalDoc, null), wrap(currentDoc, null))
+  if (diff.type !== 'object') return []
 
   const changes: FieldChange[] = []
 
-  for (const fieldName of allFields) {
-    const oldValue = historicalDoc[fieldName]
-    const newValue = currentDoc[fieldName]
-    const magnitude = computeMagnitude(oldValue, newValue)
+  for (const [fieldName, fieldDiff] of Object.entries(diff.fields)) {
+    if (isSystemField(fieldName)) continue
+
+    const {fromValue: oldValue, toValue: newValue} = fieldDiff
+    const magnitude = magnitudeOf(fieldDiff)
+
     changes.push({
       fieldName,
       changed: magnitude !== 'unchanged',
@@ -192,17 +247,7 @@ export function computeFieldChanges(
     })
   }
 
-  // Sort: changed fields first (by severity), then unchanged
-  const magnitudeOrder: Record<FieldChangeMagnitude, number> = {
-    rewritten: 0,
-    removed: 1,
-    added: 2,
-    updated: 3,
-    minor: 4,
-    unchanged: 5,
-  }
-
-  changes.sort((a, b) => magnitudeOrder[a.magnitude] - magnitudeOrder[b.magnitude])
+  changes.sort((a, b) => MAGNITUDE_ORDER[a.magnitude] - MAGNITUDE_ORDER[b.magnitude])
 
   return changes
 }

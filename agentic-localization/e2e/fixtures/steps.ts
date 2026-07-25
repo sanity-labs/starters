@@ -28,11 +28,19 @@ export function contextAndAction<A = undefined, B = undefined>(
   return [Given<L10nContext, A, B>(text, callback), When<L10nContext, A, B>(text, callback)]
 }
 
+/**
+ * The locales a step names, sorted.
+ *
+ * Sorted because `spawn` gives no ordering guarantee over a cohort — the engine
+ * returns children in whatever order the lake does — and no scenario is about
+ * which locale went first.
+ */
 function localeList(value: string): string[] {
   return value
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean)
+    .sort()
 }
 
 async function instance(context: L10nContext): Promise<WorkflowInstance> {
@@ -84,7 +92,7 @@ export const runSteps = [
     async (context, count, locales) => {
       const children = await context.harness.engine.children({instanceId: context.instanceId})
       expect(children).toHaveLength(count)
-      expect(children.map(localeOf)).toEqual(localeList(locales))
+      expect(children.map(localeOf).sort()).toEqual(localeList(locales))
     },
   ),
 
@@ -93,7 +101,7 @@ export const runSteps = [
     async (context, count, locales) => {
       const open = await pendingCohort(context)
       expect(open).toHaveLength(count)
-      expect(open.map(localeOf)).toEqual(localeList(locales))
+      expect(open.map(localeOf).sort()).toEqual(localeList(locales))
     },
   ),
 

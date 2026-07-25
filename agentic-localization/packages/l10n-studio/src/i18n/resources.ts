@@ -47,6 +47,7 @@ export default {
   'diff.sr-summary': '{{removed}} word(s) removed, {{added}} word(s) added',
   'diff.show-full': '… [show full diff]',
   'diff.block-added': 'added',
+  'diff.block-moved': 'moved',
   'diff.block-removed': 'removed',
   'diff.no-changes': 'No text content changes detected',
   'diff.more-changes': '+ {{count}} more block change(s)',

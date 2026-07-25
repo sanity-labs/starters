@@ -31,7 +31,6 @@
     "@sanity/workflow-sdk": "catalog:",
     "@sanity/workflow-studio": "catalog:",
     "@starter/l10n": "workspace:*",
-    "diff": "^8.0.3",
     "groq": "catalog:",
     "react": "catalog:",
     "react-error-boundary": "^6.1.1",
@@ -44,7 +43,6 @@
   "devDependencies": {
     "@starter/sanity-types": "workspace:*",
     "@starter/tsconfig": "workspace:*",
-    "@types/diff": "^7.0.0",
     "@types/react": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
