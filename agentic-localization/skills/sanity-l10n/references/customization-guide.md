@@ -117,16 +117,20 @@ precise, FR formal + elegant, JA formal + concise).
    cd studio && pnpm exec sanity schema deploy
    ```
 
-4. **Update function filters** — if the new type should trigger stale detection,
-   update the event filter in `sanity.blueprint.ts`:
+4. **Update the trigger** — for publishing the type to start a localization run,
+   widen the `start-localization` event filter in `sanity.blueprint.ts`:
 
    ```ts
    filter: "_type in ['article', 'yourNewType'] && language == 'en-US'"
    ```
 
-5. **Redeploy functions**:
+   and add the type to the `subject` field's `types` in
+   `packages/l10n/src/workflows/localizeDocument.ts`.
+
+5. **Redeploy**:
    ```sh
    pnpm exec sanity blueprints deploy
+   pnpm workflows:deploy
    ```
 
 ### What `localizedSchemaTypes` Does
@@ -140,34 +144,16 @@ Only types listed here get:
 
 ## Functions and Blueprint Customization
 
-### The Two Functions
+### The Runtime Functions
 
-Read the source files directly for the full implementation:
+`functions/` holds the engine's runtime — `drain-effects`,
+`start-localization`, `handle-deleted-subject` and an opt-in `heartbeat`. Their
+triggers, timeouts and env are declared as resources in `sanity.blueprint.ts`;
+what they execute lives in `packages/l10n/src/handlers/`.
 
-**`functions/mark-translations-stale.ts`**
-
-- Triggers on: document publish events
-- Default filter: `_type == 'article' && language == 'en-US'`
-- Action: finds `translation.metadata` for the doc, sets all workflow states to
-  `stale`, records `staleSourceRev`
-- Timeout: 15 seconds
-
-**`functions/analyze-stale-translations.ts`**
-
-- Triggers on: `translation.metadata` updates where stale count > 0
-- Action: 7-step pipeline (history fetch → field diff → AI analysis → cache →
-  pre-translate per locale)
-- Timeout: 120 seconds, 1GB memory
-- Batches locale translations in groups of 3
-
-### Modifying Function Filters
-
-Both functions define their trigger in `sanity.blueprint.ts` via the `event`
-property. To add a new content type to stale detection:
-
-1. Update the `filter` string in the `mark-translations-stale` resource
-2. The `analyze-stale-translations` function doesn't need a filter change — it
-   triggers on any `translation.metadata` update with stale entries
+Engine coordinates (the `workflows` dataset and the `production` tag) come from
+`packages/l10n/src/workflows/config.ts`. Change them there and the blueprint,
+the definition deploy, the Studio and the dashboard all follow.
 
 ### Environment Variables
 

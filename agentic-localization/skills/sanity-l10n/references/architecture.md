@@ -14,6 +14,8 @@ starter-agentic-i18n/
 │   │   ├── promptAssembly.ts     Prompt assembly pipeline (the main bridge)
 │   │   ├── queries.ts            GROQ queries for locales, glossaries, style guides
 │   │   ├── types.ts              Schema type name constants
+│   │   ├── workflows/            Definitions + bench specs, engine coordinates
+│   │   ├── handlers/             Effect handlers those definitions declare
 │   │   ├── core/                 Pure utilities (zero React — safe for serverless)
 │   │   │   ├── types.ts          Workflow statuses, stale analysis types, config
 │   │   │   ├── fieldMetadataIds.ts      Deterministic IDs for fieldTranslation.metadata
@@ -21,7 +23,6 @@ starter-agentic-i18n/
 │   │   │   ├── buildFieldSummary.ts     Human-readable change summary for AI
 │   │   │   ├── extractBlockText.ts      Plain text from Portable Text
 │   │   │   ├── staleAnalysisPrompt.ts   System prompt for change analysis
-│   │   │   ├── staleAnalysisCache.ts    Cache helpers for metadata documents
 │   │   │   └── sanitizeTranslationValue.ts  Clean AI output before write
 │   │   ├── schemas/              Sanity document/object type definitions
 │   │   │   ├── translationLocale.tsx       l10n.locale
@@ -29,12 +30,9 @@ starter-agentic-i18n/
 │   │   │   ├── glossaryEntry.ts            l10n.glossary.entry (object)
 │   │   │   ├── translationStyleGuide.ts    l10n.style-guide
 │   │   │   ├── localeTranslation.ts        l10n.locale.translation (object)
-│   │   │   ├── metadataFields.ts           translation.metadata fields
 │   │   │   └── fieldTranslationMetadata.ts fieldTranslation.metadata (liveEdit, hidden)
-│   │   ├── contexts/             Shared context providers (layout-level)
-│   │   │   ├── LocalesContext.tsx          Single listenQuery for locales
-│   │   │   ├── GlossariesContext.tsx       Single listenQuery for glossaries
-│   │   │   └── L10nProvider.tsx            Composes providers at studio layout
+│   │   ├── L10nProvider.tsx      One listenQuery each for locales and glossaries,
+│   │   │                         mounted once at the studio layout
 │   │   ├── fieldActions/         AI Assist field action integration
 │   │   │   ├── useInternationalizedFields.ts  Schema walk: discover i18n fields
 │   │   │   └── useTranslateFieldAction.ts     Per-locale translate sub-actions
@@ -46,9 +44,9 @@ starter-agentic-i18n/
 │   │       ├── useFieldWorkflowMetadata.ts     Metadata subscription
 │   │       ├── useFieldTranslationPublishGate.ts  Publish gate wrapper
 │   │       ├── useStaleSyncEffect.ts           Debounced stale persistence
-│   │       ├── useLocales.ts                   Thin wrapper over LocalesContext
 │   │       ├── createSemaphore.ts              Concurrency limiter
 │   │       ├── StaleDiffPopover.tsx             Stale cell diff UI
+│   │       ├── LocalizationRun.tsx             The open run, read off the instance
 │   │       └── ...                             (other doc-level translation files)
 │   └── evals/                    Translation quality evaluation framework
 │       ├── fixtures.ts           Shared test data (locales, glossaries, source texts)
@@ -59,9 +57,12 @@ starter-agentic-i18n/
 │       ├── authToken.ts          Resolves Sanity auth token for evals
 │       └── setup.ts              Global setup/teardown (seeds eval source doc)
 │
-├── functions/                    Sanity Functions (serverless) — BEING REPLACED
-│   ├── mark-translations-stale.ts    Marks translations stale on source publish
-│   └── analyze-stale-translations.ts AI analysis + pre-translation of stale fields
+├── sanity.workflow.ts            Workflow definition deployment (dataset + tag)
+├── functions/                    The engine's runtime (serverless)
+│   ├── drain-effects/                Dispatch an instance's pending effects, then tick
+│   ├── start-localization/           Publish starts or ticks a run
+│   ├── handle-deleted-subject/       Abort runs whose subject is gone
+│   └── heartbeat/                    Opt-in sweep for orphaned effect claims
 │
 ├── studio/                       Sanity Studio workspace
 │   ├── sanity.config.ts          Plugin config, localizedSchemaTypes list
@@ -93,50 +94,21 @@ serverless functions:
 | `@starter/l10n/core/computeFieldChanges`      | Field-level diffing                                     | Yes         |
 | `@starter/l10n/core/buildFieldSummary`        | Change summary for AI prompt                            | Yes         |
 | `@starter/l10n/core/staleAnalysisPrompt`      | System prompt template                                  | Yes         |
-| `@starter/l10n/core/staleAnalysisCache`       | Cache read/write helpers                                | Yes         |
 | `@starter/l10n/core/sanitizeTranslationValue` | Clean AI output                                         | Yes         |
-| `@starter/l10n/core/fieldMetadataIds`         | `getFieldTranslationMetadataId` — deterministic IDs     | Yes         |
+| `@starter/l10n/core/ids`                      | `getTranslationMetadataId` — deterministic IDs          | Yes         |
+| `@starter/l10n/workflows`                     | Definitions, effect names, engine coordinates           | Yes         |
+| `@starter/l10n/handlers`                      | Effect handlers + the runtime that dispatches them      | Yes         |
+| `@starter/l10n/translate`                     | Post-translation processing (slugs, images)             | Yes         |
 
-Functions import from `@starter/l10n/core/*` and `@starter/l10n/promptAssembly`
-— never from the root export (which pulls in React).
+`package.json` `exports` is the authoritative list. Functions, the CLI and the
+blueprint import the React-free sub-paths — never the root export.
 
-## Data Flow: Stale Detection Pipeline (current — being replaced)
+## Document-Level Localization Runs
 
-> This hand-rolled event chain is being migrated onto Editorial Workflows. The
-> steps below still describe what runs today, but the pieces that exist only to
-> work around the lack of a durable job — the freshness cache guarding against the
-> function that writes the document it triggers on, `LOCALE_BATCH_SIZE`, and the
-> `workflowStates[]` array — all disappear. Definitions live in
-> `packages/l10n/src/workflows/`; the plan is in `docs/WORKFLOW_ENGINE_MIGRATION.md`.
-
-```
-Source doc published (language == 'en-US')
-        │
-        ▼
-mark-translations-stale (Function)
-  │  Finds translation.metadata for the doc
-  │  Sets all workflow states → 'stale'
-  │  Records staleSourceRev = published _rev
-  │
-  ▼
-translation.metadata updated (stale count > 0)
-        │
-        ▼
-analyze-stale-translations (Function)
-  │  1. Guard: skip if valid cache exists for this staleSourceRev
-  │  2. Fetch source doc ref from metadata
-  │  3. Fetch historical doc (History API at sourceRevision) + current doc
-  │  4. Compute field-level diff (computeFieldChanges)
-  │  5. AI analysis via agent.action.prompt → StaleAnalysisResult
-  │  6. Write analysis cache to metadata (phase 1)
-  │  7. Pre-translate changed fields per stale locale (phase 2)
-  │     └── Batched by LOCALE_BATCH_SIZE=3, uses per-locale style guides
-  │
-  ▼
-Editor reviews in Translation Inspector
-  │  Sees: explanation, materiality, per-field suggestions
-  │  Actions: apply pre-translation, retranslate, dismiss, skip
-```
+The engine owns this flow, not the repo. Read the definitions in
+`packages/l10n/src/workflows/` for what a run does, `packages/l10n/src/handlers/`
+for what each effect executes, `functions/` for what dispatches them, and
+`docs/WORKFLOW_ENGINE_MIGRATION.md` for engine behaviour verified empirically.
 
 ## Data Flow: Prompt Assembly Pipeline
 

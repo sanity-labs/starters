@@ -4,16 +4,16 @@
 
 This starter uses two complementary translation architectures:
 
-| Aspect          | Document-level                                                 | Field-level                                                    |
-| --------------- | -------------------------------------------------------------- | -------------------------------------------------------------- |
-| Plugin          | `@sanity/document-internationalization`                        | `sanity-plugin-internationalized-array`                        |
-| Storage         | Separate document per locale (e.g., `article__i18n_es-MX`)     | Inline array entries on the same document                      |
-| Metadata doc    | `translation.metadata`                                         | `fieldTranslation.metadata`                                    |
-| Workflow states | `missing`, `usingFallback`, `needsReview`, `approved`, `stale` | `missing`, `needsReview`, `approved`, `stale`                  |
-| Stale detection | Server-side via Sanity Functions                               | Client-side via `deriveFieldCellStates` + `useStaleSyncEffect` |
-| Publish gate    | None (separate docs)                                           | `createFieldTranslationPublishGate` wraps PublishAction        |
-| Inspector UI    | Translation pane (per-locale document list)                    | Field x locale matrix (FieldTranslationContent)                |
-| Use case        | Full document translation (articles, pages)                    | Per-field translation (bios, descriptions, taglines)           |
+| Aspect          | Document-level                                               | Field-level                                                    |
+| --------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
+| Plugin          | `@sanity/document-internationalization`                      | `sanity-plugin-internationalized-array`                        |
+| Storage         | Separate document per locale (e.g., `article__i18n_es-MX`)   | Inline array entries on the same document                      |
+| Metadata doc    | `translation.metadata` (the i18n plugin's join document)     | `fieldTranslation.metadata`                                    |
+| Workflow states | Stages on the workflow instance, not on any content document | `missing`, `needsReview`, `approved`, `stale`                  |
+| Change handling | `localize-document`'s `analyze-source` effect, on publish    | Client-side via `deriveFieldCellStates` + `useStaleSyncEffect` |
+| Publish gate    | `hold-source-publish-during-review` guard on the source      | `createFieldTranslationPublishGate` wraps PublishAction        |
+| Inspector UI    | The open run, with per-locale compare (`LocalizationRun`)    | Field x locale matrix (FieldTranslationContent)                |
+| Use case        | Full document translation (articles, pages)                  | Per-field translation (bios, descriptions, taglines)           |
 
 **When to use which**: Use document-level when the entire document is translated
 as a unit (articles, blog posts). Use field-level when only specific fields need
@@ -153,12 +153,12 @@ automatically — no manual invocation.
 
 **Purpose**: Realtime subscription to supported languages (`l10n.locale` docs).
 
-**File**: `packages/l10n/src/translations/useLocales.ts`
+**File**: `packages/l10n/src/L10nProvider.tsx`
 
-**Pattern**: Thin wrapper over `useLocalesContext()` from `contexts/LocalesContext.tsx`.
-The actual `listenQuery(SUPPORTED_LANGUAGES_QUERY)` subscription lives in `LocalesProvider`,
+**Pattern**: Thin wrapper over the locales context. The
+`listenQuery(SUPPORTED_LANGUAGES_QUERY)` subscription lives in `LocalesProvider`,
 mounted once at the plugin's `studio.components.layout` level via `L10nProvider`.
-All consumers share a single EventSource connection. Returns `Language[] | undefined`
+All consumers share a single EventSource connection. Returns `Locale[] | undefined`
 (`undefined` while loading).
 
 **When to use**: Consumed by `FieldTranslationContent` for column headers, by

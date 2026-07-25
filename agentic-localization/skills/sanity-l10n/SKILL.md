@@ -1,6 +1,6 @@
 ---
 name: sanity-l10n
-description: 'Work with a Sanity starter that uses structured content (glossaries, style guides, locale metadata) to make AI translation enterprise-grade. Covers prompt assembly, automated stale detection via Sanity Functions, translation quality evals, and the Agent Actions Translate API. Trigger on: customize glossary, add terminology, translation style guide, run evals, deploy functions, prompt assembly, debug translation, extend l10n plugin, Agent Actions Translate, blueprint deploy, stale detection, pre-translation, field-level translation, field translation, internationalizedArray, field workflow, publish gate, field matrix, per-field translate, field approve, review workflow, translate field action. Complements sanity-best-practices (general i18n) and add-l10n-frontend (frontend rendering).'
+description: 'Work with a Sanity starter that uses structured content (glossaries, style guides, locale metadata) to make AI translation enterprise-grade. Covers prompt assembly, localization runs on Sanity Editorial Workflows, translation quality evals, and the Agent Actions Translate API. Trigger on: customize glossary, add terminology, translation style guide, run evals, deploy functions, prompt assembly, debug translation, extend l10n plugin, Agent Actions Translate, blueprint deploy, localization run, workflow definition, effect handler, field-level translation, field translation, internationalizedArray, field workflow, publish gate, field matrix, per-field translate, field approve, review workflow, translate field action. Complements sanity-best-practices (general i18n) and add-l10n-frontend (frontend rendering).'
 ---
 
 # Sanity Agentic Localization
@@ -25,9 +25,9 @@ translation APIs. See `docs/I18N_RESEARCH.md` for the full gap analysis.
    strongest entries are brand names that look like common English words (e.g.,
    "Releases", "Perspectives", "Portable Text").
 
-4. **Automate the lifecycle** — Stale detection, change analysis, and
-   pre-translation happen automatically via Sanity Functions. Editors review
-   results, not initiate workflows.
+4. **Automate the lifecycle** — Publishing a source document starts a
+   localization run on Editorial Workflows. Editors review results, not initiate
+   workflows.
 
 5. **Lean on the platform** — Use Sanity exports, generated types (TypeGen), and
    `@sanity/*` utilities. Don't reinvent what the SDK provides.
@@ -41,14 +41,14 @@ Read `references/architecture.md` for the full project map. Key entry points:
 - `packages/l10n/src/workflows/` — Editorial Workflows definitions
   (`localize-campaign` → `localize-document` → `localize-locale`) plus their
   in-memory bench specs. React-free; composable into Functions and the CLI.
-- `functions/` — Two Sanity Functions: mark translations stale on publish,
-  analyze changes + pre-translate. **Being replaced by workflow effect handlers
-  and a drainer** — see `docs/WORKFLOW_ENGINE_MIGRATION.md`.
+- `packages/l10n/src/handlers/` — the effect handlers those definitions declare.
+- `functions/` — the engine's runtime. Migration state is in
+  `docs/WORKFLOW_ENGINE_MIGRATION.md`.
 - `studio/` — Studio workspace with article, person, topic, tag types.
 - `apps/translations-dashboard/` — Real-time translation overview (App SDK).
 - `apps/frontend/` — Next.js frontend with path-based i18n routing.
-- `sanity.blueprint.ts` — Infrastructure-as-code: dataset, robot token,
-  functions.
+- `sanity.blueprint.ts` — Infrastructure-as-code: datasets, robot token,
+  Functions. `sanity.workflow.ts` deploys the definitions.
 - Start here: `packages/l10n/src/promptAssembly.ts` — the core bridge between
   structured metadata and the Translate API.
 
@@ -94,9 +94,10 @@ without help.
 
 - Add the type name to `localizedSchemaTypes` in `studio/sanity.config.ts`
 - Run `pnpm exec sanity schema deploy` from `studio/`
-- Update the function event filter in `sanity.blueprint.ts` if the new type
-  should trigger stale detection
-- Redeploy functions: `pnpm exec sanity blueprints deploy`
+- Add the type to the `start-localization` event filter in `sanity.blueprint.ts`
+  and to `localize-document`'s subject types in
+  `packages/l10n/src/workflows/localizeDocument.ts`
+- Redeploy: `pnpm exec sanity blueprints deploy` and `pnpm workflows:deploy`
 
 ### 3. Create or modify style guides
 
@@ -126,14 +127,14 @@ pnpm --filter l10n eval   # Model evals: translate with/without context, score d
 ### 5. Deploy functions and infrastructure
 
 ```sh
-pnpm exec sanity blueprints deploy
+pnpm exec sanity blueprints deploy   # datasets, robot token, Functions
+pnpm workflows:deploy                # workflow definitions
 ```
 
-- Read `sanity.blueprint.ts` for the resource definitions
-- Two functions: `mark-translations-stale` (15s timeout, triggers on publish)
-  and `analyze-stale-translations` (120s timeout, 1GB memory, triggers on
-  metadata update)
-- Both use a shared robot token with editor role
+- Read `sanity.blueprint.ts` for the resource definitions and
+  `sanity.workflow.ts` for the definition deployment; both name the same engine
+  coordinates, imported from `packages/l10n/src/workflows/config.ts`
+- All Functions share one robot token with the editor role
 - Load `references/customization-guide.md` for modifying function filters and
   env vars
 
