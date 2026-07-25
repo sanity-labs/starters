@@ -4,9 +4,12 @@ import {structureTool, type StructureResolver} from 'sanity/structure'
 import {assist} from '@sanity/assist'
 import {visionTool} from '@sanity/vision'
 import {EarthGlobeIcon} from '@sanity/icons'
+import {workflowDefaultDocumentNode, workflowStudioPlugin} from '@sanity/workflow-studio-plugin'
 import {
   createL10n,
   createFieldTranslationPublishGate,
+  LOCALIZATION_WORKFLOW_DATASET,
+  LOCALIZATION_WORKFLOW_TAG,
   useTranslateFieldAction,
   withLocaleFilter,
 } from '@starter/l10n'
@@ -98,8 +101,17 @@ export default defineConfig({
   plugins: [
     structureTool({
       structure,
+      // Every content document gets a Workflows view alongside its form; which
+      // definitions apply is discovered at runtime from the deployed set.
+      defaultDocumentNode: workflowDefaultDocumentNode(),
     }),
     visionTool(),
+    // Engine state lives in its own dataset. The tag and dataset must match the
+    // deployment in `sanity.workflow.ts` — a mismatch reads an empty partition.
+    workflowStudioPlugin({
+      tag: LOCALIZATION_WORKFLOW_TAG,
+      workflowDataset: LOCALIZATION_WORKFLOW_DATASET,
+    }),
     l10n.plugin,
     assist({
       fieldActions: {

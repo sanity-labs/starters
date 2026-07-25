@@ -1,5 +1,5 @@
 import {defineWorkflowConfig} from '@sanity/workflow-engine/define'
-import {localizationWorkflows} from '@starter/l10n/workflows'
+import {localizationWorkflows, WORKFLOW_TAG, WORKFLOWS_DATASET} from '@starter/l10n/workflows'
 
 // Load env — jiti (which loads this file) doesn't support process.loadEnvFile,
 // so we parse .env manually. import.meta.dirname is synthesized by jiti.
@@ -23,12 +23,12 @@ export default defineWorkflowConfig({
   deployments: [
     {
       name: 'localization',
-      tag: 'production',
+      tag: WORKFLOW_TAG,
       // Every @sanity/workflow-* package here is >= 0.23.0 (reader model 4).
       // Bump only after upgrading every reader: Studio, Functions, CLI, apps.
       expectedMinReaderModel: 4,
       // Engine storage is a dedicated dataset; content lives in the main one.
-      workflowResource: {type: 'dataset', id: `${projectId}.workflows`},
+      workflowResource: {type: 'dataset', id: `${projectId}.${WORKFLOWS_DATASET}`},
       // All three definitions deploy as one set: a parent cannot spawn a
       // child that is not deployed.
       definitions: localizationWorkflows,

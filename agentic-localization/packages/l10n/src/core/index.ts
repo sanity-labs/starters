@@ -12,13 +12,7 @@
 // Types
 export {
   resolveConfig,
-  workflowStatesToMap,
-  type DocumentState,
-  type LocaleTranslation,
-  type PreTranslatedSuggestion,
   type ResolvedTranslationsConfig,
-  type ReviewProgress,
-  type StaleAnalysisCache,
   type StaleAnalysisResult,
   type StaleAnalysisSuggestion,
   type SuggestionReasonCode,
@@ -26,7 +20,6 @@ export {
   type TranslationsConfig,
   type TranslationStatus,
   type TranslationWorkflowStatus,
-  type WorkflowStateEntry,
 } from './types'
 
 // Field change computation
@@ -51,12 +44,3 @@ export {getTranslationMetadataId} from './ids'
 
 // Translation value sanitization
 export {sanitizeTranslationValue} from './sanitizeTranslationValue'
-
-// Analysis cache helpers
-export {
-  getReviewProgress,
-  getValidAnalysis,
-  isAnalysisFresh,
-  writeAnalysisCache,
-  writeReviewProgress,
-} from './staleAnalysisCache'

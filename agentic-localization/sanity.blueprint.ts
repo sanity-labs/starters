@@ -5,6 +5,7 @@ import {
   defineDocumentFunction,
   defineRobotToken,
 } from '@sanity/blueprints'
+import {WORKFLOW_TAG, WORKFLOWS_DATASET} from '@starter/l10n/workflows'
 
 // Load env — jiti (which loads this file) doesn't support process.loadEnvFile,
 // so we parse .env manually. import.meta.dirname is synthesized by jiti.
@@ -26,9 +27,6 @@ const projectId = process.env.SANITY_STUDIO_PROJECT_ID!
 const datasetName =
   process.env.BLUEPRINT_DATASET ?? process.env.SANITY_STUDIO_DATASET ?? 'production'
 
-/** Engine storage. The tag partitions instances within it; see sanity.workflow.ts. */
-const WORKFLOWS_DATASET = 'workflows'
-const WORKFLOW_TAG = 'production'
 const workflowsDatasetId = `${projectId}.${WORKFLOWS_DATASET}`
 
 /** What a Function needs to reach the engine's store from a content event. */

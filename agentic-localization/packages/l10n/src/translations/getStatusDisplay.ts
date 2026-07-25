@@ -33,7 +33,7 @@ export interface StatusDisplay {
 }
 
 const STATUS_DISPLAY_MAP: Record<TranslationStatus, StatusDisplay> = {
-  // Workflow states (persistent, stored in workflowStates on metadata)
+  // Persisted per-locale states
   missing: {
     icon: AddCircleIcon,
     tone: 'critical',

@@ -13,7 +13,6 @@ export const LOCALE_EXISTS_QUERY = defineQuery(
 )
 import {getFlagFromCode} from './utils'
 import {LanguageInput} from './components/LanguageInput'
-import {workflowStatesField, staleAnalysisField} from './schemas/metadataFields'
 
 function isDocumentDefinition(type: SchemaTypeDefinition): type is DocumentDefinition {
   return type.type === 'document' && 'fields' in type
@@ -84,13 +83,6 @@ export function injectLanguageField(
   return (prev) =>
     prev.map((type) => {
       if (!isDocumentDefinition(type)) return type
-
-      if (type.name === 'translation.metadata') {
-        return {
-          ...type,
-          fields: [...(type.fields ?? []), workflowStatesField, staleAnalysisField],
-        }
-      }
 
       if (schemaTypes.includes(type.name)) {
         return patchPreview({...type, fields: (type.fields ?? []).concat(languageField)})

@@ -17,17 +17,11 @@ export {createTranslationInspector} from './translations'
 export {getStatusDisplay, type StatusDisplay} from './translations/getStatusDisplay'
 export {
   resolveConfig,
-  workflowStatesToMap,
   fieldWorkflowStatesToMap,
-  type DocumentState,
   type FieldCellState,
   type FieldWorkflowStateEntry,
-  type LocaleTranslation,
   type LocalizedObject,
-  type PreTranslatedSuggestion,
   type ResolvedTranslationsConfig,
-  type ReviewProgress,
-  type StaleAnalysisCache,
   type StaleAnalysisResult,
   type StaleAnalysisSuggestion,
   type SuggestionReasonCode,
@@ -35,28 +29,45 @@ export {
   type TranslationsConfig,
   type TranslationStatus,
   type TranslationWorkflowStatus,
-  type WorkflowStateEntry,
 } from './core/types'
 export {
-  getReviewProgress,
-  getValidAnalysis,
-  isAnalysisFresh,
-  writeAnalysisCache,
-  writeReviewProgress,
-} from './core/staleAnalysisCache'
-export {
-  useTranslationPaneData,
-  type TranslationPaneData,
-  type TranslationPaneSnapshot,
-} from './translations/useTranslationPaneData'
-export {useTranslateActions, type TranslateActionsResult} from './translations/useTranslateActions'
+  useTranslationTargets,
+  useBaseDocumentId,
+  type TranslationTargets,
+} from './translations/useTranslationTargets'
 export {InlineDiff} from './translations/InlineDiff'
 export {extractBlockText} from './core/extractBlockText'
 export {PortableTextDiff} from './translations/PortableTextDiff'
+export {TranslationCompare, type TranslationCompareProps} from './translations/TranslationCompare'
+export {LocalizationRun, type LocalizationRunProps} from './translations/LocalizationRun'
+export {buildEditIntent, type EditIntent, type EditTarget} from './translations/editIntent'
+export {ReviewActions, type ReviewActionsProps} from './translations/ReviewActions'
 export {
-  TranslatedDocTaskCard,
-  type TranslatedDocTaskCardProps,
-} from './translations/TranslatedDocTaskCard'
+  LOCALIZATION_WORKFLOW_DATASET,
+  LOCALIZATION_WORKFLOW_TAG,
+  useLocalizationEngine,
+  useLocalizationInstance,
+  type LocalizationInstanceLookup,
+} from './translations/workflowEngine'
+export {
+  readDocumentId,
+  readFlag,
+  readLocaleRequests,
+  readMateriality,
+  readProgress,
+  readReleaseName,
+  readText,
+  type LocaleRequest,
+  type Materiality,
+} from './translations/instanceFields'
+export {
+  buildLocaleRuns,
+  liveChildInstanceIds,
+  toChildRun,
+  type ChildRun,
+  type LocaleRun,
+  type LocaleRunStage,
+} from './translations/localeRuns'
 export {
   computeMagnitude,
   computeFieldChanges,
@@ -67,20 +78,11 @@ export {
 } from './core/computeFieldChanges'
 export {useReleases, type Release} from './translations/useReleases'
 export {ErrorBoundary} from './translations/ErrorBoundary'
-export {useStaleAIAnalysis, type UseStaleAIAnalysisResult} from './translations/useStaleAIAnalysis'
 export {useOpenTranslationsInspector} from './translations/useOpenTranslationsInspector'
 export {useLocaleFilter} from './useLocaleFilter'
 export {globalLocaleFilter$} from './localeFilterState'
 export {buildFieldSummary, type TextExtracts} from './core/buildFieldSummary'
 export {ANALYSIS_PROMPT_INSTRUCTION} from './core/staleAnalysisPrompt'
-export {
-  StaleAIAnalysis,
-  StaleAIAnalysisStickyBar,
-  AIAnalysisLoading,
-  AIAnalysisError,
-  type StaleAIAnalysisProps,
-  type StaleAIAnalysisStickyBarProps,
-} from './translations/StaleAIAnalysis'
 export {useTranslateFieldAction} from './fieldActions/useTranslateFieldAction'
 export {
   useInternationalizedFields,

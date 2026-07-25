@@ -9,25 +9,16 @@ import {
   useTranslation,
 } from 'sanity'
 import {useObservable} from 'react-rx'
-import {of} from 'rxjs'
+import {of, type Observable} from 'rxjs'
 import {defineQuery} from 'groq'
+import type {FIELD_STALE_QUERY_RESULT} from '@starter/sanity-types'
 import {createTranslationInspectorComponent} from './TranslationInspector'
 import {useInternationalizedFields} from '../fieldActions/useInternationalizedFields'
-import {
-  resolveConfig,
-  type ResolvedTranslationsConfig,
-  type TranslationsConfig,
-} from '../core/types'
+import {readFlag} from './instanceFields'
+import {useLocalizationInstance} from './workflowEngine'
+import {resolveConfig, type TranslationsConfig} from '../core/types'
 import {getFieldTranslationMetadataId} from '../core/fieldMetadataIds'
 import {l10nLocaleNamespace} from '../i18n'
-
-const STALE_STATUS_QUERY = defineQuery(`*[
-  _type == "translation.metadata"
-  && references($publishedId)
-][0]{
-  "isSourceDoc": translations[language == $defaultLanguage][0].value._ref == $publishedId,
-  "hasStaleEntries": count(workflowStates[status == "stale"]) > 0
-}`)
 
 const FIELD_STALE_QUERY = defineQuery(`*[
   _type == "fieldTranslation.metadata"
@@ -73,21 +64,21 @@ export function createTranslationInspector(config: TranslationsConfig): Document
       const i18nFields = useInternationalizedFields(documentType)
       const hasFieldLevel = i18nFields.length > 0
       const hidden = !isDocLevel && !hasFieldLevel
-      const hasDocStale = useHasStaleTranslations(documentId, hidden || !isDocLevel, resolved)
+      const run = useRunBadge(documentId)
       const fieldStatus = useFieldTranslationBadge(documentId, hidden || !hasFieldLevel)
 
-      const hasStale = hasDocStale || fieldStatus.hasStale
-      const hasNeedsReview = fieldStatus.hasNeedsReview
+      const needsAttention = run.needsAttention || fieldStatus.hasStale
+      const needsReview = run.inReview || fieldStatus.hasNeedsReview
 
       return {
         icon: TranslateIcon,
         showAsAction: true,
-        title: hasStale
+        title: needsAttention
           ? t('inspector.title.stale')
-          : hasNeedsReview
+          : needsReview
             ? t('inspector.title.needs-review')
             : t('inspector.title'),
-        tone: hasStale ? 'suggest' : hasNeedsReview ? 'caution' : undefined,
+        tone: needsAttention ? 'suggest' : needsReview ? 'caution' : undefined,
         hidden,
       }
     },
@@ -97,36 +88,18 @@ export function createTranslationInspector(config: TranslationsConfig): Document
 // --- Internal hooks ---
 
 /**
- * Lightweight realtime query to check if any locale has stale translations.
- * Uses `documentStore.listenQuery()` instead of manual fetch+listen+debounce.
+ * The doc-tier badge, read off the open run's instance rather than off content.
+ * `sourceChanged` and `hasFailedLocales` are the two advisory flags the run
+ * surfaces; the `review` stage is the one that wants a person.
  */
-function useHasStaleTranslations(
-  documentId: string,
-  hidden: boolean,
-  config: ResolvedTranslationsConfig,
-): boolean {
-  const documentStore = useDocumentStore()
-  const publishedId = useMemo(() => getPublishedId(documentId), [documentId])
-
-  const staleStatus$ = useMemo(
-    () =>
-      hidden
-        ? of(null)
-        : documentStore.listenQuery(
-            STALE_STATUS_QUERY,
-            {publishedId, defaultLanguage: config.defaultLanguage ?? ''},
-            DEFAULT_STUDIO_CLIENT_OPTIONS,
-          ),
-    [documentStore, publishedId, hidden, config.defaultLanguage],
-  )
-
-  const result = useObservable(staleStatus$) as
-    | {isSourceDoc: boolean; hasStaleEntries: boolean}
-    | null
-    | undefined
-
-  if (!result) return false
-  return !result.isSourceDoc && result.hasStaleEntries
+function useRunBadge(documentId: string): {inReview: boolean; needsAttention: boolean} {
+  const {instance} = useLocalizationInstance(documentId)
+  if (!instance) return {inReview: false, needsAttention: false}
+  return {
+    inReview: instance.currentStage === 'review',
+    needsAttention:
+      readFlag(instance.fields, 'sourceChanged') || readFlag(instance.fields, 'hasFailedLocales'),
+  }
 }
 
 /**
@@ -143,7 +116,7 @@ function useFieldTranslationBadge(
     [documentId],
   )
 
-  const fieldStatus$ = useMemo(
+  const fieldStatus$: Observable<FIELD_STALE_QUERY_RESULT | null> = useMemo(
     () =>
       hidden
         ? of(null)
@@ -155,11 +128,8 @@ function useFieldTranslationBadge(
     [documentStore, fieldMetadataId, hidden],
   )
 
-  const result = useObservable(fieldStatus$) as
-    | {hasStaleEntries: boolean; hasNeedsReview: boolean}
-    | null
-    | undefined
+  const result = useObservable(fieldStatus$)
 
   if (!result) return {hasStale: false, hasNeedsReview: false}
-  return {hasStale: result.hasStaleEntries, hasNeedsReview: result.hasNeedsReview}
+  return {hasStale: result.hasStaleEntries === true, hasNeedsReview: result.hasNeedsReview === true}
 }

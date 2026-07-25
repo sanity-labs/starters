@@ -711,15 +711,12 @@ defineField({
         <Card>
           <p className="text-sm font-medium mb-2">Document-level</p>
           <p className="text-sm text-[var(--color-text-secondary)]">
-            Workflow state is stored in the{' '}
+            Workflow state lives on the localization run — a workflow instance in the Editorial
+            Workflows engine, one child run per locale. The{' '}
             <code className="text-xs bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
               translation.metadata
             </code>{' '}
-            document that already links translations together. Each entry in the{' '}
-            <code className="text-xs bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
-              workflowStates
-            </code>{' '}
-            array tracks one locale&apos;s status.
+            document only links the translations together.
           </p>
         </Card>
         <Card>
@@ -780,7 +777,7 @@ defineField({
             </span>
           </div>
           <p className="text-[11px] text-[var(--color-text-muted)] text-center mt-1">
-            linked via translation.metadata + workflowStates
+            linked via translation.metadata; run state on the workflow instance
           </p>
         </div>
 
