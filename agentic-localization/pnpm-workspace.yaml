@@ -15,6 +15,7 @@ catalog:
   # Editorial Workflows is a prerelease: breaking changes ship in minors and every
   # @sanity/workflow-* package is an exact-version peer of the others. Pin exactly
   # and upgrade them as one set.
+  '@sanity/workflow-cli': 0.23.0
   '@sanity/workflow-engine': 0.23.0
   '@sanity/workflow-engine-test': 0.23.0
   '@types/react': ^19.2

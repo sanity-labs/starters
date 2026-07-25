@@ -35,13 +35,17 @@
     "typegen": "pnpm --filter studio typegen",
     "pretypecheck": "pnpm run typegen",
     "typecheck": "pnpm -r typecheck",
-    "validate": "sanity-template-validate"
+    "validate": "sanity-template-validate",
+    "workflows:deploy": "sanity-workflows deploy"
   },
   "devDependencies": {
     "@sanity/blueprints": "0.12.2",
     "@sanity/client": "catalog:",
     "@sanity/template-validator": "^3.0.0",
+    "@sanity/workflow-cli": "catalog:",
+    "@sanity/workflow-engine": "catalog:",
     "@starter/eslint-config": "workspace:*",
+    "@starter/l10n": "workspace:*",
     "@types/node": "^22.19.13",
     "concurrently": "^9.2.1",
     "eslint": "^9.39.3",

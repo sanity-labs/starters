@@ -182,28 +182,35 @@ if (!existsSync(blueprintConfig)) {
 
 run('pnpm', ['exec', 'sanity', 'blueprints', 'deploy'], {cwd: root})
 
-// ── 4. Deploy schema ─────────────────────────────────────────────────────────
+// ── 4. Deploy workflow definitions ───────────────────────────────────────────
+// Into the `workflows` dataset the blueprint just created. Deploys are
+// idempotent; config lives in sanity.workflow.ts at the monorepo root.
+
+heading('Deploy workflow definitions')
+run('pnpm', ['exec', 'sanity-workflows', 'deploy'], {cwd: root})
+
+// ── 5. Deploy schema ─────────────────────────────────────────────────────────
 
 heading('Deploy schema')
 sanity('schema', 'deploy')
 
-// ── 5. Typegen ───────────────────────────────────────────────────────────────
+// ── 6. Typegen ───────────────────────────────────────────────────────────────
 
 heading('Typegen')
 sanity('schema', 'extract')
 sanity('typegen', 'generate')
 
-// ── 6. Seed locales ──────────────────────────────────────────────────────────
+// ── 7. Seed locales ──────────────────────────────────────────────────────────
 
 heading('Seed locales')
 sanity('migration', 'run', 'seed-locales', '--no-dry-run', '--no-confirm')
 
-// ── 7. Import sample data ────────────────────────────────────────────────────
+// ── 8. Import sample data ────────────────────────────────────────────────────
 
 heading('Import sample data')
 sanity('dataset', 'import', 'sample-data.ndjson', dataset!, '--replace')
 
-// ── 8. Install marker ────────────────────────────────────────────────────────
+// ── 9. Install marker ────────────────────────────────────────────────────────
 
 try {
   await client.fetch('true', {}, {tag: 'bootstrap.install'})

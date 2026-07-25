@@ -39,6 +39,20 @@ export default defineBlueprint({
       },
     }),
 
+    // Editorial Workflows engine storage. Workflow instances live here;
+    // content documents stay in the main dataset. Definitions deploy into it
+    // via `sanity-workflows deploy` (see sanity.workflow.ts). No attach: the
+    // main dataset pre-exists from `sanity init`, but this one is created and
+    // owned by the stack.
+    defineDataset({
+      name: 'workflows-dataset',
+      datasetName: 'workflows',
+      aclMode: 'private',
+      lifecycle: {
+        deletionPolicy: 'retain',
+      },
+    }),
+
     // ── CORS ────────────────────────────────────────────────────────
     // TODO: attach the Studio dev-server CORS origin (http://localhost:3333)
     // once the blueprints backend supports colons in ownershipAction.id.
