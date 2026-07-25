@@ -13,7 +13,7 @@ inferred from docs. Where the docs and reality disagree, this file records reali
 | **PR 1** — Studio v5 → v6             | **Committed** (`0d24679`) |
 | **PR 2** — definitions + bench specs  | **Committed** (`b9f000b`) |
 | **PR 3** — workflows dataset + deploy | **Committed** (`d3784c5`) |
-| PR 4 — effect handlers + runtime      | Not started               |
+| **PR 4** — effect handlers + runtime  | **Committed** (`c6f3713`) |
 | PR 5 — Studio and dashboard surfaces  | Not started               |
 | PR 6 — field-level tier               | Not started               |
 
