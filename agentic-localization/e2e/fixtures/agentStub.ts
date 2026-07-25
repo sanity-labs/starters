@@ -28,8 +28,14 @@ export interface AgentStub {
 }
 
 export interface AgentStubOptions {
-  /** What `agent.action.prompt` answers. The analysis handler parses this as JSON. */
-  promptResponse: () => string
+  /**
+   * What `agent.action.prompt` answers, given the call's parameters.
+   *
+   * Two callers share this action — the analysis and the distillation — and both
+   * parse the answer as JSON of their own shape, so the canned answer has to be
+   * chosen from the instruction rather than fixed per harness.
+   */
+  promptResponse: (params: Record<string, unknown>) => string
   /** How a source value reads once "translated". */
   translate: (value: string, locale: string) => string
 }
@@ -42,7 +48,7 @@ export function createAgentStub(options: AgentStubOptions): AgentStub {
       action: {
         prompt: async (params: Record<string, unknown>) => {
           calls.push({action: 'prompt', params})
-          return options.promptResponse()
+          return options.promptResponse(params)
         },
         translate: async (params: Record<string, unknown>) => {
           calls.push({action: 'translate', params})

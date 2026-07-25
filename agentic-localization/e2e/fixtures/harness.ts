@@ -65,6 +65,12 @@ export interface CompleteEffectArgs {
 export interface Harness {
   readonly projectId: string
   readonly content: SanityClient
+  /**
+   * The content client with its Agent Actions canned — what the engine hands the
+   * effect handlers, and what a Function under test has to be given instead of
+   * building its own, or the journey spends real AI.
+   */
+  readonly cannedContent: SanityClient
   readonly engine: Engine
   readonly agent: AgentStub
 
@@ -104,11 +110,14 @@ export function createHarness(mode: DriveMode): Harness {
   process.env.WORKFLOW_TAG = tag
   process.env.WORKFLOWS_DATASET_ID = resourceId(projectId, WORKFLOWS_DATASET)
   process.env.WORKFLOWS_DATASET_NAME = WORKFLOWS_DATASET
+  // `distill-review` is triggered by the workflows dataset and reaches the other
+  // way, so it is the one Function that has to be told where content lives.
+  process.env.CONTENT_DATASET_NAME = CONTENT_DATASET
 
   const content = contentClient()
   const workflows = workflowsClient()
   const agent = createAgentStub({
-    promptResponse: () => JSON.stringify(CANNED_ANALYSIS),
+    promptResponse: cannedPrompt,
     translate: (value, locale) => `[${locale}] ${value}`,
   })
   const cannedContent = agent.wrap(content)
@@ -238,6 +247,7 @@ export function createHarness(mode: DriveMode): Harness {
   return {
     projectId,
     content,
+    cannedContent,
     engine,
     agent,
 
@@ -313,4 +323,39 @@ const CANNED_ANALYSIS = {
       changeSummary: 'Body rewritten.',
     },
   ],
+}
+
+/**
+ * What the distillation prompt answers.
+ *
+ * Both halves are quoted from the field-tier fixture on purpose: the handler
+ * drops any term that is not verbatim in the source and any translation that is
+ * not verbatim in what the reviewer approved, so a canned answer that cheated
+ * would be discarded and the journey would prove nothing.
+ */
+const CANNED_DISTILLATION = {
+  proposals: [
+    {
+      kind: 'glossary-term',
+      locale: 'de-DE',
+      term: 'algorithm',
+      translation: 'Algorithmus',
+      fieldPath: 'bio',
+      rationale: 'The reviewer used the German product term.',
+    },
+  ],
+}
+
+/**
+ * Which canned answer a prompt call gets.
+ *
+ * Two callers share `agent.action.prompt`, and the marker is the distillation
+ * instruction's own heading rather than a flag the harness sets — a journey that
+ * reaches the loop should not have to arm it first.
+ */
+function cannedPrompt(params: Record<string, unknown>): string {
+  const instruction = typeof params.instruction === 'string' ? params.instruction : ''
+  return JSON.stringify(
+    instruction.includes('Corrections, per locale:') ? CANNED_DISTILLATION : CANNED_ANALYSIS,
+  )
 }

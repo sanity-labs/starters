@@ -33,6 +33,7 @@ describe('buildLocaleRuns', () => {
         progress: null,
         childInstanceId: null,
         targetDocumentId: null,
+        machineRev: null,
       },
     ])
   })
@@ -104,7 +105,35 @@ describe('buildLocaleRuns', () => {
       progress: 40,
       childInstanceId: 'child-de-DE',
       targetDocumentId: 'article-de',
+      machineRev: null,
     })
+  })
+
+  // The learning loop's whole read path starts here: without the revision the
+  // machine draft landed at there is nothing to diff a human's edit against.
+  it('carries the child’s machine revision through to the row', () => {
+    const [run] = buildLocaleRuns({
+      targetLocales: [{locale: 'de-DE'}],
+      subworkflows: [
+        row({rowKey: 'de-DE', resolved: {at: '2026-07-24T10:05:00.000Z', stage: 'translated'}}),
+      ],
+      children: [
+        toChildRun({
+          _id: 'child-de-DE',
+          currentStage: 'translated',
+          fields: [
+            {_key: 'a', _type: 'string', name: 'machineRev', value: 'rev-machine-de'},
+            {
+              _key: 'b',
+              _type: 'doc.ref',
+              name: 'target',
+              value: {id: 'dataset:p1:production:article-de', type: 'article'},
+            },
+          ],
+        }),
+      ],
+    })
+    expect(run.machineRev).toBe('rev-machine-de')
   })
 
   it('keeps a resolved child’s target, so a finished locale can still be compared', () => {

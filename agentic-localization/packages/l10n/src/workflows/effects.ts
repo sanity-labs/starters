@@ -17,3 +17,13 @@ export type EffectName = (typeof EFFECT_NAMES)[number]
  * change it here and redeploy if the starter's source language changes.
  */
 export const SOURCE_LANGUAGE = 'en-US'
+
+/**
+ * The terminal stage of `localize-document` a reviewer's approval reaches.
+ *
+ * Here for the same reason the effect names are: the `distill-review` blueprint
+ * filter is a string in a jiti-loaded config and the learning loop's Function
+ * matches on it, so both sides read the one literal the definition declares.
+ * `distillTrigger.test.ts` bench-proves it is a real terminal stage.
+ */
+export const APPROVED_STAGE = 'approved'

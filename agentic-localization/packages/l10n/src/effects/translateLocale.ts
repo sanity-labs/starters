@@ -92,11 +92,20 @@ export const translateLocale: EffectHandler = async (params, ctx) => {
 
   const [sourceDoc, glossaries, styleGuide, locales] = await Promise.all([
     readSubjectDocument(client, ctx, publishedSourceId),
-    client.fetch<Glossary[]>(GLOSSARIES_QUERY, {}, {tag: 'get-glossaries'}),
+    // `published`, explicitly. Prompt context is a two-human gate — a distilled
+    // proposal has to be accepted AND published before it can steer a
+    // translation — and the drafts half of that gate would otherwise rest on
+    // whatever perspective the client happened to default to. The shared query
+    // stays perspective-neutral: `L10nProvider` needs it draft-aware.
+    client.fetch<Glossary[]>(
+      GLOSSARIES_QUERY,
+      {},
+      {perspective: 'published', tag: 'get-glossaries'},
+    ),
     client.fetch<null | StyleGuide>(
       STYLE_GUIDE_FOR_LOCALE_QUERY,
       {localeCode: locale},
-      {tag: 'get-style-guide'},
+      {perspective: 'published', tag: 'get-style-guide'},
     ),
     client.fetch<LocaleRow[]>(
       LOCALES_BY_CODE_QUERY,

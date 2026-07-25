@@ -25,6 +25,7 @@ const ENTRIES = {
   './prompts': 'src/prompts/index.ts',
   './workflows': 'src/workflows/index.ts',
   './effects': 'src/effects/index.ts',
+  './distill': 'src/distill/index.ts',
   './credentials': 'src/credentials/index.ts',
 } as const
 

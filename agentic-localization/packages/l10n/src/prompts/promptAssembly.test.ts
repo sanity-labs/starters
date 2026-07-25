@@ -1,4 +1,5 @@
 import {describe, it, expect} from 'vitest'
+import type {Glossary, GlossaryEntry} from './promptAssembly'
 import {
   buildGlossarySection,
   buildStyleGuideSection,
@@ -10,6 +11,7 @@ import {
   STYLE_GUIDE_WARN_THRESHOLD,
   buildTranslateParams,
 } from './promptAssembly'
+import {GLOSSARIES_QUERY} from './queries'
 import {techGlossary, enUS, deDE, deDEStyleGuide, frFRStyleGuide} from './evals/fixtures'
 
 describe('buildGlossarySection', () => {
@@ -74,6 +76,77 @@ describe('buildGlossarySection', () => {
     // Each forbidden term should appear exactly once
     const webpageMatches = result.match(/"webpage"/g)
     expect(webpageMatches).toHaveLength(1)
+  })
+})
+
+/**
+ * The status field is the review gate for everything the learning loop proposes.
+ * A proposal lands as content; nothing reaches a prompt until a human sets it to
+ * `approved`. That guarantee only holds if EVERY prompt path honours `status`.
+ */
+describe('the status guard on every prompt path', () => {
+  function unreviewed(fields: Partial<GlossaryEntry>): Glossary {
+    return {
+      title: 'Proposed',
+      sourceLocale: enUS,
+      entries: [
+        {
+          term: 'Fabricator',
+          status: 'provisional',
+          doNotTranslate: null,
+          partOfSpeech: null,
+          definition: null,
+          context: null,
+          translations: null,
+          ...fields,
+        },
+      ],
+    }
+  }
+
+  it('keeps a provisional do-not-translate entry out of the glossary section', () => {
+    const result = buildGlossarySection([unreviewed({doNotTranslate: true})], 'de-DE')
+    expect(result).not.toContain('Fabricator')
+  })
+
+  it('keeps a provisional do-not-translate entry out of protectedPhrases', () => {
+    expect(extractProtectedPhrases([unreviewed({doNotTranslate: true})])).toEqual([])
+  })
+
+  it('keeps a non-standard do-not-translate entry out of both', () => {
+    const glossary = unreviewed({status: 'non-standard', doNotTranslate: true})
+    expect(buildGlossarySection([glossary], 'de-DE')).not.toContain('Fabricator')
+    expect(extractProtectedPhrases([glossary])).toEqual([])
+  })
+
+  it('keeps a provisional translation out of the approved terms', () => {
+    const glossary = unreviewed({
+      translations: [{locale: 'de-DE', translation: 'Fabrikator', gender: null}],
+    })
+    const result = buildGlossarySection([glossary], 'de-DE')
+    expect(result).not.toContain('Fabrikator')
+  })
+
+  it('still lets an approved do-not-translate entry through both paths', () => {
+    const glossary = unreviewed({status: 'approved', doNotTranslate: true})
+    expect(buildGlossarySection([glossary], 'de-DE')).toContain('Fabricator')
+    expect(extractProtectedPhrases([glossary])).toEqual(['Fabricator'])
+  })
+
+  it('still lets a forbidden do-not-translate entry through', () => {
+    const glossary = unreviewed({status: 'forbidden', doNotTranslate: true})
+    expect(buildGlossarySection([glossary], 'de-DE')).toContain('Fabricator')
+    expect(extractProtectedPhrases([glossary])).toEqual(['Fabricator'])
+  })
+
+  /**
+   * Hand-authored glossaries predate the status field, so the query defaults a
+   * missing status to `approved` rather than silently dropping them. The Accept
+   * action must therefore never rely on that default — it writes `status`
+   * explicitly (see `acceptProposal`), or a proposal would be live on write.
+   */
+  it('defaults a status-less stored entry to approved in the query, not in the code', () => {
+    expect(GLOSSARIES_QUERY).toContain('"status": coalesce(status, "approved")')
   })
 })
 

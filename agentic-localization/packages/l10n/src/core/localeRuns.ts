@@ -18,7 +18,7 @@ import {
   type SubworkflowEntry,
 } from '@sanity/workflow-engine'
 
-import {readDocumentId, readProgress, type LocaleRequest} from './instanceFields'
+import {readDocumentId, readProgress, readText, type LocaleRequest} from './instanceFields'
 
 export type LocaleRunStage = 'queued' | 'translating' | 'translated' | 'failed'
 
@@ -27,6 +27,8 @@ export interface ChildRun {
   stage: LocaleRunStage
   progress: number | null
   targetDocumentId: string | null
+  /** The revision the machine draft landed at, for the learning loop to diff. */
+  machineRev: string | null
 }
 
 export interface LocaleRun {
@@ -36,6 +38,7 @@ export interface LocaleRun {
   progress: number | null
   childInstanceId: string | null
   targetDocumentId: string | null
+  machineRev: string | null
 }
 
 function toStage(stage: string | undefined): LocaleRunStage {
@@ -55,6 +58,7 @@ export function toChildRun(instance: {
     stage: toStage(instance.currentStage),
     progress: readProgress(instance.fields, 'translationProgress'),
     targetDocumentId: readDocumentId(instance.fields, 'target'),
+    machineRev: readText(instance.fields, 'machineRev'),
   }
 }
 
@@ -90,6 +94,7 @@ export function buildLocaleRuns({
         progress: null,
         childInstanceId: null,
         targetDocumentId: null,
+        machineRev: null,
       }
     }
 
@@ -102,6 +107,7 @@ export function buildLocaleRuns({
       progress: child?.progress ?? null,
       childInstanceId,
       targetDocumentId: child?.targetDocumentId ?? null,
+      machineRev: child?.machineRev ?? null,
     }
   })
 }

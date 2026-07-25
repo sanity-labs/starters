@@ -13,13 +13,24 @@
 // --- Schema type names ---
 
 export {
+  distillationTypeName,
   glossaryEntryTypeName,
   glossaryTypeName,
   languageFieldName,
   localeTranslationTypeName,
   localeTypeName,
+  proposalTypeName,
   styleGuideTypeName,
 } from './core/typeNames'
+
+/** What the learning loop may propose. The schema and the Accept action share it. */
+export {
+  isProposalKind,
+  MODEL_PROPOSAL_KINDS,
+  PROPOSAL_KINDS,
+  type ModelProposalKind,
+  type ProposalKind,
+} from './core/proposalKinds'
 
 // --- Configuration and status vocabulary ---
 

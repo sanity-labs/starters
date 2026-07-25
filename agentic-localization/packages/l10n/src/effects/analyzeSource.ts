@@ -27,6 +27,7 @@ import type {ContentClient, EffectContext} from './effectRuntime'
 
 import {buildFieldSummary} from '../core/buildFieldSummary'
 import {computeFieldChanges} from '../core/computeFieldChanges'
+import {documentAtRevision} from '../core/documentHistory'
 import {extractBlockText} from '../core/extractBlockText'
 import {coveredLocales, internationalizedFields, sourceProjection} from '../core/fieldTier'
 import {getTranslationMetadataId} from '../core/ids'
@@ -81,7 +82,7 @@ export const analyzeSource: EffectHandler = async (params, ctx) => {
     (await readAnalyzedRev(ctx)) ?? (await previousRevision(client, dataset, publishedId))
 
   const historicalDoc = baseRev
-    ? await documentAtRevision(client, dataset, publishedId, baseRev)
+    ? await documentAtRevision(client, {dataset, documentId: publishedId, revision: baseRev})
     : null
 
   const localeCodes = await client.fetch<string[]>(LOCALE_CODES_QUERY, {}, {tag: 'get-locales'})
@@ -287,19 +288,6 @@ async function existingTranslationLocales(
 
   const languages = metadata?.translations?.map((row) => row.language) ?? []
   return languages.filter((language): language is string => typeof language === 'string')
-}
-
-async function documentAtRevision(
-  client: ContentClient,
-  dataset: string,
-  documentId: string,
-  revision: string,
-): Promise<null | Record<string, unknown>> {
-  const response = await client.request<{documents?: Record<string, unknown>[]}>({
-    url: `/data/history/${dataset}/documents/${documentId}?revision=${revision}`,
-    tag: 'get-history',
-  })
-  return response?.documents?.[0] ?? null
 }
 
 /**

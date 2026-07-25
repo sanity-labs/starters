@@ -2,7 +2,14 @@ export {localizeCampaign} from './localizeCampaign'
 export {localizeDocument} from './localizeDocument'
 export {localizeLocale} from './localizeLocale'
 
-export {ANALYZE_SOURCE, EFFECT_NAMES, PUBLISH_RELEASE, TRANSLATE_LOCALE} from './effects'
+export {
+  ANALYZE_SOURCE,
+  APPROVED_STAGE,
+  EFFECT_NAMES,
+  PUBLISH_RELEASE,
+  SOURCE_LANGUAGE,
+  TRANSLATE_LOCALE,
+} from './effects'
 export type {EffectName} from './effects'
 
 export {WORKFLOW_TAG, WORKFLOWS_DATASET} from './config'

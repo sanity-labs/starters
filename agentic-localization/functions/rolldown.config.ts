@@ -11,7 +11,13 @@ const shared = {
 
 // One config object per function, not one config with several entries:
 // `codeSplitting: false` only guarantees no chunks *within* an entry.
-const functions = ['drain-effects', 'start-localization', 'handle-deleted-subject', 'heartbeat']
+const functions = [
+  'drain-effects',
+  'start-localization',
+  'handle-deleted-subject',
+  'heartbeat',
+  'distill-review',
+]
 
 export default defineConfig(
   functions.map((name) => ({

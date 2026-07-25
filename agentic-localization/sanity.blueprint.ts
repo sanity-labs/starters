@@ -5,7 +5,7 @@ import {
   defineDocumentFunction,
   defineRobotToken,
 } from '@sanity/blueprints'
-import {WORKFLOW_TAG, WORKFLOWS_DATASET} from '@starter/l10n/workflows'
+import {APPROVED_STAGE, WORKFLOW_TAG, WORKFLOWS_DATASET} from '@starter/l10n/workflows'
 
 // Load env — jiti (which loads this file) doesn't support process.loadEnvFile,
 // so we parse .env manually. import.meta.dirname is synthesized by jiti.
@@ -124,6 +124,32 @@ export default defineBlueprint({
       },
       env: workflowsEnv,
       timeout: 30,
+    }),
+
+    // The learning loop: an approved run's corrections become DRAFT proposals.
+    // Triggered by the instance rather than by content, so `clientOptions`
+    // already points at the workflows dataset and the CONTENT dataset — where
+    // the claim, the proposals and the text all live — is named in the env.
+    defineDocumentFunction({
+      name: 'distill-review',
+      src: 'functions/dist/distill-review',
+      robotToken: '$.resources.fn-robot.token',
+      event: {
+        on: ['update'],
+        // Inlined, not imported: the blueprint is loaded by jiti. `APPROVED_STAGE`
+        // and the definition name are interpolated so the filter cannot drift
+        // from the deployed definition — `distillTrigger.test.ts` bench-proves
+        // that `approved` is a real terminal stage of it.
+        filter:
+          `_type == 'sanity.workflow.instance' && definition == 'localize-document' ` +
+          `&& currentStage == '${APPROVED_STAGE}'`,
+        projection: '{_id, _type, definition, currentStage}',
+        resource: {type: 'dataset', id: workflowsDatasetId},
+      },
+      env: {...workflowsEnv, CONTENT_DATASET_NAME: datasetName},
+      // One AI call for the whole run, plus a History read per locale.
+      timeout: 120,
+      memory: 1,
     }),
 
     // A deleted source leaves its run parked in review, holding a publish

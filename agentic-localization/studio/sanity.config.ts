@@ -15,7 +15,14 @@ import {
 import {WORKFLOW_TAG, WORKFLOWS_DATASET} from '@starter/l10n/workflows'
 import {schemaTypes} from './schemaTypes'
 
-const l10nTypes = ['l10n.locale', 'l10n.glossary', 'l10n.styleGuide', 'translation.metadata']
+const l10nTypes = [
+  'l10n.locale',
+  'l10n.glossary',
+  'l10n.styleGuide',
+  // What the learning loop proposes, awaiting a reviewer's Accept or Reject.
+  'l10n.proposal',
+  'translation.metadata',
+]
 
 /** Types localized one document per locale. */
 const documentTierTypes = ['article']
@@ -30,6 +37,10 @@ const l10n = createL10n({localizedSchemaTypes: documentTierTypes, defaultLanguag
 
 const titleAsc = [{field: 'title', direction: 'asc'} as const]
 const nameAsc = [{field: 'name', direction: 'asc'} as const]
+const occurrencesDesc = [
+  {field: 'occurrences', direction: 'desc'} as const,
+  {field: '_createdAt', direction: 'desc'} as const,
+]
 
 const structure = ((S) =>
   S.list()
@@ -56,7 +67,11 @@ const structure = ((S) =>
                 S.documentTypeListItem(type).child(
                   type === 'translation.metadata'
                     ? S.documentTypeList(type)
-                    : S.documentTypeList(type).defaultOrdering(titleAsc),
+                    : // A proposal has no title; the count of times a correction
+                      // has recurred is what a reviewer should triage by.
+                      type === 'l10n.proposal'
+                      ? S.documentTypeList(type).defaultOrdering(occurrencesDesc)
+                      : S.documentTypeList(type).defaultOrdering(titleAsc),
                 ),
               ),
             ),
@@ -81,8 +96,12 @@ export default defineConfig({
     createClient({...options, requestTagPrefix: `${options.requestTagPrefix}.agentic-l10n`}),
 
   document: {
+    // Neither is hand-authored: a join document is written by the translation
+    // plugin, a proposal by `distill-review`.
     newDocumentOptions: (prev) =>
-      prev.filter((option) => option.templateId !== 'translation.metadata'),
+      prev.filter(
+        (option) => !['translation.metadata', 'l10n.proposal'].includes(option.templateId),
+      ),
     actions: (prev, context) => {
       // The workflow plugin locks `publish`, `unpublish` and `delete` from the
       // run's own guard; `schedule` is outside its lock map, so it is wrapped

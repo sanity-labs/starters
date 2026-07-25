@@ -9,7 +9,9 @@ import {translationGlossary} from './schemas/translationGlossary'
 import {translationStyleGuide} from './schemas/translationStyleGuide'
 import {l10nUsEnglishLocaleBundle} from './i18n'
 import {SUPPORTED_LANGUAGES_QUERY} from '@starter/l10n/prompts'
-import {languageFieldName} from '@starter/l10n'
+import {fieldTierTypes, languageFieldName, proposalTypeName} from '@starter/l10n'
+import {proposal} from './schemas/proposal'
+import {proposalActions} from './proposals'
 import {injectLanguageField} from './schemas/languageField'
 import {LocaleNavbar} from './components/LocaleNavbar'
 import {L10nProvider} from './L10nProvider'
@@ -49,6 +51,9 @@ export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L1
           translationLocale,
           translationGlossary,
           translationStyleGuide,
+          // Both tiers are localization subjects, so both can be a proposal's
+          // source: the document tier is configured, the field tier is a registry.
+          proposal({subjectTypes: [...localizedSchemaTypes, ...fieldTierTypes()]}),
         ],
         templates: (prev) => [
           ...prev,
@@ -65,6 +70,11 @@ export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L1
       },
       document: {
         inspectors: (prev) => [translationInspector, ...prev],
+        // A proposal is evidence with two verbs, so its action set REPLACES the
+        // defaults rather than extending them: nothing hand-authors, publishes or
+        // duplicates one. Accepting is what files it; rejecting is what deletes it.
+        actions: (prev, context) =>
+          context.schemaType === proposalTypeName ? proposalActions : prev,
         // No publish gate here. `localize-document` guards its subject against
         // `publish` in both `translating` and `review`, and
         // `@sanity/workflow-studio-plugin` already disables the action from that

@@ -92,6 +92,21 @@ export type GlossaryEntry = Get<GLOSSARIES_QUERY_RESULT, number, 'entries', numb
 export type Glossary = GLOSSARIES_QUERY_RESULT[number]
 export type StyleGuide = NonNullable<STYLE_GUIDE_FOR_LOCALE_QUERY_RESULT>
 
+/**
+ * Whether an entry is allowed to reach a prompt at all.
+ *
+ * The status field is the review gate the learning loop depends on: a distilled
+ * proposal lands as content and stays inert until a human sets it to `approved`.
+ * `forbidden` passes too — it is an instruction to avoid a term, which is only
+ * useful if the model is told about it.
+ *
+ * Checked on every path, `doNotTranslate` included. A `provisional` DNT entry
+ * used to bypass this and reach `protectedPhrases`.
+ */
+function isReviewed(entry: GlossaryEntry): boolean {
+  return entry.status === 'approved' || entry.status === 'forbidden'
+}
+
 // Section builders — exported individually for testability
 
 export function buildGlossarySection(glossaries: Glossary[], targetLocale: string): string {
@@ -107,6 +122,7 @@ export function buildGlossarySection(glossaries: Glossary[], targetLocale: strin
       if (!entry.term) continue
       if (seen.has(entry.term)) continue
       seen.add(entry.term)
+      if (!isReviewed(entry)) continue
 
       if (entry.doNotTranslate) {
         dnt.push(entry.term)
@@ -173,13 +189,16 @@ export function buildStyleGuideSection(styleGuide: StyleGuide): string {
 /**
  * Extract Do Not Translate terms from glossaries for the Translate
  * action's `protectedPhrases` parameter.
+ *
+ * Status-gated like `buildGlossarySection`: an unreviewed proposal must not be
+ * able to pin a phrase in the source language.
  */
 export function extractProtectedPhrases(glossaries: Glossary[]): string[] {
   const phrases = new Set<string>()
   for (const glossary of glossaries) {
     if (!glossary.entries) continue
     for (const entry of glossary.entries) {
-      if (entry.doNotTranslate && entry.term) phrases.add(entry.term)
+      if (entry.doNotTranslate && entry.term && isReviewed(entry)) phrases.add(entry.term)
     }
   }
   return [...phrases]

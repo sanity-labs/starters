@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./distill-review": {
+      "source": "./distill-review/index.ts",
+      "default": "./distill-review/index.ts"
+    },
     "./handle-deleted-subject": {
       "source": "./handle-deleted-subject/index.ts",
       "default": "./handle-deleted-subject/index.ts"

@@ -32,6 +32,25 @@ export {ErrorBoundary} from './translations/ErrorBoundary'
 export {useOpenTranslationsInspector} from './translations/useOpenTranslationsInspector'
 export {useReleases, type Release} from './translations/useReleases'
 
+// --- The learning loop's reviewer surface ---
+
+export {
+  ACCEPT_TARGETS_QUERY,
+  acceptBlocker,
+  acceptedKey,
+  acceptProposal,
+  acceptProposalAction,
+  glossaryEntryFor,
+  proposalActions,
+  readAcceptTargets,
+  readProposal,
+  rejectProposal,
+  rejectProposalAction,
+  styleRuleBlockFor,
+  type AcceptableProposal,
+  type AcceptTargets,
+} from './proposals'
+
 // --- Engine wiring ---
 
 export {

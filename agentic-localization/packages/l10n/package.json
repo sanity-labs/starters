@@ -21,6 +21,10 @@
       "source": "./src/effects/index.ts",
       "default": "./src/effects/index.ts"
     },
+    "./distill": {
+      "source": "./src/distill/index.ts",
+      "default": "./src/distill/index.ts"
+    },
     "./credentials": {
       "source": "./src/credentials/index.ts",
       "default": "./src/credentials/index.ts"

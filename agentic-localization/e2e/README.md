@@ -2,12 +2,22 @@
 
 Critical user journeys as Gherkin, driven by [racejar](https://www.npmjs.com/package/racejar)
 against a **real project**: real datasets, the deployed definitions, the real
-engine, real Content Lake guards, and the publish and delete Functions themselves.
+engine, real Content Lake guards, and the publish, delete and distill Functions
+themselves.
 
 The bench suite (`packages/l10n/src/workflows/*.test.ts`) proves the definitions
 in memory. This proves the parts a bench cannot: that the definitions deploy,
 that a publish event opens a run, that the effect handlers write what they claim,
-and that the engine's guards land in the lake.
+that the engine's guards land in the lake, and that the learning loop can read
+back a machine revision the handlers wrote minutes earlier.
+
+| Journey               | Mode | Proves                                                           |
+| --------------------- | ---- | ---------------------------------------------------------------- |
+| `publish-to-approved` | P    | The happy path, the cohort gate, the publish hold                |
+| `request-changes`     | P    | A narrowed re-run, and that it does not narrow the next pass     |
+| `partial-failure`     | P    | A failed locale is surfaced, not blocking                        |
+| `field-tier-person`   | H    | In-place write paths, the published read perspective, no restart |
+| `distill-review`      | H    | The learning loop: proposals, free eval cases, claim idempotency |
 
 ## Prerequisites
 
@@ -61,7 +71,7 @@ Mode F is not implemented. Modes P and H are what run nightly.
   cannot be isolated by prefix, so the journey that makes one empties those types
   first. Another reason the datasets belong to the suite alone.
 
-A scenario takes 15–100s and the whole suite about 17 minutes: every step is real
+A scenario takes 15–100s and the whole suite around 22 minutes: every step is real
 API round trips, and the engine's verbs are sequential by design. That is why
 this is nightly rather than per-commit.
 
@@ -80,7 +90,9 @@ missing one:
 - **Mode H drains through the harness's engine, not `functions/drain-effects`.**
   The Agent Actions seam is `createEngine({resourceClients})`, which that Function
   does not expose. Its ten lines of glue are covered by unit tests instead, and
-  `heartbeat`'s stale-claim sweep is not exercised at all.
+  `heartbeat`'s stale-claim sweep is not exercised at all. `distill-review` IS
+  driven as the real handler, because it takes its content client as an argument
+  (`createDistillHandler`) — that is the one seam the loop needed.
 - **No live model.** Translation quality is the eval suite's job
   (`pnpm --filter @starter/l10n eval`), not this one.
 - **No campaign or release journeys.** `localize-campaign`, `publish-release` and
