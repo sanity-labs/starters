@@ -47,8 +47,9 @@ code against that, not just against "does it work".
 
 - **Spec first.** Behaviour is proven by executable specs before it ships. For
   workflows that means `createBench` suites; for pure logic, unit tests; for the
-  deployed stack, the `e2e/` journeys. Browser journeys are the open gap —
-  `e2e/README.md` keeps the honest not-covered list.
+  deployed stack, the `e2e/` journeys — API-level under `features/`, browser
+  under `browser/`, one vitest project each. Firing verbs in the browser is the
+  open gap; `e2e/README.md` keeps the honest not-covered list.
 - **Domain packages, not one grab-bag.** Two packages split on the React line,
   entries as layers — `docs/decisions/adr-001-package-shape.md` is the decision and
   the two READMEs are the public API.

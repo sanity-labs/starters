@@ -31,6 +31,7 @@
     "test": "pnpm -r test",
     "eval": "pnpm --filter @starter/l10n eval",
     "e2e": "pnpm --filter @starter/e2e e2e",
+    "e2e:browser": "pnpm --filter @starter/e2e e2e:browser",
     "lint": "eslint --cache --cache-location node_modules/.cache/eslint/ .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",

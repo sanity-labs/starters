@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "e2e": "vitest run --config vitest.e2e.config.ts",
+    "e2e": "vitest run --config vitest.e2e.config.ts --project api",
+    "e2e:browser": "vitest run --config vitest.e2e.config.ts --project browser",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
@@ -16,6 +17,7 @@
     "@starter/l10n": "workspace:*",
     "@starter/tsconfig": "workspace:*",
     "@types/node": "^22.19.13",
+    "playwright": "^1.62.0",
     "racejar": "^2.0.5",
     "typescript": "catalog:",
     "vitest": "catalog:"
