@@ -1,6 +1,6 @@
 ---
 name: sanity-l10n
-description: 'Work with a Sanity starter that uses structured content (glossaries, style guides, locale metadata) to make AI translation enterprise-grade. Covers prompt assembly, localization runs on Sanity Editorial Workflows, translation quality evals, and the Agent Actions Translate API. Trigger on: customize glossary, add terminology, translation style guide, run evals, deploy functions, prompt assembly, debug translation, extend l10n plugin, Agent Actions Translate, blueprint deploy, localization run, workflow definition, effect handler, field-level translation, field translation, internationalizedArray, field workflow, publish gate, field matrix, per-field translate, field approve, review workflow, translate field action. Complements sanity-best-practices (general i18n) and add-l10n-frontend (frontend rendering).'
+description: 'Work with a Sanity starter that uses structured content (glossaries, style guides, locale metadata) to make AI translation enterprise-grade. Covers prompt assembly, localization runs on Sanity Editorial Workflows, translation quality evals, and the Agent Actions Translate API. Trigger on: customize glossary, add terminology, translation style guide, run evals, deploy functions, prompt assembly, debug translation, extend l10n plugin, Agent Actions Translate, blueprint deploy, localization run, workflow definition, effect handler, field-level translation, field translation, internationalizedArray, review workflow. Complements sanity-best-practices (general i18n) and add-l10n-frontend (frontend rendering).'
 ---
 
 # Sanity Agentic Localization
@@ -61,19 +61,12 @@ The starter supports two complementary translation approaches:
   articles). Configured via `localizedSchemaTypes` in `createL10n()`.
 - **Field-level** (`sanity-plugin-internationalized-array`) — inline
   `internationalizedArray*` fields on a single document. Used for types where
-  only specific fields need translation (e.g., person bios). Auto-detected by
-  the inspector via schema walk.
+  only specific fields need translation (e.g., person bios). Declared in the
+  registry in `packages/l10n/src/core/fieldTier.ts`.
 
-Key field-level entry points:
-
-- `packages/l10n/src/translations/FieldTranslationContent.tsx` — field x locale
-  matrix inspector
-- `packages/l10n/src/translations/deriveFieldCellStates.ts` — pure state
-  derivation (6 rules)
-- `packages/l10n/src/translations/useFieldTranslateActions.ts` — translation
-  orchestration (translate, approve, dismiss)
-- `packages/l10n/src/core/types.ts` — `FieldWorkflowStateEntry`,
-  `FieldCellState` types
+Both tiers run the same workflow definitions; the field tier diverges only in
+where a locale's translation is written. See
+`references/field-level-patterns.md`.
 
 ## Jobs to Be Done
 
@@ -161,50 +154,28 @@ Load `references/troubleshooting.md` for common issues:
 - Eval failures (sourceText/fieldPath mismatch, auth token resolution)
 - Functions issues (pnpm dep resolution, env var loading in jiti)
 
-### 8. Understand the field-level translation architecture
+### 8. Understand the field-level tier
 
-- When to use document-level vs field-level: see "Two-Tier Architecture" above
-- The `fieldTranslation.metadata` schema uses `liveEdit: true` (patches write
-  directly, no draft), `hidden: true`, and deterministic IDs via
-  `getFieldTranslationMetadataId()`
-- The 6 derivation rules in `deriveFieldCellStates.ts` merge document state with
-  metadata to produce the `FieldCellState` matrix
-- Inspector auto-detection: `useInternationalizedFields` walks the compiled
-  schema to find all `internationalizedArray*` fields — no manual registration
-- Load `references/field-level-patterns.md` for the full data flow, hook API,
-  and translation pipeline details
+Load `references/field-level-patterns.md`. Canonical sources:
+`packages/l10n/src/core/fieldTier.ts` (registry, coverage, source projection,
+start perspective), `packages/l10n/src/handlers/translateLocale.ts` (the
+in-place write branch) and `packages/l10n/src/translations/FieldTierContent.tsx`
+(the inspector surface).
 
 ### 9. Add field-level translations to a document type
 
-1. Change the field type to `internationalizedArrayText` (or
-   `internationalizedArrayString`) in your schema definition
-2. The inspector auto-discovers it — no registration needed
-3. Deploy schema: `cd studio && pnpm exec sanity schema deploy`
+1. Use `internationalizedArrayText` (or `internationalizedArrayString`) for the
+   field in your schema definition
+2. Register the type and its field paths in `FIELD_TIER` in
+   `packages/l10n/src/core/fieldTier.ts` — handlers run in Functions with no
+   compiled schema to walk, so the registry is static
+3. Add the type to `localize-document`'s subject types and to the function
+   filters in `sanity.blueprint.ts`, as in job 2
+4. Redeploy: `cd studio && pnpm exec sanity schema deploy`, then
+   `pnpm exec sanity blueprints deploy` and `pnpm workflows:deploy`
 
 Example: `studio/schemaTypes/person.ts` uses `internationalizedArrayText` for
-the `bio` field. The field-level inspector automatically detects it and shows
-the field x locale matrix.
-
-### 10. Customize the field-level review workflow
-
-Load `references/field-level-patterns.md` for details on:
-
-- Publish gate behavior — `createFieldTranslationPublishGate` wraps
-  PublishAction, disables when `needsReview` or `stale` entries exist
-- Concurrency limits — `MAX_CONCURRENT = 5` in `useFieldTranslateActions.ts`
-- Stale detection sensitivity — `sourceSnapshot` comparison uses
-  `JSON.stringify`, debounce is 500ms in `useStaleSyncEffect`
-- Load `references/customization-guide.md` for modification guidance
-
-### 11. Debug field-level translation issues
-
-Load `references/troubleshooting.md` for common issues:
-
-- Metadata not created — needs write permission (`liveEdit: true`)
-- Publish blocked but translations look fine — stale metadata
-- Fields not appearing in matrix — must use `internationalizedArray*` type
-- Stale not detected — client-side only, runs when inspector is open
-- Translations missing from matrix — check source content exists
+`bio`, registered alongside `seo.metaTitle` and `seo.metaDescription`.
 
 ## Anti-Patterns
 
@@ -213,8 +184,8 @@ Load `references/troubleshooting.md` for common issues:
   concurrency, review gates and idempotency are Editorial Workflows primitives.
   ~4,600 lines of exactly this are on the delete list; don't add more.
 - **Do NOT put workflow state on content documents** — the instance owns run
-  state, content documents own content state. `workflowStates[]` and
-  `staleAnalysis` on the metadata docs are being removed for this reason.
+  state, content documents own content state. There is no per-field status
+  ledger to write to; coverage is derived from the arrays themselves.
 - **Do NOT edit workflow instances as content** — no `useEditDocument`, no raw
   patches. Every instance write goes through an engine verb (`fireAction`,
   `editField`, `tick`, `completeEffect`) or it bypasses gates, history and the
@@ -242,15 +213,13 @@ Load `references/troubleshooting.md` for common issues:
   Pass `token` explicitly. See `packages/l10n/evals/authToken.ts`.
 - **Do NOT skip `sanity schema deploy`** — Agent Actions requires deployed
   schema. Schema ID is `_.schemas.default`.
-- **Do NOT manually create `fieldTranslation.metadata` documents** —
-  deterministic IDs via `getFieldTranslationMetadataId()`. The hooks and actions
-  create them automatically with `createIfNotExists`.
-- **Do NOT use `useFormValue` for field translation data** — the inspector
-  renders outside form context. Use `documentStore.listenQuery()` instead (see
-  `useFieldTranslationData.ts`).
-- **Do NOT skip the publish gate** — `createFieldTranslationPublishGate` wraps
-  PublishAction. Don't remove it or bypass it without understanding the
-  consequences for translation review workflows.
+- **Do NOT use `useFormValue` in the inspector** — it renders outside form
+  context. Read the document through `useEditState` (see
+  `translations/FieldTierContent.tsx`).
+- **Do NOT bypass a run's action guards** — `localize-document` guards its
+  subject against `publish` while translating and in review, and
+  `createLocalizationScheduleGate` closes the one action the Studio plugin's
+  lock map misses. Don't unwrap either.
 
 ## Reference Files
 

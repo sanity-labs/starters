@@ -18,7 +18,8 @@ starter-agentic-i18n/
 │   │   ├── handlers/             Effect handlers those definitions declare
 │   │   ├── core/                 Pure utilities (zero React — safe for serverless)
 │   │   │   ├── types.ts          Workflow statuses, stale analysis types, config
-│   │   │   ├── fieldMetadataIds.ts      Deterministic IDs for fieldTranslation.metadata
+│   │   │   ├── fieldTier.ts             Field-tier registry, coverage, source projection
+│   │   │   ├── ids.ts                   Deterministic translation.metadata IDs
 │   │   │   ├── computeFieldChanges.ts   Field-level diffing
 │   │   │   ├── buildFieldSummary.ts     Human-readable change summary for AI
 │   │   │   ├── extractBlockText.ts      Plain text from Portable Text
@@ -29,24 +30,15 @@ starter-agentic-i18n/
 │   │   │   ├── translationGlossary.ts      l10n.glossary
 │   │   │   ├── glossaryEntry.ts            l10n.glossary.entry (object)
 │   │   │   ├── translationStyleGuide.ts    l10n.style-guide
-│   │   │   ├── localeTranslation.ts        l10n.locale.translation (object)
-│   │   │   └── fieldTranslationMetadata.ts fieldTranslation.metadata (liveEdit, hidden)
+│   │   │   └── localeTranslation.ts        l10n.locale.translation (object)
 │   │   ├── L10nProvider.tsx      One listenQuery each for locales and glossaries,
 │   │   │                         mounted once at the studio layout
-│   │   ├── fieldActions/         AI Assist field action integration
-│   │   │   ├── useInternationalizedFields.ts  Schema walk: discover i18n fields
-│   │   │   └── useTranslateFieldAction.ts     Per-locale translate sub-actions
 │   │   └── translations/         React UI: translation pane, inspector, hooks
-│   │       ├── FieldTranslationContent.tsx     Field × locale matrix inspector
-│   │       ├── deriveFieldCellStates.ts        Pure state derivation (6 rules)
-│   │       ├── useFieldTranslateActions.ts     Bulk translate/approve/dismiss
-│   │       ├── useFieldTranslationData.ts      Realtime field snapshot
-│   │       ├── useFieldWorkflowMetadata.ts     Metadata subscription
-│   │       ├── useFieldTranslationPublishGate.ts  Publish gate wrapper
-│   │       ├── useStaleSyncEffect.ts           Debounced stale persistence
-│   │       ├── createSemaphore.ts              Concurrency limiter
-│   │       ├── StaleDiffPopover.tsx             Stale cell diff UI
+│   │       ├── TranslationInspector.tsx        Tier switch: document or field
+│   │       ├── FieldTierContent.tsx            Field-tier inspector: run + coverage
 │   │       ├── LocalizationRun.tsx             The open run, read off the instance
+│   │       ├── workflowEngine.ts               Engine client, instance lookup
+│   │       ├── scheduleGate.ts                 Holds `schedule` while a run is open
 │   │       └── ...                             (other doc-level translation files)
 │   └── evals/                    Translation quality evaluation framework
 │       ├── fixtures.ts           Shared test data (locales, glossaries, source texts)
@@ -138,14 +130,13 @@ Agent Actions Translate API call
 
 ## Schema Types
 
-| Type name                   | Kind     | Key fields                                                                                               | Source                                |
-| --------------------------- | -------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `l10n.locale`               | document | code (BCP-47), title, nativeName, fallback (ref)                                                         | `schemas/translationLocale.tsx`       |
-| `l10n.glossary`             | document | title, sourceLocale (ref), entries[]                                                                     | `schemas/translationGlossary.ts`      |
-| `l10n.glossary.entry`       | object   | term, status, doNotTranslate, partOfSpeech, definition, context, translations[]                          | `schemas/glossaryEntry.ts`            |
-| `l10n.style-guide`          | document | title, locale (ref), formality, tone[], additionalInstructions (PT)                                      | `schemas/translationStyleGuide.ts`    |
-| `l10n.locale.translation`   | object   | locale (ref), translation, gender                                                                        | `schemas/localeTranslation.ts`        |
-| `fieldTranslation.metadata` | document | documentRef (weak ref), documentType, workflowStates[] (field, language, status, source, sourceSnapshot) | `schemas/fieldTranslationMetadata.ts` |
+| Type name                 | Kind     | Key fields                                                                      | Source                             |
+| ------------------------- | -------- | ------------------------------------------------------------------------------- | ---------------------------------- |
+| `l10n.locale`             | document | code (BCP-47), title, nativeName, fallback (ref)                                | `schemas/translationLocale.tsx`    |
+| `l10n.glossary`           | document | title, sourceLocale (ref), entries[]                                            | `schemas/translationGlossary.ts`   |
+| `l10n.glossary.entry`     | object   | term, status, doNotTranslate, partOfSpeech, definition, context, translations[] | `schemas/glossaryEntry.ts`         |
+| `l10n.style-guide`        | document | title, locale (ref), formality, tone[], additionalInstructions (PT)             | `schemas/translationStyleGuide.ts` |
+| `l10n.locale.translation` | object   | locale (ref), translation, gender                                               | `schemas/localeTranslation.ts`     |
 
 ## GROQ Queries
 
@@ -155,35 +146,9 @@ Agent Actions Translate API call
 | `GLOSSARIES_QUERY`             | Glossaries with resolved entries + locale translations | `GlossariesContext` (single subscription) |
 | `STYLE_GUIDE_FOR_LOCALE_QUERY` | Style guide for a specific `$localeCode`, or null      | Translation inspector, prompt assembly    |
 
-## Data Flow: Field-Level Translation Workflow
+## Field-Level Localization Runs
 
-```
-useInternationalizedFields(documentType)
-  │  Schema walk — finds all internationalizedArray* fields
-  │  Returns InternationalizedFieldDescriptor[]
-  │
-  ├──▶ useFieldTranslationData(documentId, fields, locales)
-  │      listenQuery (draft + published, i18n fields only)
-  │      Returns FieldTranslationSnapshot (matrix, sourceLanguages, currentSourceValues)
-  │
-  ├──▶ useFieldWorkflowMetadata(documentId)
-  │      listenQuery for fieldTranslation.metadata
-  │      Returns stateMap keyed by "field::language"
-  │
-  ▼
-deriveFieldCellStates(snapshot, stateMap, currentSourceValues)
-  │  Pure function: 6 derivation rules → FieldCellState matrix
-  │
-  ├──▶ useStaleSyncEffect (debounced 500ms)
-  │      Persists newly-stale entries to metadata document
-  │
-  └──▶ FieldTranslationContent (inspector UI)
-         ├── Summary bar: status counts + progress bar
-         ├── Matrix table: rows = fields, columns = locales
-         ├── StaleDiffPopover: click stale cell → diff + dismiss/retranslate
-         └── Action bar: translate missing, approve all
-              │
-              └──▶ useFieldTranslateActions
-                     Per-cell: translate(noWrite) → patch doc → patch metadata
-                     Semaphore: max 5 concurrent, AbortController per cell
-```
+Same three definitions as the document tier — only the write target differs.
+`packages/l10n/src/core/fieldTier.ts` is the tier's vocabulary and
+`packages/l10n/src/handlers/translateLocale.ts` holds the in-place branch. See
+`references/field-level-patterns.md`.

@@ -93,58 +93,30 @@ schema validation in `translationLocale.tsx` catches this.
 
 ## Field-Level Translation Issues
 
-### Publish blocked but translations look fine
+### Publish or schedule is disabled
 
-Stale metadata may be out of sync with actual document content. The publish
-gate reads from `fieldTranslation.metadata`, not from the document itself.
+A run is open. `localize-document` guards its subject against `publish` while
+translating and in review; `createLocalizationScheduleGate` holds `schedule` the
+same way. Finish or abort the run.
 
-Check the metadata in Vision:
+### A locale never shows as covered
 
-```groq
-*[_id == "fieldTranslation.metadata.<publishedDocId>"][0]{
-  workflowStates[]{field, language, status, sourceSnapshot}
-}
-```
+Coverage is all-or-nothing: `coveredLocales()` in
+`packages/l10n/src/core/fieldTier.ts` counts a locale only when EVERY registered
+field carries a value for it.
 
-If entries show `needsReview` or `stale` but the translations are correct,
-either approve them via the inspector or patch the metadata to `approved`.
+### A field is not translated
 
-### Fields not appearing in matrix
+Its path must be registered for the document type in `FIELD_TIER` in
+`packages/l10n/src/core/fieldTier.ts`. The registry is static — handlers run in
+Functions with no compiled Studio schema to walk.
 
-The field must use an `internationalizedArray*` type (e.g.,
-`internationalizedArrayText`, `internationalizedArrayString`). Regular `string`
-or `text` fields are not detected.
+### A run restarts itself after approval
 
-Also, fields inside array-of-objects (`depth: -1`) are detected but excluded
-from the inspector's bulk translate UI. Only top-level and object-nested fields
-appear.
-
-### Stale detection not working
-
-Stale detection is **client-side only** — it runs in `deriveFieldCellStates()`
-when the inspector is open. If nobody opens the inspector after a source edit,
-staleness won't be detected or persisted.
-
-The comparison uses `JSON.stringify` of the source locale's value. If the
-metadata entry has no `sourceSnapshot` (e.g., pre-existing content before the
-workflow was added), stale detection is skipped for that entry.
-
-### "No source content" error
-
-The source language is the first non-empty entry in the internationalized array.
-If no entry has a value, there's nothing to translate from. Fill at least one
-locale's value first.
-
-### Metadata document not created
-
-`fieldTranslation.metadata` uses `liveEdit: true` — patches write directly
-without a draft/publish cycle. This requires the user to have write permission
-on the dataset. If the user only has draft-level permissions, metadata creation
-will fail silently.
-
-The metadata document is created via `createIfNotExists` in
-`useFieldTranslateActions` — it's created on first translate or approve action,
-not on inspector open.
+Analysis diffs source-locale projections, not whole documents, and field-tier
+runs start on the `published` perspective for exactly this reason. See
+`sourceProjection` / `startPerspectiveFor` in `core/fieldTier.ts` and
+`packages/l10n/src/workflows/localizeDocument.fieldTier.test.ts`.
 
 ## Functions Issues
 
