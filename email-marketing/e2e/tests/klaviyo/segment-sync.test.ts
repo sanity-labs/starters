@@ -9,7 +9,7 @@ const featureText = readFileSync(join(import.meta.dirname, 'segment-sync.feature
 
 const STUDIO_URL = process.env.STUDIO_URL ?? 'http://localhost:3333'
 
-const testDefinitions = [
+const stepDefinitions = [
   Given('I am in the Studio', async ({playwright: {page}}) => {
     await page.goto(STUDIO_URL)
     await page.waitForSelector('[data-testid="navmenu"]')
@@ -20,7 +20,7 @@ const testDefinitions = [
     await page.waitForSelector('[data-testid="form-view"]', {timeout: 10_000})
   }),
 
-  Then('I see the {string} button', async ({playwright: {page}}, label: string) => {
+  Then<string>('I see the {string} button', async ({playwright: {page}}, label) => {
     await expect(page.getByRole('button', {name: label})).toBeVisible()
   }),
 
@@ -40,7 +40,7 @@ const testDefinitions = [
     await expect(page.getByRole('dialog')).toBeVisible({timeout: 5_000})
   }),
 
-  Then('the dialog shows {string}', async ({playwright: {page}}, text: string) => {
+  Then<string>('the dialog shows {string}', async ({playwright: {page}}, text) => {
     await expect(page.getByRole('dialog').getByText(text, {exact: false})).toBeVisible({
       timeout: 5_000,
     })
@@ -71,7 +71,7 @@ const testDefinitions = [
     await page.waitForSelector('[data-testid="form-view"]', {timeout: 10_000})
   }),
 
-  Then('the {string} field is editable', async ({playwright: {page}}, fieldLabel: string) => {
+  Then<string>('the {string} field is editable', async ({playwright: {page}}, fieldLabel) => {
     const field = page.locator(
       `[data-testid="field-${fieldLabel.toLowerCase().replace(/\s+/g, '')}"], label:has-text("${fieldLabel}")`,
     )
@@ -84,7 +84,7 @@ const testDefinitions = [
     await expect(input).not.toBeDisabled()
   }),
 
-  Then('the {string} field is read-only', async ({playwright: {page}}, fieldLabel: string) => {
+  Then<string>('the {string} field is read-only', async ({playwright: {page}}, fieldLabel) => {
     const input = page
       .locator(`label:has-text("${fieldLabel}")`)
       .locator('..')
@@ -96,4 +96,4 @@ const testDefinitions = [
   }),
 ]
 
-Feature(featureText, testDefinitions)
+Feature({featureText, stepDefinitions})

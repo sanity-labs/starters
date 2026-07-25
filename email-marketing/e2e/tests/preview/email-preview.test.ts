@@ -12,7 +12,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:3000'
 
 let currentPromotionId: string | null = null
 
-const testDefinitions = [
+const stepDefinitions = [
   Given('a promotion exists with email blocks', async () => {
     const doc = await sanityClient.fetch<{_id: string} | null>(
       `*[_type == "promotion" && count(emailSlots) > 0][0]{_id}`,
@@ -21,7 +21,7 @@ const testDefinitions = [
     currentPromotionId = doc._id
   }),
 
-  When('I open the promotion preview at {string}', async ({playwright: {page}}, path: string) => {
+  When<string>('I open the promotion preview at {string}', async ({playwright: {page}}, path) => {
     const url = path.replace('{id}', currentPromotionId!)
     await page.goto(`${FRONTEND_URL}${url}`)
     await page.waitForLoadState('networkidle')
@@ -42,7 +42,7 @@ const testDefinitions = [
     expect(content).not.toMatch(/\{\{.*?\}\}/)
   }),
 
-  When('I click {string}', async ({playwright: {page}}, label: string) => {
+  When<string>('I click {string}', async ({playwright: {page}}, label) => {
     await page.getByRole('link', {name: label}).click()
     await page.waitForLoadState('networkidle')
   }),
@@ -75,15 +75,15 @@ const testDefinitions = [
       .click()
   }),
 
-  Then(
+  Then<string>(
     'the preview pane shows the promotion at {string}',
-    async ({playwright: {page}}, path: string) => {
+    async ({playwright: {page}}, path) => {
       const expectedPath = path.replace('{id}', currentPromotionId!)
       await expect(page.locator(`iframe[src*="${expectedPath}"]`)).toBeVisible({timeout: 10_000})
     },
   ),
 
-  Then('the {string} toggle is active', async ({playwright: {page}}, label: string) => {
+  Then<string>('the {string} toggle is active', async ({playwright: {page}}, label) => {
     const toggle = page.getByRole('link', {name: label})
     await expect(toggle).toHaveClass(/bg-gray-900|active|selected/i)
   }),
@@ -93,4 +93,4 @@ const testDefinitions = [
   }),
 ]
 
-Feature(featureText, testDefinitions)
+Feature({featureText, stepDefinitions})

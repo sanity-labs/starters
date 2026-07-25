@@ -11,7 +11,7 @@ const STUDIO_URL = process.env.STUDIO_URL ?? 'http://localhost:3333'
 
 let currentCampaignId: string | null = null
 
-const testDefinitions = [
+const stepDefinitions = [
   Given('I am in the Studio', async ({playwright: {page}}) => {
     await page.goto(STUDIO_URL)
     await page.waitForSelector('[data-testid="navmenu"]')
@@ -27,7 +27,7 @@ const testDefinitions = [
     await page.waitForSelector('[data-testid="form-view"]', {timeout: 10_000})
   }),
 
-  Then('I see the {string} action button', async ({playwright: {page}}, label: string) => {
+  Then<string>('I see the {string} action button', async ({playwright: {page}}, label) => {
     await expect(page.getByRole('button', {name: label})).toBeVisible()
   }),
 
@@ -35,7 +35,7 @@ const testDefinitions = [
     await sanityClient.patch(currentCampaignId!).unset(['primaryMessage']).commit()
   }),
 
-  Then('the {string} button is disabled', async ({playwright: {page}}, label: string) => {
+  Then<string>('the {string} button is disabled', async ({playwright: {page}}, label) => {
     await page.reload()
     await expect(page.getByRole('button', {name: label})).toBeDisabled()
   }),
@@ -53,7 +53,7 @@ const testDefinitions = [
     await page.reload()
   }),
 
-  When('I click {string}', async ({playwright: {page}}, label: string) => {
+  When<string>('I click {string}', async ({playwright: {page}}, label) => {
     await page.getByRole('button', {name: label}).click()
   }),
 
@@ -72,7 +72,7 @@ const testDefinitions = [
     await page.getByRole('button', {name: /close|dismiss/i}).click()
   }),
 
-  When('I switch to the {string} tab', async ({playwright: {page}}, tab: string) => {
+  When<string>('I switch to the {string} tab', async ({playwright: {page}}, tab) => {
     await page.getByRole('tab', {name: tab}).click()
   }),
 
@@ -80,9 +80,9 @@ const testDefinitions = [
     await expect(page.getByText('Base')).toBeVisible({timeout: 5_000})
   }),
 
-  Then(
+  Then<string>(
     'each created promotion has a workflow state of {string}',
-    async ({playwright: {page}}, status: string) => {
+    async ({playwright: {page}}, status) => {
       const promotions = await sanityClient.fetch<Array<{_id: string}> | null>(
         `*[_type == "promotion" && campaign._ref == $id]{_id}`,
         {id: currentCampaignId},
@@ -98,4 +98,4 @@ const testDefinitions = [
   ),
 ]
 
-Feature(featureText, testDefinitions)
+Feature({featureText, stepDefinitions})

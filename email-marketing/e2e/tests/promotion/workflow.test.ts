@@ -11,13 +11,13 @@ const STUDIO_URL = process.env.STUDIO_URL ?? 'http://localhost:3333'
 
 let currentPromotionId: string | null = null
 
-const testDefinitions = [
+const stepDefinitions = [
   Given('I am in the Studio', async ({playwright: {page}}) => {
     await page.goto(STUDIO_URL)
     await page.waitForSelector('[data-testid="navmenu"]')
   }),
 
-  Given('a promotion exists in {string} status', async ({playwright: {page}}, status: string) => {
+  Given<string>('a promotion exists in {string} status', async ({playwright: {page}}, status) => {
     const doc = await sanityClient.fetch<{_id: string} | null>(
       `*[_type == "promotion" && *[_type == "workflow.state" && promotionId._ref == ^._id][0].status == $status][0]{_id}`,
       {status},
@@ -39,17 +39,17 @@ const testDefinitions = [
     await page.waitForSelector('[data-testid="form-view"]', {timeout: 10_000})
   }),
 
-  Then('I see the {string} action button', async ({playwright: {page}}, label: string) => {
+  Then<string>('I see the {string} action button', async ({playwright: {page}}, label) => {
     await expect(page.getByRole('button', {name: label})).toBeVisible()
   }),
 
-  Then('the workflow badge shows {string}', async ({playwright: {page}}, status: string) => {
+  Then<string>('the workflow badge shows {string}', async ({playwright: {page}}, status) => {
     await expect(
       page.locator('[data-testid="document-badges"]').getByText(status, {exact: false}),
     ).toBeVisible({timeout: 5_000})
   }),
 
-  When('I click {string}', async ({playwright: {page}}, label: string) => {
+  When<string>('I click {string}', async ({playwright: {page}}, label) => {
     await page.getByRole('button', {name: label}).click()
   }),
 
@@ -57,7 +57,7 @@ const testDefinitions = [
     await page.getByRole('button', {name: /confirm|yes/i}).click()
   }),
 
-  When('I open the {string} inspector panel', async ({playwright: {page}}, panelName: string) => {
+  When<string>('I open the {string} inspector panel', async ({playwright: {page}}, panelName) => {
     await page.getByRole('button', {name: panelName}).click()
   }),
 
@@ -80,9 +80,9 @@ const testDefinitions = [
     ).toBeVisible({timeout: 5_000})
   }),
 
-  Then(
+  Then<string>(
     'the document has a badge showing {string}',
-    async ({playwright: {page}}, status: string) => {
+    async ({playwright: {page}}, status) => {
       await expect(
         page.locator('[data-testid="document-badges"]').getByText(status, {exact: false}),
       ).toBeVisible({timeout: 5_000})
@@ -90,4 +90,4 @@ const testDefinitions = [
   ),
 ]
 
-Feature(featureText, testDefinitions)
+Feature({featureText, stepDefinitions})

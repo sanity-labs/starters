@@ -12,7 +12,7 @@ const STUDIO_URL = process.env.STUDIO_URL ?? 'http://localhost:3333'
 let currentCampaignId: string | null = null
 let currentPromotionId: string | null = null
 
-const testDefinitions = [
+const stepDefinitions = [
   Given('I am in the Studio', async ({playwright: {page}}) => {
     await page.goto(STUDIO_URL)
     await page.waitForSelector('[data-testid="navmenu"]')
@@ -31,7 +31,7 @@ const testDefinitions = [
     },
   ),
 
-  When('I click {string}', async ({playwright: {page}}, label: string) => {
+  When<string>('I click {string}', async ({playwright: {page}}, label) => {
     await page.getByRole('button', {name: label}).click()
   }),
 
@@ -45,7 +45,7 @@ const testDefinitions = [
     await expect(rows.first()).toBeVisible({timeout: 10_000})
   }),
 
-  Given('a promotion exists in {string} status', async ({playwright: {page}}, status: string) => {
+  Given<string>('a promotion exists in {string} status', async ({playwright: {page}}, status) => {
     const doc = await sanityClient.fetch<{_id: string} | null>(
       `*[_type == "promotion" && *[_type == "workflow.state" && promotionId._ref == ^._id][0].status == $status][0]{_id}`,
       {status},
@@ -63,9 +63,9 @@ const testDefinitions = [
     await page.getByRole('button', {name: /confirm|yes|approve/i}).click()
   }),
 
-  Then(
+  Then<string>(
     'the workflow state transitions to {string}',
-    async ({playwright: {page}}, status: string) => {
+    async ({playwright: {page}}, status) => {
       await expect(page.getByText(status, {exact: false})).toBeVisible({timeout: 10_000})
     },
   ),
@@ -80,7 +80,7 @@ const testDefinitions = [
     expect(['approved', 'sent']).toContain(wf?.status)
   }),
 
-  When('I open the {string} inspector panel', async ({playwright: {page}}, panelName: string) => {
+  When<string>('I open the {string} inspector panel', async ({playwright: {page}}, panelName) => {
     await page.getByRole('button', {name: panelName}).click()
   }),
 
@@ -114,7 +114,7 @@ const testDefinitions = [
     await page.waitForSelector('[data-testid="form-view"]', {timeout: 10_000})
   }),
 
-  When('I switch to the {string} tab', async ({playwright: {page}}, tab: string) => {
+  When<string>('I switch to the {string} tab', async ({playwright: {page}}, tab) => {
     await page.getByRole('tab', {name: tab}).click()
   }),
 
@@ -154,4 +154,4 @@ const testDefinitions = [
   }),
 ]
 
-Feature(featureText, testDefinitions)
+Feature({featureText, stepDefinitions})
