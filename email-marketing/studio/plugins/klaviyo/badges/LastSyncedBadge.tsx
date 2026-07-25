@@ -8,7 +8,7 @@ type KlaviyoImportDoc = {
 }
 
 const STATE_COLOR: Record<ImportState, DocumentBadgeDescription['color']> = {
-  idle: 'default',
+  idle: undefined,
   requested: 'primary',
   importing: 'primary',
   imported: 'success',
@@ -52,7 +52,6 @@ export const LastSyncedBadge: DocumentBadgeComponent = (props) => {
   if (!lastImportedAt) {
     return {
       label: 'Never synced',
-      color: 'default',
       title: 'No sync has run yet',
     }
   }

@@ -90,7 +90,10 @@ export const ApproveAction: DocumentActionComponent = (props) => {
     }
   }
 
+  // The dialog is locked while the write is in flight — the close button is
+  // hidden, and clicks outside or Escape are ignored.
   const onClose = () => {
+    if (state === 'sending') return
     setState('idle')
     setErrorMsg(null)
     props.onComplete()
@@ -116,7 +119,8 @@ export const ApproveAction: DocumentActionComponent = (props) => {
       return {
         type: 'dialog' as const,
         header: 'Approve & Send',
-        onClose: state === 'sending' ? undefined : onClose,
+        showCloseButton: state !== 'sending',
+        onClose,
         content: (
           <Box padding={4}>
             <Stack space={4}>

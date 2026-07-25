@@ -48,7 +48,7 @@ async function fetchAllSegments(apiKey: string): Promise<KlaviyoItem[]> {
   let url: string | undefined = `${KLAVIYO_BASE}/segments?fields[segment]=name,is_active`
 
   do {
-    const body = await klaviyoFetch<KlaviyoListResponse>(url, apiKey)
+    const body: KlaviyoListResponse = await klaviyoFetch(url, apiKey)
     for (const item of body.data) {
       segments.push({
         id: item.id,
