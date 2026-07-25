@@ -14,6 +14,7 @@
 
 import type {EffectHandler, FieldOp, GdrUri} from '@sanity/workflow-engine'
 
+import {ClientError, isHttpError} from '@sanity/client'
 import {DocumentId, getDraftId, getPublishedId, getVersionId} from '@sanity/id-utils'
 import {extractDocumentId, stripSystemFields} from '@sanity/workflow-engine'
 
@@ -149,7 +150,7 @@ export const translateLocale: EffectHandler = async (params, ctx) => {
 async function translateIntoSibling(job: TranslationJob): Promise<TranslationWrite> {
   const {client, ctx, documentType, locale, publishedSourceId, release} = job
 
-  const metadata = await client.fetch<null | {translations: null | TranslationRow[]}>(
+  const metadata = await client.fetch<null | {_id: string; translations: null | TranslationRow[]}>(
     TRANSLATIONS_FOR_DOCUMENT_QUERY,
     {metadataId: getTranslationMetadataId(publishedSourceId), publishedId: publishedSourceId},
     {tag: 'get-translation-metadata'},
@@ -230,6 +231,11 @@ async function translateIntoSibling(job: TranslationJob): Promise<TranslationWri
     await linkTranslation(client, {
       documentType,
       locale,
+      // The document-internationalization plugin mints the join document with a
+      // random uuid, so an existing one is not at our deterministic id. The
+      // query finds it either way; writing to our id instead would create a
+      // second join document for the same source.
+      metadataId: metadata?._id ?? getTranslationMetadataId(publishedSourceId),
       sourcePublishedId: publishedSourceId,
       targetPublishedId,
     })
@@ -406,21 +412,23 @@ function documentBody(
 /**
  * Register the translation on the `translation.metadata` join document.
  *
- * Idempotent by locale: the id is deterministic, `createIfNotExists` tolerates a
- * concurrent sibling locale creating it first, and the row is unset before it is
- * appended so a redelivered effect replaces its own row rather than adding a
- * second one.
+ * Idempotent by locale: the caller resolves the id — the existing document's,
+ * else the deterministic one — `createIfNotExists` tolerates a concurrent
+ * sibling locale creating it first, and the row is unset before it is appended
+ * so a redelivered effect replaces its own row rather than adding a second one.
  */
 async function linkTranslation(
   client: ContentClient,
   args: {
     documentType: string
     locale: string
+    /** The join document that exists, or the deterministic id to create one at. */
+    metadataId: string
     sourcePublishedId: string
     targetPublishedId: string
   },
 ): Promise<void> {
-  const metadataId = getTranslationMetadataId(args.sourcePublishedId)
+  const {metadataId} = args
   const sourceRef = translationReference(SOURCE_LANGUAGE, args.sourcePublishedId, args.documentType)
 
   const tx = client.transaction()
@@ -513,8 +521,10 @@ function transactionIdOf(result: unknown): null | string {
   return typeof result.transactionId === 'string' ? result.transactionId : null
 }
 
+/** Structural as well as `instanceof`: a bundled second copy of `@sanity/client` breaks the class check. */
 function isConflict(err: unknown): boolean {
-  return typeof err === 'object' && err !== null && 'statusCode' in err && err.statusCode === 409
+  if (err instanceof ClientError) return err.statusCode === 409
+  return isHttpError(err) && err.statusCode === 409
 }
 
 function targetOp(id: GdrUri, type: string): FieldOp {

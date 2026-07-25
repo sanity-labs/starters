@@ -15,7 +15,13 @@ import type {
   WorkflowPerspective,
 } from '@sanity/workflow-engine'
 
-import {DEFAULT_CONTENT_PERSPECTIVE, gdrUri, parseGdr} from '@sanity/workflow-engine'
+import {
+  DEFAULT_CONTENT_PERSPECTIVE,
+  gdrFromResource,
+  parseGdr,
+  resourceFromParsed,
+  tryParseGdr,
+} from '@sanity/workflow-engine'
 
 /** The engine's handler context. Only reachable through the handler signature. */
 export type EffectContext = Parameters<EffectHandler>[1]
@@ -95,12 +101,7 @@ export function requestTagSegment(effectKey: string): string {
 }
 
 export function isGdrUri(value: string): value is GdrUri {
-  try {
-    parseGdr(value)
-    return true
-  } catch {
-    return false
-  }
+  return tryParseGdr(value) !== undefined
 }
 
 /** An effect binding that resolves to a document reference, as a GDR. */
@@ -136,22 +137,7 @@ export function optionalRelease(params: Record<string, unknown>, name: string): 
 
 /** Another document in the same resource as `reference`. */
 export function siblingGdr(reference: GdrUri, documentId: string): GdrUri {
-  const parsed = parseGdr(reference)
-  if (parsed.scheme === 'dataset') {
-    if (!parsed.projectId || !parsed.dataset) {
-      throw new Error(`GDR ${reference} is missing its project/dataset parts`)
-    }
-    return gdrUri({
-      scheme: 'dataset',
-      projectId: parsed.projectId,
-      dataset: parsed.dataset,
-      documentId,
-    })
-  }
-  if (!parsed.resourceId) {
-    throw new Error(`GDR ${reference} is missing its resource id`)
-  }
-  return gdrUri({scheme: parsed.scheme, resourceId: parsed.resourceId, documentId})
+  return gdrFromResource(resourceFromParsed(parseGdr(reference)), documentId)
 }
 
 /** The dataset a `dataset:` GDR addresses — the History API takes it in the path. */
@@ -207,6 +193,10 @@ function isPerspective(value: unknown): value is WorkflowPerspective {
  * but died before `completeEffect`, or one that outlived its lease, comes back
  * under the same `ctx.effectKey`. A handler about to spend an AI call or write
  * a document checks the ledger first.
+ *
+ * Read by hand rather than through `effectOutputsMap`: that keys by effect
+ * *name*, and settlement has to be per-`effectKey` or a retried dispatch of a
+ * second key reads as done. The engine exports no `isEffectSettled`.
  */
 export async function effectAlreadyDone(ctx: EffectContext): Promise<boolean> {
   const settled = await ctx.client.fetch<null | string[]>(

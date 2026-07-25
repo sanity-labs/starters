@@ -13,7 +13,7 @@ import {Badge, Box, Button, Card, Flex, Heading, Spinner, Stack, Text, TextInput
 import {WorkflowDiagram} from '@sanity/workflow-diagram'
 import {childInstanceIds} from '@starter/l10n'
 import {useWorkflowInstances, useWorkflowSession} from '@sanity/workflow-sdk'
-import {parseGdr} from '@sanity/workflow-engine'
+import {extractDocumentId, toBareId} from '@sanity/workflow-engine'
 import {useMemo, useState, useTransition} from 'react'
 import {useNavigate, useParams} from 'react-router-dom'
 
@@ -39,15 +39,6 @@ function stageTone(stage: string): 'caution' | 'critical' | 'default' | 'positiv
   }
   if (stage === 'review' || stage === 'ready') return 'caution'
   return 'default'
-}
-
-/** The row label: a locale key passes through, a document GDR resolves to its id. */
-function rowLabel(rowKey: string): string {
-  try {
-    return parseGdr(rowKey).documentId
-  } catch {
-    return rowKey
-  }
 }
 
 function ChildrenTable({rows}: {rows: ChildRow[]}) {
@@ -187,10 +178,11 @@ function RunDetail({instanceId}: {instanceId: string}) {
     }
 
     return [...newest.values()].map((row): ChildRow => {
-      const childId = parseGdr(row.ref.id).documentId
+      const childId = extractDocumentId(row.ref.id)
       return {
         instanceId: childId,
-        label: rowLabel(row.rowKey),
+        // A locale key passes through; a document GDR resolves to its id.
+        label: toBareId(row.rowKey),
         // A cohort's `status` only says the child settled — its stage says how.
         stage: row.resolved?.stage ?? liveStage.get(childId) ?? 'running',
       }

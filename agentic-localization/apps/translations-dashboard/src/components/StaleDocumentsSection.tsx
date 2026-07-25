@@ -107,21 +107,23 @@ function StaleDocumentRow({entry}: {entry: StaleDocumentEntry}) {
 
 // --- Helpers ---
 
+const relativeTime = new Intl.RelativeTimeFormat(undefined, {numeric: 'auto', style: 'narrow'})
+
+/** Largest unit that fits, in seconds. `sanity`'s `useTimeAgo` needs the Studio i18n provider; this is an App SDK app. */
+const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ['month', 2_592_000],
+  ['day', 86_400],
+  ['hour', 3_600],
+  ['minute', 60],
+]
+
 function formatTimeAgo(isoDate: string): string {
   const diffMs = Date.now() - new Date(isoDate).getTime()
   if (Number.isNaN(diffMs) || diffMs < 0) return ''
 
-  const minutes = Math.floor(diffMs / 60_000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes}m ago`
-
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-
-  const days = Math.floor(hours / 24)
-  if (days < 30) return `${days}d ago`
-
-  return `${Math.floor(days / 30)}mo ago`
+  const seconds = Math.floor(diffMs / 1000)
+  const [unit, size] = UNITS.find(([, unitSeconds]) => seconds >= unitSeconds) ?? ['second', 1]
+  return relativeTime.format(-Math.floor(seconds / size), unit)
 }
 
 export default StaleDocumentsSection

@@ -2,6 +2,10 @@ import {ResetIcon} from '@sanity/icons'
 import {Button, Card, Flex, Stack, Text} from '@sanity/ui'
 import {Component, type ErrorInfo, type ReactNode} from 'react'
 
+/**
+ * Not `@sanity/ui`'s `ErrorBoundary`: that one is `@beta`, stamped "DO NOT USE
+ * IN PRODUCTION", and renders a bare `<Code>` — no `fallback`, no reset.
+ */
 interface Props {
   children: ReactNode
   fallback?: ReactNode

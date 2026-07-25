@@ -11,10 +11,12 @@
  * cannot start a translation run.
  */
 
+import type {TransactionLogEvent} from '@sanity/types'
 import type {EffectHandler, FieldOp} from '@sanity/workflow-engine'
 import type {StaleAnalysisResult, StaleAnalysisSuggestion} from '../core/types'
 
 import {DocumentId, getPublishedId} from '@sanity/id-utils'
+import {createSafeJsonParser} from '@sanity/util/createSafeJsonParser'
 import {extractDocumentId} from '@sanity/workflow-engine'
 import {diffWords} from 'diff'
 
@@ -28,6 +30,7 @@ import {computeFieldChanges} from '../core/computeFieldChanges'
 import {extractBlockText} from '../core/extractBlockText'
 import {coveredLocales, internationalizedFields, sourceProjection} from '../core/fieldTier'
 import {getTranslationMetadataId} from '../core/ids'
+import {isRecord} from '../core/isRecord'
 import {ANALYSIS_PROMPT_INSTRUCTION} from '../core/staleAnalysisPrompt'
 import {LOCALE_CODES_QUERY, TRANSLATIONS_FOR_DOCUMENT_QUERY} from '../prompts/queries'
 import {SOURCE_LANGUAGE} from '../workflows/effects'
@@ -317,17 +320,27 @@ async function previousRevision(
   })
 
   const previous = parseNdjson(body)[1]
-  if (!isRecord(previous) || typeof previous.id !== 'string') return null
+  if (!isTransactionLogEvent(previous)) return null
   return previous.id
 }
 
+/**
+ * The Export API can interrupt a line of the log with an error object; the
+ * shared parser reports that as the error it is rather than a syntax error.
+ */
+const parseTransactionLine = createSafeJsonParser<unknown>({
+  errorLabel: 'Error reading the transaction log',
+})
+
+/** Positional: `previousRevision` reads row 1, so a malformed row is kept, not dropped. */
 function parseNdjson(body: unknown): unknown[] {
   if (Array.isArray(body)) return body
   const text = typeof body === 'string' ? body : String(body ?? '')
-  return text
-    .split('\n')
-    .filter(Boolean)
-    .map((line): unknown => JSON.parse(line))
+  return text.split('\n').filter(Boolean).map(parseTransactionLine)
+}
+
+function isTransactionLogEvent(row: unknown): row is TransactionLogEvent {
+  return isRecord(row) && typeof row.id === 'string'
 }
 
 function extractPortableText(value: unknown): string {
@@ -337,10 +350,6 @@ function extractPortableText(value: unknown): string {
 
 function isMateriality(value: unknown): value is Materiality {
   return MATERIALITY.some((entry) => entry === value)
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function typeOf(document: Record<string, unknown>): string {

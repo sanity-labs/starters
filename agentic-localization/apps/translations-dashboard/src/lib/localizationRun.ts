@@ -51,19 +51,18 @@ const SETTLED_STAGES = new Set(['approved', 'done'])
 
 /** Null when the instance carries no readable subject — never a half-formed run. */
 export function runFromInstance(instance: WorkflowInstance): LocalizationRun | null {
-  const subjectId = readDocumentId(instance.fields, 'subject')
+  const subjectId = readDocumentId(instance, 'subject')
   if (!subjectId) return null
 
   // A reviewer who narrowed the re-run narrowed the cohort with it.
-  const requested = readLocaleRequests(instance.fields, 'retranslateLocales')
-  const targets =
-    requested.length > 0 ? requested : readLocaleRequests(instance.fields, 'targetLocales')
+  const requested = readLocaleRequests(instance, 'retranslateLocales')
+  const targets = requested.length > 0 ? requested : readLocaleRequests(instance, 'targetLocales')
 
   return {
-    hasFailedLocales: readFlag(instance.fields, 'hasFailedLocales'),
+    hasFailedLocales: readFlag(instance, 'hasFailedLocales'),
     instanceId: instance._id,
     locales: targets.map((request) => request.locale),
-    sourceChanged: readFlag(instance.fields, 'sourceChanged'),
+    sourceChanged: readFlag(instance, 'sourceChanged'),
     stage: instance.currentStage,
     startedAt: instance.startedAt,
     subjectId,

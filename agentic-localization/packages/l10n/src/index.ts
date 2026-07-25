@@ -97,7 +97,7 @@ export {
   readProgress,
   readReleaseName,
   readText,
-  type InstanceFields,
+  type FieldSource,
   type LocaleRequest,
   type Materiality,
 } from './core/instanceFields'

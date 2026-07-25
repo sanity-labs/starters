@@ -10,6 +10,11 @@
  * handler runs inside a Function with no compiled Studio schema to walk, and
  * the definitions it serves are deployed artifacts. Add a type here when you
  * add internationalized fields to it.
+ *
+ * The item types are spelled out rather than taken from the plugin's
+ * `isInternationalizedArrayItemType`: that guard tests a *type name*, this
+ * module tests stored *values* — and importing the plugin would put `sanity` on
+ * a Function's typecheck graph (see `core/types.ts`).
  */
 
 import type {WorkflowPerspective} from '@sanity/workflow-engine'

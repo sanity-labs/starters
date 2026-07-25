@@ -11,7 +11,7 @@
  * Also exports SimpleValueDiff and ArrayDiffSummary for non-text field types.
  */
 
-import {Box, Card, Flex, Text} from '@sanity/ui'
+import {Card, Flex, SrOnly, Text} from '@sanity/ui'
 import type {Change} from 'diff'
 import {diffWords} from 'diff'
 import {useCallback, useMemo, useState} from 'react'
@@ -100,19 +100,9 @@ export function InlineDiff({oldValue, newValue, maxLength = DEFAULT_MAX_LENGTH}:
 
   return (
     <Card padding={3} radius={2} tone="transparent" border>
-      {/* Visually-hidden screen reader summary */}
-      <Box
-        style={{
-          position: 'absolute',
-          width: 1,
-          height: 1,
-          overflow: 'hidden',
-          clip: 'rect(0, 0, 0, 0)',
-          whiteSpace: 'nowrap',
-        }}
-      >
+      <SrOnly>
         <Text>{t('diff.sr-summary', {removed: wordsRemoved, added: wordsAdded})}</Text>
-      </Box>
+      </SrOnly>
 
       {/* Inline diff content */}
       <Text size={1} style={{lineHeight: 1.6, wordBreak: 'break-word'}}>

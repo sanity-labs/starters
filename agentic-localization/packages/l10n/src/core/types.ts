@@ -84,11 +84,12 @@ export type LocalizedObject = KeyedObject & {[K in typeof languageFieldName]: st
  * A member of an `internationalizedArray` field, as
  * `sanity-plugin-internationalized-array` writes it.
  *
- * Declared here rather than imported from the plugin: the plugin is Studio-only
- * and drags React and `sanity` with it, while an effect handler has to read and
- * write these shapes from inside a Function. `@starter/l10n-studio` holds a
- * bidirectional assignability test against the plugin's own declaration, so a
- * drift between the two fails a build rather than a run.
+ * Declared here rather than imported from the plugin: a type-only import erases
+ * before bundling, but the plugin's own `.d.ts` imports from `sanity`, so taking
+ * it would put the whole Studio on this package's typecheck graph — and this
+ * package typechecks as a Function dependency. `@starter/l10n-studio` holds a
+ * bidirectional assignability test against the plugin's declaration, so a drift
+ * between the two fails a build rather than a run.
  */
 export interface InternationalizedArrayItem<T = unknown> {
   _key: string

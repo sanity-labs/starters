@@ -14,6 +14,8 @@
  * locale.
  */
 
+import {toString as pathToString} from '@sanity/util/paths'
+
 import {entriesOf, internationalizedFields, sourceProjection} from './fieldTier'
 
 export interface CompareSides {
@@ -47,7 +49,9 @@ export function compareSides({
   const editPaths: Record<string, string> = {}
   for (const field of fields) {
     const entry = entriesOf(pending, field).find((candidate) => candidate.language === locale)
-    if (entry) editPaths[field.path] = `${field.path}[_key=="${entry._key}"].value`
+    if (entry) {
+      editPaths[field.path] = pathToString([...field.path.split('.'), {_key: entry._key}, 'value'])
+    }
   }
 
   return {

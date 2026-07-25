@@ -4,7 +4,7 @@
  * Every button is one engine action fired through the session — there is no
  * local status to keep in step. The definition owns which verbs exist, their
  * copy, and whether they are allowed right now; this only renders the verdict.
- * Cascade-fired actions (`triggered`) are the engine's, never a button.
+ * `reviewActionView` maps it: absent, automation, or a button.
  */
 
 import {CheckmarkCircleIcon, EditIcon, SyncIcon} from '@sanity/icons'
@@ -21,8 +21,10 @@ import {
   TextArea,
   Tooltip,
 } from '@sanity/ui'
-import type {ActionEvaluation, ActivityEvaluation, DisabledReason} from '@sanity/workflow-engine'
+import type {ActionEvaluation, ActivityEvaluation} from '@sanity/workflow-engine'
 import {useState, useTransition} from 'react'
+
+import {disabledMessage, fireableActions} from './reviewActionView'
 
 const REVIEW_ACTIVITY = 'review'
 const APPROVE = 'approve'
@@ -48,24 +50,6 @@ export interface ReviewActionsProps {
   onFire: (args: {action: string; params?: Record<string, unknown>}) => Promise<unknown>
 }
 
-function describeDisabledReason(reason: DisabledReason | undefined): string | undefined {
-  if (!reason) return undefined
-  switch (reason.kind) {
-    case 'filter-failed':
-      return reason.detail ?? 'Not available to you right now.'
-    case 'activity-not-active':
-      return `The review is already ${reason.status}.`
-    case 'stage-terminal':
-      return `This run has finished in "${reason.stage}".`
-    case 'instance-completed':
-      return 'This run has finished.'
-    case 'mutation-guard-denied':
-      return 'Another workflow is holding this run.'
-    default:
-      return 'Not available right now.'
-  }
-}
-
 function ActionButton({
   evaluation,
   onClick,
@@ -76,7 +60,7 @@ function ActionButton({
   pending: boolean
 }) {
   const name = evaluation.action.name
-  const disabledReason = describeDisabledReason(evaluation.disabledReason)
+  const message = disabledMessage(evaluation.disabledReason)
   const button = (
     <Button
       disabled={!evaluation.allowed || pending}
@@ -91,13 +75,13 @@ function ActionButton({
     />
   )
 
-  if (!disabledReason) return button
+  if (!message) return button
   return (
     <Tooltip
       animate
       content={
         <Box padding={2}>
-          <Text size={1}>{disabledReason}</Text>
+          <Text size={1}>{message}</Text>
         </Box>
       }
       placement="top"
@@ -196,8 +180,7 @@ export function ReviewActions({activity, locales, onFire}: ReviewActionsProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
 
-  // Cascade-fired actions are narration, not buttons — the engine fires them.
-  const actions = activity.actions.filter((action) => !action.triggered)
+  const actions = fireableActions(activity.actions)
   if (actions.length === 0) return null
 
   // A rejected commit inside a transition would otherwise be silent — the

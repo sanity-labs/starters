@@ -1,6 +1,16 @@
 import {useEffect, useRef, useState, useTransition} from 'react'
 import styled from 'styled-components'
-import {Box, Button, Card, Flex, Popover, Stack, Text} from '@sanity/ui'
+import {
+  Box,
+  Button,
+  Card,
+  Flex,
+  Popover,
+  Stack,
+  Text,
+  useClickOutsideEvent,
+  useGlobalKeyDown,
+} from '@sanity/ui'
 import {CheckmarkIcon, ChevronDownIcon, EarthGlobeIcon} from '@sanity/icons'
 import {useTranslation, type NavbarProps} from 'sanity'
 import {l10nLocaleNamespace} from '../i18n'
@@ -41,32 +51,16 @@ function LocaleSwitcherButton() {
 
   const toggle = () => setOpen((prev) => !prev)
 
-  // Close on outside click or Escape
-  useEffect(() => {
-    if (!open) return
-
-    const controller = new AbortController()
-
-    document.addEventListener(
-      'mousedown',
-      (e) => {
-        const target = e.target as Node
-        if (buttonRef.current?.contains(target) || popoverRef.current?.contains(target)) return
-        setOpen(false)
-      },
-      {signal: controller.signal},
-    )
-
-    document.addEventListener(
-      'keydown',
-      (e) => {
-        if (e.key === 'Escape') setOpen(false)
-      },
-      {signal: controller.signal},
-    )
-
-    return () => controller.abort()
-  }, [open])
+  // A `listbox` popover, not a `menu`: rows are multi-selectable and carry their
+  // own "Only" button, which `MenuButton` has no place for. Only the dismissal
+  // behaviour is shared, and that comes from the Studio's own hooks.
+  useClickOutsideEvent(open && (() => setOpen(false)), () => [
+    buttonRef.current,
+    popoverRef.current,
+  ])
+  useGlobalKeyDown((event) => {
+    if (open && event.key === 'Escape') setOpen(false)
+  })
 
   if (!languages) {
     return (

@@ -1,3 +1,4 @@
+import {ClientError} from '@sanity/client'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import type {Glossary, StyleGuide} from '../prompts/promptAssembly'
@@ -9,6 +10,17 @@ vi.mock('../prompts/promptAssembly', async (importOriginal) => {
 
 import {buildTranslateParams} from '../prompts/promptAssembly'
 import {translateLocale} from './translateLocale'
+
+/** What the client actually throws on a 409 — not a bare `{statusCode}` bag. */
+function conflictError(): ClientError {
+  return new ClientError({
+    statusCode: 409,
+    headers: {},
+    method: 'POST',
+    url: 'https://proj1.api.sanity.io/v2025-02-19/data/actions/production',
+    body: {error: {type: 'actionError', description: 'Document already exists'}},
+  })
+}
 
 const SOURCE = 'dataset:proj1:production:article-1'
 const RELEASE = {
@@ -84,6 +96,7 @@ function harness(
   options: {
     settledEffectKeys?: string[]
     sourceDoc?: Record<string, unknown>
+    metadataId?: string
     perspective?: unknown
     translated?: unknown
     translations?: unknown[] | null
@@ -123,7 +136,12 @@ function harness(
       }
       if (query.includes('translation.metadata')) {
         return Promise.resolve(
-          options.translations === undefined ? null : {translations: options.translations},
+          options.translations === undefined
+            ? null
+            : {
+                _id: options.metadataId ?? 'translation.metadata.article-1',
+                translations: options.translations,
+              },
         )
       }
       return Promise.resolve(sourceDoc)
@@ -318,7 +336,7 @@ describe('translate-locale', () => {
 
   it('tolerates a version that a previous delivery already created', async () => {
     const {contentClient, ctx} = harness()
-    contentClient.action.mockRejectedValue(Object.assign(new Error('conflict'), {statusCode: 409}))
+    contentClient.action.mockRejectedValue(conflictError())
 
     const result = await translateLocale(
       {source: SOURCE, locale: 'de-DE', release: RELEASE, revisionNote: null},
@@ -394,6 +412,26 @@ describe('translate-locale', () => {
         },
       ],
     ])
+  })
+
+  // The plugin's own menu creates the join document with `uuid()`, so an
+  // existing one is not at our deterministic id. Writing to ours would leave two
+  // join documents for one source, and the plugin reads whichever it finds.
+  it('registers the locale on the join document that already exists, whatever its id', async () => {
+    const {ctx, tx} = harness({
+      metadataId: 'd7f0b3e2-11d2-4c9a-9a1b-9f0c2f2f4e11',
+      translations: [{language: 'en-US', ref: 'article-1'}],
+    })
+
+    await translateLocale({source: SOURCE, locale: 'de-DE', release: null, revisionNote: null}, ctx)
+
+    expect(tx.createIfNotExists).toHaveBeenCalledWith(
+      expect.objectContaining({_id: 'd7f0b3e2-11d2-4c9a-9a1b-9f0c2f2f4e11'}),
+    )
+    expect(tx.patch).toHaveBeenCalledWith(
+      'd7f0b3e2-11d2-4c9a-9a1b-9f0c2f2f4e11',
+      expect.any(Function),
+    )
   })
 
   it('leaves the join document alone when the locale already has a row', async () => {
@@ -698,7 +736,7 @@ describe('translate-locale, field tier', () => {
 
   it('tolerates a sibling locale that created the version first', async () => {
     const {contentClient, ctx, tx} = personHarness()
-    contentClient.action.mockRejectedValue(Object.assign(new Error('conflict'), {statusCode: 409}))
+    contentClient.action.mockRejectedValue(conflictError())
 
     await translateLocale(
       {source: PERSON_SOURCE, locale: 'de-DE', release: RELEASE, revisionNote: null},

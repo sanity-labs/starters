@@ -7,6 +7,7 @@
  * stay in the list carrying it, so the row shows progress instead of a CTA.
  */
 
+import {DocumentId, getVersionNameFromId, isDraftId, isVersionId} from '@sanity/id-utils'
 import {useMemo} from 'react'
 
 import type {DashboardStatus} from '../lib/localizationRun'
@@ -146,11 +147,10 @@ export function useGapDocuments(
  * (draft only), `versions.<release>.xxx` (in a release), plain (published).
  */
 function inferSourceStatus(documentId: string): 'draft' | 'inRelease' | 'published' | 'unknown' {
-  if (documentId.startsWith('drafts.')) return 'draft'
-  if (documentId.startsWith('versions.')) {
-    const releaseId = documentId.split('.')[1]
-    if (releaseId?.startsWith('agent-')) return 'unknown'
-    return 'inRelease'
+  const id = DocumentId(documentId)
+  if (isDraftId(id)) return 'draft'
+  if (isVersionId(id)) {
+    return getVersionNameFromId(id).startsWith('agent-') ? 'unknown' : 'inRelease'
   }
   return 'published'
 }

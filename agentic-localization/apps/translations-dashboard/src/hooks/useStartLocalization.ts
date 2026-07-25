@@ -55,6 +55,11 @@ function subjectRef(target: LocalizationTarget): GlobalDocumentReference {
  * Start's idempotency key, derived exactly as `functions/start-localization`
  * derives it: same document at the same revision resumes the same run, a new
  * publish starts a new one. Bare form — Sanity rejects `:` in document ids.
+ *
+ * Not the engine's `idempotencyKey`: that dedupes one *request* inside a TTL.
+ * This dedupes a *run* across processes and across time — the publish Function
+ * and this dashboard have to land on the same instance id, and `instanceDocId`
+ * is random.
  */
 async function instanceIdFor(tag: string, target: LocalizationTarget): Promise<string> {
   const publishedId = getPublishedId(DocumentId(target._id))

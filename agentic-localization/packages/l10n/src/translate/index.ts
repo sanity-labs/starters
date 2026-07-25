@@ -8,11 +8,5 @@
  */
 
 export {generateLocalizedSlug} from './generateLocalizedSlug'
-export {
-  isSanityImageField,
-  restoreImageCropHotspot,
-  type SanityImageCrop,
-  type SanityImageField,
-  type SanityImageHotspot,
-} from './imageUtils'
+export {isSanityImageField, restoreImageCropHotspot} from './imageUtils'
 export {postProcessTranslation, type SourceDocumentReader} from './postTranslationProcessing'

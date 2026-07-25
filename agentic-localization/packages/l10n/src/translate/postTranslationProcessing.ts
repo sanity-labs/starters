@@ -3,6 +3,7 @@
  * field cleanup, and image crop/hotspot restoration.
  */
 
+import {isRecord} from '../core/isRecord'
 import {generateLocalizedSlug} from './generateLocalizedSlug'
 import {restoreImageCropHotspot} from './imageUtils'
 
@@ -57,8 +58,4 @@ export async function postProcessTranslation({
   const restored = restoreImageCropHotspot(baseDoc, processedResult)
 
   return isRecord(restored) ? restored : processedResult
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

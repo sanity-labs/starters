@@ -7,33 +7,20 @@
  * from the base document so published images stay correctly framed.
  */
 
-export type SanityImageCrop = {
-  _type: 'sanity.imageCrop'
-  bottom?: number
-  left?: number
-  right?: number
-  top?: number
-}
+import type {Image} from '@sanity/types'
 
-export type SanityImageField = {
-  _type: 'image'
-  [key: string]: unknown
-  crop?: SanityImageCrop
-  hotspot?: SanityImageHotspot
-}
-
-export type SanityImageHotspot = {
-  _type: 'sanity.imageHotspot'
-  height?: null | number
-  width?: null | number
-  x?: null | number
-  y?: null | number
-}
+import {isRecord} from '../core/isRecord'
 
 const HOTSPOT_KEYS = ['x', 'y', 'width', 'height'] as const
 
-export function isSanityImageField(obj: unknown): obj is SanityImageField {
-  return typeof obj === 'object' && obj !== null && '_type' in obj && obj._type === 'image'
+/**
+ * Not `@sanity/types`' `isImage`: that keys on the asset reference
+ * (`asset._ref` starting `image-`), and the node this walker exists for is
+ * translate output that dropped its image metadata — `_type` is all it is
+ * guaranteed to carry.
+ */
+export function isSanityImageField(value: unknown): value is Image {
+  return isRecord(value) && value._type === 'image'
 }
 
 /**
@@ -78,8 +65,4 @@ export function restoreImageCropHotspot(base: unknown, translated: unknown): unk
   }
 
   return translated
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

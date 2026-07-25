@@ -1,3 +1,10 @@
+/**
+ * Not `@sanity/language-filter`'s selection: that is reachable only through a
+ * React context hook, and `structure.ts`'s `withLocaleFilter` reads the
+ * selection as an Observable inside a structure resolver, which runs outside
+ * React. (It also has no cross-tab `storage` sync.)
+ */
+
 import {BehaviorSubject, distinctUntilChanged, skip} from 'rxjs'
 
 const STORAGE_KEY = 'l10n.localeFilter'

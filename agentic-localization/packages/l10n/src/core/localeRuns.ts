@@ -12,7 +12,11 @@
  *   instance document.
  */
 
-import {parseGdr, type ResolvedFieldEntry, type SubworkflowEntry} from '@sanity/workflow-engine'
+import {
+  extractDocumentId,
+  type ResolvedFieldEntry,
+  type SubworkflowEntry,
+} from '@sanity/workflow-engine'
 
 import {readDocumentId, readProgress, type LocaleRequest} from './instanceFields'
 
@@ -89,7 +93,7 @@ export function buildLocaleRuns({
       }
     }
 
-    const childInstanceId = parseGdr(row.ref.id).documentId
+    const childInstanceId = extractDocumentId(row.ref.id)
     const child = childById.get(childInstanceId)
     return {
       locale,
@@ -114,5 +118,5 @@ export function buildLocaleRuns({
  * safe: terminal state is immutable.
  */
 export function childInstanceIds(subworkflows: readonly SubworkflowEntry[]): string[] {
-  return [...new Set(subworkflows.map((row) => parseGdr(row.ref.id).documentId))]
+  return [...new Set(subworkflows.map((row) => extractDocumentId(row.ref.id)))]
 }

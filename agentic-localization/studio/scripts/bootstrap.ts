@@ -18,6 +18,7 @@
 import {execFileSync} from 'node:child_process'
 import {copyFileSync, existsSync, readFileSync, writeFileSync} from 'node:fs'
 import {resolve} from 'node:path'
+import {parseEnv} from 'node:util'
 import {getCliClient} from 'sanity/cli'
 
 const dir = import.meta.dirname!
@@ -53,15 +54,6 @@ heading('Consolidate env')
 
 const rootExample = resolve(dir, '../../.env.example')
 
-function parseEnvFile(path: string): Record<string, string> {
-  const vars: Record<string, string> = {}
-  for (const line of readFileSync(path, 'utf8').split('\n')) {
-    const match = line.match(/^([^#=]+)=(.*)$/)
-    if (match) vars[match[1].trim()] = match[2].trim().replace(/^(['"])(.*)\1$/, '$2')
-  }
-  return vars
-}
-
 if (!existsSync(rootEnv)) {
   if (existsSync(rootExample)) {
     copyFileSync(rootExample, rootEnv)
@@ -74,7 +66,7 @@ if (!existsSync(rootEnv)) {
 }
 
 if (existsSync(studioEnv)) {
-  const studioVars = parseEnvFile(studioEnv)
+  const studioVars = parseEnv(readFileSync(studioEnv, 'utf8'))
 
   let content = existsSync(rootEnv) ? readFileSync(rootEnv, 'utf8') : ''
   for (const [key, value] of Object.entries(studioVars)) {

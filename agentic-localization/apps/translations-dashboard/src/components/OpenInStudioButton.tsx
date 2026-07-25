@@ -1,4 +1,5 @@
 import {LaunchIcon} from '@sanity/icons'
+import {DocumentId, getPublishedId} from '@sanity/id-utils'
 import {type DocumentHandle} from '@sanity/sdk-react'
 import {Button} from '@sanity/ui'
 
@@ -21,13 +22,7 @@ type OpenInStudioButtonProps = {
  * 2. In development (import.meta.env.DEV), defaults to http://localhost:3333
  */
 export function getStudioDocumentUrl(doc: DocumentHandle): string {
-  // Strip drafts./versions. prefix
-  let docId = doc.documentId
-  if (docId.startsWith('drafts.')) docId = docId.slice(7)
-  if (docId.startsWith('versions.')) {
-    const parts = docId.split('.')
-    docId = parts.slice(2).join('.')
-  }
+  const docId = getPublishedId(DocumentId(doc.documentId))
 
   const studioBase = import.meta.env.SANITY_APP_STUDIO_URL
     ? import.meta.env.SANITY_APP_STUDIO_URL.replace(/\/$/, '')

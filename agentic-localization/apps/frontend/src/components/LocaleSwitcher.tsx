@@ -3,15 +3,24 @@
 import {useRouter, usePathname} from 'next/navigation'
 import type {Locale} from '@/sanity/types'
 
-function getFlagFromCode(code: string): string {
-  const region = code.split('-')[1]
-  if (!region || region.length !== 2) return ''
-  return String.fromCodePoint(
-    ...region
-      .toUpperCase()
-      .split('')
-      .map((c) => 0x1f1e6 + c.charCodeAt(0) - 65),
-  )
+/**
+ * Copied from `packages/l10n/src/core/utils.ts` — `Intl.Locale` resolves the
+ * region of any BCP-47 tag, including script subtags like `zh-Hans-CN` that a
+ * `split('-')[1]` reads as `Hans`. Copied rather than imported: this app takes
+ * no workspace dependency, so it stays a plain Next app you can lift out.
+ */
+function getFlagFromCode(localeCode: string): string {
+  try {
+    const {region} = new Intl.Locale(localeCode)
+    if (region) {
+      return [...region.toUpperCase()]
+        .map((ch) => String.fromCodePoint(ch.charCodeAt(0) - 0x41 + 0x1f1e6))
+        .join('')
+    }
+  } catch {
+    // ignore invalid codes
+  }
+  return ''
 }
 
 export function LocaleSwitcher({locales}: {locales: Locale[]}) {

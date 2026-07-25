@@ -70,7 +70,6 @@ function useRunBadge(documentId: string): {inReview: boolean; needsAttention: bo
   if (!instance) return {inReview: false, needsAttention: false}
   return {
     inReview: instance.currentStage === 'review',
-    needsAttention:
-      readFlag(instance.fields, 'sourceChanged') || readFlag(instance.fields, 'hasFailedLocales'),
+    needsAttention: readFlag(instance, 'sourceChanged') || readFlag(instance, 'hasFailedLocales'),
   }
 }
