@@ -95,6 +95,11 @@ Three consequences worth acting on:
   (workflow definitions, prompt assembly, queries — React-free), components
   (Studio UI, the only layer allowed React/`@sanity/ui`), plus schemas. Do this
   _after_ the deletions in PR 5, so the split moves only code that survives.
+  The split starts with a full-codebase audit — usage, duplication, dead code,
+  composite refactorings — not a mechanical file-move. Yardstick: the starter
+  hypothesis (context markedly improves translations; agents and humans
+  together move quicker with quality) and that someone can pull choice
+  elements into their own project.
 - **e2e coverage does not exist yet.** Today there are unit tests and live-model
   evals. The bench suite proves the definitions but nothing exercises a deployed
   run end to end. Add once PR 4 makes a run actually executable. Strategy
