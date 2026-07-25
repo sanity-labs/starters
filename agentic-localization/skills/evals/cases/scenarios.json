@@ -1,0 +1,408 @@
+[
+  {
+    "id": "greenfield-standup",
+    "category": "greenfield",
+    "skill": "sanity-l10n",
+    "load": ["references/adopting.md", "references/pattern.md"],
+    "prompt": "I'm starting a brand new Sanity project for a company shipping in en-US, de-DE, fr-FR and ja-JP. They want AI translation that respects their terminology, with an editor approving before anything goes live. Tell me what to put in place and in what order.",
+    "mustName": [
+      "l10n.locale",
+      "seed-locales.ts",
+      "localizedSchemaTypes",
+      "sanity schema deploy",
+      "blueprints deploy",
+      "workflows:deploy"
+    ],
+    "rubric": [
+      {
+        "w": "critical",
+        "c": "Names the locale set as content (l10n.locale documents) rather than configuration"
+      },
+      {
+        "w": "critical",
+        "c": "Puts infrastructure and schema deploys before the workflow definition deploy, and explains why order matters"
+      },
+      {"w": "critical", "c": "Covers the two datasets: content and the engine's own"},
+      {
+        "w": "critical",
+        "c": "Tells the reader to author glossary and style-guide content, not only to install code"
+      },
+      {"w": "minor", "c": "Ends with a concrete way to verify the pipeline ran end to end"}
+    ]
+  },
+  {
+    "id": "greenfield-tier-choice",
+    "category": "greenfield",
+    "skill": "sanity-l10n",
+    "load": ["references/adopting.md", "references/pattern.md"],
+    "prompt": "New project. Some types are full articles that need translating whole; others are author profiles where only a bio and two SEO fields need translating. How do I set each one up?",
+    "mustName": ["FIELD_TIER", "fieldTier.ts", "localizedSchemaTypes", "translation.metadata"],
+    "rubric": [
+      {
+        "w": "critical",
+        "c": "Distinguishes the document tier from the field tier by where a translation is stored"
+      },
+      {
+        "w": "critical",
+        "c": "Registers each tier in the right place: localizedSchemaTypes versus the static FIELD_TIER registry"
+      },
+      {"w": "critical", "c": "Says both tiers run the same workflow definitions"},
+      {
+        "w": "minor",
+        "c": "Warns that the choice is a storage shape and is expensive to reverse"
+      },
+      {
+        "w": "minor",
+        "c": "Mentions ancestor containers for nested field paths, or the published start perspective"
+      }
+    ]
+  },
+  {
+    "id": "brownfield-homegrown",
+    "category": "brownfield",
+    "skill": "sanity-l10n",
+    "load": ["references/adopting.md", "references/pattern.md"],
+    "prompt": "We have a live Studio with 4,000 articles. Roughly half were translated by hand into de-DE and fr-FR, tracked with a `lang` string field we invented and a boolean `needsRetranslation`. There is also a nightly cron job that calls a translation API. Give me the adoption plan, including the risks.",
+    "mustName": ["migrateToLanguageField.ts", "translation.metadata", "start-localization"],
+    "rubric": [
+      {
+        "w": "critical",
+        "c": "Says the existing orchestration has to be removed, not run alongside, and explains the concrete failure of keeping both"
+      },
+      {
+        "w": "critical",
+        "c": "Addresses migrating the home-grown language field and producing the join documents"
+      },
+      {
+        "w": "critical",
+        "c": "Names publishing as the trigger and the workflow instance as the status, replacing the boolean flag"
+      },
+      {
+        "w": "critical",
+        "c": "Raises review ownership as an adoption risk, not only technical steps"
+      },
+      {
+        "w": "minor",
+        "c": "Does not propose writing custom sync, polling or status-reconciliation code"
+      }
+    ]
+  },
+  {
+    "id": "brownfield-add-type",
+    "category": "brownfield",
+    "skill": "sanity-l10n",
+    "load": ["references/adopting.md"],
+    "prompt": "Existing setup works for `article`. I need `landingPage` localized too. What do I change?",
+    "mustName": [
+      "localizedSchemaTypes",
+      "localizeDocument.ts",
+      "sanity.blueprint.ts",
+      "sanity schema deploy"
+    ],
+    "rubric": [
+      {
+        "w": "critical",
+        "c": "Lists every place the type name has to appear, not just the Studio config"
+      },
+      {
+        "w": "critical",
+        "c": "Includes the workflow definition's subject types and the Function event filters"
+      },
+      {"w": "critical", "c": "Says both the blueprint and the definitions must be redeployed"},
+      {
+        "w": "minor",
+        "c": "Notes that a missing registration fails differently at each layer rather than loudly"
+      }
+    ]
+  },
+  {
+    "id": "extension-review-gate",
+    "category": "extension",
+    "skill": "sanity-l10n",
+    "load": ["references/extending.md", "references/pattern.md"],
+    "prompt": "The shipped definitions don't cover what we need: a compliance sign-off stage for de-DE only, after the machine draft and before publish, with a named approver recorded. I want to build my own workflow. Walk me through it.",
+    "mustName": [
+      "defineWorkflow",
+      "createBench",
+      "@sanity/workflow-engine-test",
+      "sanity.workflow.ts",
+      "drain-effects"
+    ],
+    "rubric": [
+      {
+        "w": "critical",
+        "c": "Orders the work as definition, bench proof, handler, then deploy — bench before deploy is explicit"
+      },
+      {
+        "w": "critical",
+        "c": "Says state belongs on the workflow instance, not on the content document"
+      },
+      {
+        "w": "critical",
+        "c": "Covers all the registrations a new definition needs: deploy set, handler map, trigger"
+      },
+      {
+        "w": "minor",
+        "c": "Explains that actions are guarded predicates rather than an ordered sequence"
+      },
+      {"w": "minor", "c": "Points at a specific existing definition or spec to model the work on"}
+    ]
+  },
+  {
+    "id": "extension-custom-handler",
+    "category": "extension",
+    "skill": "sanity-l10n",
+    "load": ["references/extending.md"],
+    "prompt": "I need an effect handler that calls our external MT vendor instead of Agent Actions, and writes the result to the target document. What's the contract, and what will bite me?",
+    "mustName": ["EffectHandler", "effectRuntime.ts", "effectAlreadyDone", "contentClientFor"],
+    "rubric": [
+      {
+        "w": "critical",
+        "c": "Names the handler signature and where the shared plumbing is exported from"
+      },
+      {
+        "w": "critical",
+        "c": "Puts the idempotency read first and explains at-least-once delivery in terms of cost"
+      },
+      {
+        "w": "critical",
+        "c": "Warns that the engine client addresses the workflows dataset only, so content traffic must be routed"
+      },
+      {"w": "minor", "c": "Covers narrowing untyped effect params rather than casting them"},
+      {
+        "w": "minor",
+        "c": "Keeps the handler free of React and Studio imports, with the reason"
+      }
+    ]
+  },
+  {
+    "id": "extension-bench-first",
+    "category": "extension",
+    "skill": "sanity-l10n",
+    "load": ["references/extending.md"],
+    "prompt": "How do I test a workflow definition before it goes anywhere near a real project or an AI credit?",
+    "mustName": ["createBench", "@sanity/workflow-engine-test", "pendingEffects.test.ts"],
+    "rubric": [
+      {
+        "w": "critical",
+        "c": "Says the bench runs the real engine in memory with a deterministic clock, no project and no network"
+      },
+      {
+        "w": "critical",
+        "c": "Gives the actual entry points used to drive an instance on the bench"
+      },
+      {
+        "w": "minor",
+        "c": "Advises asserting on invariants rather than on an exact action transcript"
+      },
+      {"w": "minor", "c": "Names the command that runs the suite"}
+    ]
+  },
+  {
+    "id": "operate-nothing-happened",
+    "category": "operate",
+    "skill": "sanity-l10n",
+    "load": ["references/operating.md"],
+    "prompt": "I published an en-US article twenty minutes ago and nothing has happened. No translations, no run visible anywhere. Help me find the problem.",
+    "mustName": [
+      "sanity-workflows list",
+      "sanity-workflows diagnose",
+      "WORKFLOW_TAG",
+      "drain-effects"
+    ],
+    "rubric": [
+      {
+        "w": "critical",
+        "c": "Gives an ordered diagnosis that eliminates one layer at a time rather than a list of guesses"
+      },
+      {
+        "w": "critical",
+        "c": "Checks whether the instance exists at all before blaming translation"
+      },
+      {"w": "critical", "c": "Names the dataset-and-tag mismatch as a silent failure mode"},
+      {"w": "minor", "c": "Checks the deployed definition against the in-code one"},
+      {"w": "minor", "c": "States that a run sitting in review is not stuck"}
+    ]
+  },
+  {
+    "id": "operate-failed-translation",
+    "category": "operate",
+    "skill": "sanity-l10n",
+    "load": ["references/operating.md"],
+    "prompt": "One locale came back empty and the run carried on into review with the others. How do I retry just that locale, and what are the likely causes of the empty result?",
+    "mustName": ["reset-activity", "sanity schema deploy", "STYLE_GUIDE_WARN_THRESHOLD"],
+    "rubric": [
+      {"w": "critical", "c": "Gives the command that re-runs a failed activity"},
+      {
+        "w": "critical",
+        "c": "Names schema deployment as a first-order cause of an empty or rejected translation"
+      },
+      {
+        "w": "minor",
+        "c": "Covers the assembled style guide exceeding its size budget, and how to reduce it"
+      },
+      {
+        "w": "minor",
+        "c": "Explains that one failed locale settling rather than hanging the document run is deliberate"
+      }
+    ]
+  },
+  {
+    "id": "operate-publish-locked",
+    "category": "operate",
+    "skill": "sanity-l10n",
+    "load": ["references/operating.md"],
+    "prompt": "An editor says publish and schedule are both greyed out on an article and she is stuck. What's going on and what should she do?",
+    "mustName": ["createLocalizationScheduleGate", "review"],
+    "rubric": [
+      {
+        "w": "critical",
+        "c": "Identifies an open run holding a guard on the subject as the cause"
+      },
+      {
+        "w": "critical",
+        "c": "Gives the editor real options: finish, request changes, or abort"
+      },
+      {
+        "w": "minor",
+        "c": "Explains why schedule needs its own wrapper on top of the workflow plugin's locks"
+      },
+      {"w": "minor", "c": "Does not suggest removing or unwrapping the guard"}
+    ]
+  },
+  {
+    "id": "context-glossary-value",
+    "category": "context",
+    "skill": "sanity-l10n",
+    "load": ["references/adopting.md", "references/pattern.md"],
+    "prompt": "I have a 300-term termbase exported from our old TMS. Do I load all of it? And how do I know whether any of it is actually helping?",
+    "mustName": ["filterGlossaryByContent", "protectedPhrases", "fixtures.ts"],
+    "rubric": [
+      {
+        "w": "critical",
+        "c": "Says no: entries earn their place, and explains which kinds of term produce a measurable difference"
+      },
+      {
+        "w": "critical",
+        "c": "Explains content-aware filtering so a whole glossary is never injected into one prompt"
+      },
+      {
+        "w": "critical",
+        "c": "Points at with-context versus without-context measurement rather than asserting the benefit"
+      },
+      {
+        "w": "minor",
+        "c": "Names do-not-translate entries becoming the API's protected phrases as a harder guarantee than an instruction"
+      },
+      {
+        "w": "minor",
+        "c": "Notes which guardrail entries are always kept regardless of filtering"
+      }
+    ]
+  },
+  {
+    "id": "explain-pipeline",
+    "category": "explain",
+    "skill": "sanity-l10n",
+    "load": ["references/pattern.md"],
+    "prompt": "New to this team. Walk me through what actually happens between an editor pressing publish on an en-US article and a German version being live. I keep hearing instance, effect and drain and I don't know what owns what.",
+    "mustName": [
+      "localize-document",
+      "localize-locale",
+      "drain-effects",
+      "machineRev",
+      "l10n.proposal"
+    ],
+    "rubric": [
+      {
+        "w": "critical",
+        "c": "Traces the phases in order from publish through analysis, fan-out, translation, review and publish"
+      },
+      {
+        "w": "critical",
+        "c": "Attributes fan-out, retries, gating and idempotency to the engine rather than to repo code"
+      },
+      {
+        "w": "critical",
+        "c": "Closes the loop: reviewer corrections become draft proposals that a human must accept and publish"
+      },
+      {
+        "w": "minor",
+        "c": "Explains that the engine has no daemon and Sanity Functions are its runtime"
+      },
+      {
+        "w": "minor",
+        "c": "Explains stale analysis deciding which locales need work before any AI spend"
+      }
+    ]
+  },
+  {
+    "id": "field-tier-coverage",
+    "category": "operate",
+    "skill": "sanity-l10n",
+    "load": ["references/operating.md", "references/pattern.md"],
+    "prompt": "Person documents show as not covered for es-ES even though the bio has Spanish text in it. What am I missing?",
+    "mustName": ["coveredLocales", "FIELD_TIER", "fieldTier.ts"],
+    "rubric": [
+      {
+        "w": "critical",
+        "c": "Says coverage is all-or-nothing across every registered field for that type"
+      },
+      {
+        "w": "critical",
+        "c": "Tells the reader to check the other registered fields, naming them, rather than the one they looked at"
+      },
+      {
+        "w": "minor",
+        "c": "Names the static registry as the place field paths are declared, and why it is static"
+      },
+      {"w": "minor", "c": "Mentions ancestor containers or unregistered paths as adjacent causes"}
+    ]
+  },
+  {
+    "id": "frontend-port",
+    "category": "frontend",
+    "skill": "add-l10n-frontend",
+    "load": ["references/shared-setup.md"],
+    "prompt": "We're on Astro, not Next. I want locale-prefixed routes, a switcher, and the fallback behaviour your reference Next app has. What maps onto what, and what should I be careful about?",
+    "mustName": ["l10n.locale", "proxy.ts", "PUBLIC_", "server"],
+    "rubric": [
+      {
+        "w": "critical",
+        "c": "Maps the four framework concerns: client, public env prefix, locale route, server-side fetch and redirect"
+      },
+      {
+        "w": "critical",
+        "c": "Insists the locale list is queried from l10n.locale documents rather than hardcoded"
+      },
+      {
+        "w": "critical",
+        "c": "Describes the fallback decision as explicit and visible to the reader"
+      },
+      {"w": "minor", "c": "Keeps the frontend read-only and free of Studio imports"}
+    ]
+  },
+  {
+    "id": "frontend-fallback",
+    "category": "frontend",
+    "skill": "add-l10n-frontend",
+    "load": ["references/shared-setup.md"],
+    "prompt": "If an article isn't translated into pt-BR yet, what should /pt-BR/that-article render? Right now we 404 and marketing is unhappy.",
+    "mustName": ["FallbackBanner.tsx", "[slug]/page.tsx", "404"],
+    "rubric": [
+      {
+        "w": "critical",
+        "c": "Gives the fallback decision as an ordered rule ending in a 404 only when the source is missing too"
+      },
+      {
+        "w": "critical",
+        "c": "Requires the fallback to be visible to the reader rather than silent, and says why"
+      },
+      {"w": "minor", "c": "Points at the reference implementation of the decision"},
+      {
+        "w": "minor",
+        "c": "Mentions the fallback reference chain on the locale document, and that the reference is single-hop"
+      }
+    ]
+  }
+]

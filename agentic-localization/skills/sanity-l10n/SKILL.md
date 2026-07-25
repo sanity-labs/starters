@@ -1,238 +1,101 @@
 ---
 name: sanity-l10n
-description: 'Work with a Sanity starter that uses structured content (glossaries, style guides, locale metadata) to make AI translation enterprise-grade. Covers prompt assembly, localization runs on Sanity Editorial Workflows, translation quality evals, and the Agent Actions Translate API. Trigger on: customize glossary, add terminology, translation style guide, run evals, deploy functions, prompt assembly, debug translation, extend l10n plugin, Agent Actions Translate, blueprint deploy, localization run, workflow definition, effect handler, field-level translation, field translation, internationalizedArray, review workflow. Complements sanity-best-practices (general i18n) and add-l10n-frontend (frontend rendering).'
+description: 'The agentic localization pattern: translation context (glossaries, style guides, locale rules) stored as Sanity content, assembled into Agent Actions Translate prompts, orchestrated as durable Editorial Workflows runs with a human review gate, and distilled back into context from what reviewers correct. Use this skill when adding that pipeline to a project — greenfield or an existing Studio and dataset — when extending it with a custom workflow definition or effect handler, when authoring glossaries and style guides, or when operating a run: deploying the blueprint Functions and workflow definitions, reading a stuck instance, or debugging a translation. Also use it for where the locale list itself belongs — locales as l10n.locale documents rather than a hardcoded array — and for a translation run holding a document: publish or schedule greyed out, a run parked in review, a locale that failed while the others succeeded. Triggers on agentic localization, translation glossary, do-not-translate terms, translation style guide, prompt assembly, Agent Actions translate, localize-document, localize-locale, effect handler, drain-effects, workflow bench, translation review gate, translation eval, stale translation detection, distillation loop. DO NOT use for general Sanity internationalization modelling — document-level vs field-level, @sanity/document-internationalization or internationalizedArray setup, language field patterns — that is sanity-best-practices. DO NOT use for rendering localized content in a frontend — locale routing, locale switcher, fallback content — that is add-l10n-frontend.'
 ---
 
-# Sanity Agentic Localization
+# Agentic Localization
 
-## Core Principles
+Machine translation becomes enterprise-grade through context, not through a
+better engine. A human translator gets a glossary, a style guide and a brief; an
+AI translator usually gets none of that. This pattern stores that context as
+content, assembles it into every translation prompt, puts a human at the review
+gate, and feeds what the human corrects back into the context.
 
-Enterprise translation quality comes from structured metadata, not better
-engines. This starter closes the gap between enterprise TMS capabilities and AI
-translation APIs. See `docs/I18N_RESEARCH.md` for the full gap analysis.
+This repository is the reference implementation. Use it three ways: read it to
+learn the pattern, copy its elements into a project, or build your own workflow
+on its layers.
 
-1. **Structured content is the medium** — Glossaries, style guides, and locale
-   rules are Sanity documents. Content teams maintain them in the Studio. Code
-   queries them at translation time. Every job reuses them.
+## The pattern
 
-2. **Content-aware assembly** — Don't dump all glossary terms into every prompt.
-   `filterGlossaryByContent()` prunes to terms that actually appear in the
-   source document. Always include do-not-translate and forbidden terms as
-   guardrails.
+| Phase         | What happens                                                                                 | Lives in                                       |
+| ------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| **Context**   | Locales, glossaries and style guides are documents editors maintain                          | `packages/l10n-studio/src/schemas/`            |
+| **Assembly**  | Query the context, prune the glossary to terms the source actually contains, build a prompt  | `packages/l10n/src/prompts/promptAssembly.ts`  |
+| **Run**       | A publish starts one durable workflow instance that analyses, fans out, retries and gates    | `packages/l10n/src/workflows/`                 |
+| **Translate** | An effect handler calls Agent Actions Translate with the assembled prompt and writes it      | `packages/l10n/src/effects/translateLocale.ts` |
+| **Review**    | A person compares source against translation and approves or requests changes                | `packages/l10n-studio/src/translations/`       |
+| **Publish**   | Approval publishes drafts, or a campaign ships a Content Release on a schedule               | `packages/l10n/src/effects/publishRelease.ts`  |
+| **Distill**   | The diff between machine draft and approved text becomes proposed glossary and guide entries | `packages/l10n/src/distill/`                   |
 
-3. **Prove it** — Translate WITH and WITHOUT context. Measure the delta. If
-   glossaries don't measurably improve quality, the terms need work. The
-   strongest entries are brand names that look like common English words (e.g.,
-   "Releases", "Perspectives", "Portable Text").
+The loop closes: distillation writes **draft** proposals, a human accepts them
+into a glossary or style guide, and the next run's assembly reads them. Nothing
+automation writes reaches a prompt without two human acts.
 
-4. **Automate the lifecycle** — Publishing a source document starts a
-   localization run on Editorial Workflows. Editors review results, not initiate
-   workflows.
+Load `references/pattern.md` for how each phase actually works, both
+localization tiers, and what the engine owns versus what your code owns.
 
-5. **Lean on the platform** — Use Sanity exports, generated types (TypeGen), and
-   `@sanity/*` utilities. Don't reinvent what the SDK provides.
+## Non-negotiables
 
-## Orientation
+A project that satisfies less than this cannot run the pattern:
 
-Read `references/architecture.md` for the full project map. Key entry points:
+1. **Locales are content, not a constant.** Everything — assembly, fan-out, the
+   frontend, the dashboard — reads `l10n.locale` documents. A hardcoded array
+   breaks the moment an editor adds a market.
+2. **The schema is deployed.** Agent Actions resolves the target against the
+   deployed schema (`sanity schema deploy`), not the local one.
+3. **The engine has storage and a runtime.** Editorial Workflows keeps instances
+   in a dedicated dataset and has no daemon: Sanity Functions dispatch its
+   effects. Both are blueprint resources.
+4. **Run state lives on the instance.** Content documents carry content. No
+   status field, no per-locale ledger, no "is this stale yet" cache.
+5. **A named human owns the gate.** Automation proposes — translations, glossary
+   entries, style-guide rules — and never publishes context on its own. Name that
+   person during adoption, along with where their queue lives: without one, runs
+   park in review and nothing ships. It is the most common way an adoption
+   stalls, and no amount of correct code fixes it.
 
-- `packages/l10n/` — Unified plugin: schemas, prompt assembly, translation UI,
-  hooks, evals. Sub-path exports keep serverless functions React-free.
-- `packages/l10n/src/workflows/` — Editorial Workflows definitions
-  (`localize-campaign` → `localize-document` → `localize-locale`) plus their
-  in-memory bench specs. React-free; composable into Functions and the CLI.
-- `packages/l10n/src/effects/` — the effect handlers those definitions declare.
-- `functions/` — the engine's runtime. Migration state is in
-  `docs/WORKFLOW_ENGINE_MIGRATION.md`.
-- `studio/` — Studio workspace with article, person, topic, tag types.
-- `apps/translations-dashboard/` — Real-time translation overview (App SDK).
-- `apps/frontend/` — Next.js frontend with path-based i18n routing.
-- `sanity.blueprint.ts` — Infrastructure-as-code: datasets, robot token,
-  Functions. `sanity.workflow.ts` deploys the definitions.
-- Start here: `packages/l10n/src/promptAssembly.ts` — the core bridge between
-  structured metadata and the Translate API.
+## Where to go next
 
-### Two-Tier Architecture
+| Task                                                                             | Load                      |
+| -------------------------------------------------------------------------------- | ------------------------- |
+| Understand the pipeline, the two tiers, or which layer owns a behaviour          | `references/pattern.md`   |
+| Add localization to a project — new project, or an existing Studio and dataset   | `references/adopting.md`  |
+| Build a translation workflow the shipped definitions do not cover                | `references/extending.md` |
+| Run, observe or debug a live pipeline — deploys, stuck runs, failed translations | `references/operating.md` |
 
-The starter supports two complementary translation approaches:
+The packages document their own surface. Read
+[`packages/l10n/README.md`](../../packages/l10n/README.md) for the node floor's
+entries and [`packages/l10n-studio/README.md`](../../packages/l10n-studio/README.md)
+for the Studio layer's, rather than asking for an export list.
+[`docs/decisions/`](../../docs/decisions/) records why the packages are shaped
+this way (adr-001) and why the loop is an observer rather than a phase
+(adr-002); [`docs/FUNCTIONS.md`](../../docs/FUNCTIONS.md) is the runtime map.
 
-- **Document-level** (`@sanity/document-internationalization`) — one document per
-  locale. Used for content types where the entire document is translated (e.g.,
-  articles). Configured via `localizedSchemaTypes` in `createL10n()`.
-- **Field-level** (`sanity-plugin-internationalized-array`) — inline
-  `internationalizedArray*` fields on a single document. Used for types where
-  only specific fields need translation (e.g., person bios). Declared in the
-  registry in `packages/l10n/src/core/fieldTier.ts`.
+## Anti-patterns
 
-Both tiers run the same workflow definitions; the field tier diverges only in
-where a locale's translation is written. See
-`references/field-level-patterns.md`.
+- **Do not hand-roll orchestration.** Fan-out, retries, concurrency limits, job
+  status, review gates and idempotency are engine primitives. A semaphore, a
+  status enum, or a `for` loop over locales means the engine is being reinvented.
+- **Do not edit a workflow instance as content.** Every write goes through an
+  engine verb (`fireAction`, `editField`, `tick`, `completeEffect`) or it
+  bypasses guards, history and the transaction boundary.
+- **Do not deploy a definition you have not run on the bench.**
+  `@sanity/workflow-engine-test` runs the real engine in memory, no project and
+  no network. It catches spawn-identity, cohort-gating and recovery bugs that
+  otherwise only appear against a live dataset.
+- **Do not mix `@sanity/workflow-*` versions.** They are exact-version peers and
+  ship breaking changes in minor releases. Pin exactly, upgrade as one set.
+- **Do not let React, `sanity` or `@sanity/ui` into `@starter/l10n`.** Functions
+  inline everything they import. The node floor is what makes one definition
+  runnable in a Function, the CLI, an eval and a frontend.
+- **Do not inject a whole glossary into a prompt.** Filter to the terms the
+  source document contains; keep do-not-translate and forbidden terms always.
+- **Do not skip the review gate to "save a step."** The gate is where the
+  training signal for the distillation loop comes from.
 
-## Jobs to Be Done
+## Companion skills
 
-### 1. Customize glossaries for my domain
-
-Replace the Sanity product terms with your own brand terminology. The strongest
-glossary entries are brand names that look like common English words — generic
-terms like "Dashboard" add little value because models translate them correctly
-without help.
-
-- Read `packages/l10n/src/prompts/evals/fixtures.ts` to see the example glossary entries
-- Read `packages/l10n/src/schemas/glossaryEntry.ts` for the 7-field anatomy
-- Load `references/customization-guide.md` for detailed guidance
-- Do NOT remove fields from glossary entries — each drives branching logic in
-  prompt assembly
-
-### 2. Add a content type to the l10n system
-
-- Add the type name to `localizedSchemaTypes` in `studio/sanity.config.ts`
-- Run `pnpm exec sanity schema deploy` from `studio/`
-- Add the type to the `start-localization` event filter in `sanity.blueprint.ts`
-  and to `localize-document`'s subject types in
-  `packages/l10n/src/workflows/localizeDocument.ts`
-- Redeploy: `pnpm exec sanity blueprints deploy` and `pnpm workflows:deploy`
-
-### 3. Create or modify style guides
-
-Style guides are per-locale: formality level, tone adjectives, and free-form
-instructions in Portable Text.
-
-- Read `packages/l10n/src/schemas/translationStyleGuide.ts` for the schema
-- Read `packages/l10n/src/prompts/evals/fixtures.ts` for example style guides (DE, FR, JA)
-- Load `references/customization-guide.md` for best practices
-- Style guides are fetched by locale code via `STYLE_GUIDE_FOR_LOCALE_QUERY`
-
-### 4. Run and understand evals
-
-Two test suites live in `packages/l10n/`:
-
-```sh
-pnpm --filter l10n test   # Unit tests: schema, prompt assembly, locale utils
-pnpm --filter l10n eval   # Model evals: translate with/without context, score delta
-```
-
-- Evals require `sanity login` and consume AI credits
-- Two-layer scoring: deterministic checks (term presence/absence/patterns) +
-  LLM judge (4 dimensions, 3 trials averaged)
-- Pass = deterministic.pass AND judge.overall >= 3.5
-- Load `references/customization-guide.md` for writing new eval cases
-
-### 5. Deploy functions and infrastructure
-
-```sh
-pnpm exec sanity blueprints deploy   # datasets, robot token, Functions
-pnpm workflows:deploy                # workflow definitions
-```
-
-- Read `sanity.blueprint.ts` for the resource definitions and
-  `sanity.workflow.ts` for the definition deployment; both name the same engine
-  coordinates, imported from `packages/l10n/src/workflows/config.ts`
-- All Functions share one robot token with the editor role
-- Load `references/customization-guide.md` for modifying function filters and
-  env vars
-
-### 6. Understand prompt assembly
-
-The pipeline in `packages/l10n/src/promptAssembly.ts`:
-
-1. `extractDocumentText()` — recursively extract text from a Sanity document
-2. `filterGlossaryByContent()` — prune glossary to terms in the source
-3. `buildGlossarySection()` — format entries as Approved / DNT / Forbidden
-4. `buildStyleGuideSection()` — format formality, tone, instructions
-5. `assembleStyleGuide()` — combine glossary + style guide into a single string
-6. `extractProtectedPhrases()` — pull DNT terms for the API's protectedPhrases
-7. `buildTranslateParams()` — package everything for Agent Actions Translate
-
-Read the source file directly — it's ~250 lines and well-commented.
-
-### 7. Debug a translation issue
-
-Load `references/troubleshooting.md` for common issues:
-
-- Agent Actions errors (schema not deployed, token missing)
-- Style guide too large (>12,000 chars warning)
-- Eval failures (sourceText/fieldPath mismatch, auth token resolution)
-- Functions issues (pnpm dep resolution, env var loading in jiti)
-
-### 8. Understand the field-level tier
-
-Load `references/field-level-patterns.md`. Canonical sources:
-`packages/l10n/src/core/fieldTier.ts` (registry, coverage, source projection,
-start perspective), `packages/l10n/src/effects/translateLocale.ts` (the
-in-place write branch) and `packages/l10n/src/translations/FieldTierContent.tsx`
-(the inspector surface).
-
-### 9. Add field-level translations to a document type
-
-1. Use `internationalizedArrayText` (or `internationalizedArrayString`) for the
-   field in your schema definition
-2. Register the type and its field paths in `FIELD_TIER` in
-   `packages/l10n/src/core/fieldTier.ts` — handlers run in Functions with no
-   compiled schema to walk, so the registry is static
-3. Add the type to `localize-document`'s subject types and to the function
-   filters in `sanity.blueprint.ts`, as in job 2
-4. Redeploy: `cd studio && pnpm exec sanity schema deploy`, then
-   `pnpm exec sanity blueprints deploy` and `pnpm workflows:deploy`
-
-Example: `studio/schemaTypes/person.ts` uses `internationalizedArrayText` for
-`bio`, registered alongside `seo.metaTitle` and `seo.metaDescription`.
-
-## Anti-Patterns
-
-- **Do NOT hand-roll orchestration** — no semaphores, no status enums, no
-  "is this stale yet" caches, no `for` loops over locales. Fan-out, retries,
-  concurrency, review gates and idempotency are Editorial Workflows primitives.
-  ~4,600 lines of exactly this are on the delete list; don't add more.
-- **Do NOT put workflow state on content documents** — the instance owns run
-  state, content documents own content state. There is no per-field status
-  ledger to write to; coverage is derived from the arrays themselves.
-- **Do NOT edit workflow instances as content** — no `useEditDocument`, no raw
-  patches. Every instance write goes through an engine verb (`fireAction`,
-  `editField`, `tick`, `completeEffect`) or it bypasses gates, history and the
-  transaction boundary.
-- **Do NOT let UI imports into `src/workflows/` or `src/core/`** — both are
-  React-free so Functions, the CLI and evals can import them at no bundle cost.
-  Check with `grep -rn "react\|@sanity/ui"` before adding an import.
-- **Do NOT deploy a definition you haven't proven on the bench** —
-  `@sanity/workflow-engine-test` runs the real engine in memory with no project or
-  network. It catches spawn-identity, cohort-gating and recovery bugs that only
-  otherwise surface against a live dataset.
-- **Do NOT mix `@sanity/workflow-*` versions** — they are exact-version peers of
-  one another and ship breaking changes in minor releases. Pin exactly; upgrade as
-  a set.
-- **Do NOT duplicate l10n schema types** — the plugin registers them via
-  `createL10n()`. Adding them to `studio/schemaTypes/` causes conflicts.
-- **Do NOT hardcode locale lists** — query `l10n.locale` documents. The seed
-  migration creates them.
-- **Do NOT inject all glossary terms** — use `filterGlossaryByContent()` to
-  keep prompts focused.
-- **Do NOT remove glossary entry fields** — all 7 (term, status,
-  doNotTranslate, partOfSpeech, definition, context, translations) drive
-  branching logic in `buildGlossarySection()`.
-- **Do NOT use `getCliClient` outside CLI** — it won't resolve auth tokens.
-  Pass `token` explicitly. See `packages/l10n/src/prompts/evals/authToken.ts`.
-- **Do NOT skip `sanity schema deploy`** — Agent Actions requires deployed
-  schema. Schema ID is `_.schemas.default`.
-- **Do NOT use `useFormValue` in the inspector** — it renders outside form
-  context. Read the document through `useEditState` (see
-  `translations/FieldTierContent.tsx`).
-- **Do NOT bypass a run's action guards** — `localize-document` guards its
-  subject against `publish` while translating and in review, and
-  `createLocalizationScheduleGate` closes the one action the Studio plugin's
-  lock map misses. Don't unwrap either.
-
-## Reference Files
-
-| File                                 | Load when...                                                      |
-| ------------------------------------ | ----------------------------------------------------------------- |
-| `references/architecture.md`         | You need the full project map, data flow, or schema overview      |
-| `references/customization-guide.md`  | Customizing glossaries, style guides, evals, or functions         |
-| `references/troubleshooting.md`      | Debugging translation, eval, or deployment issues                 |
-| `references/field-level-patterns.md` | Understanding or customizing the field-level translation workflow |
-
-## Companion Skills
-
-- **sanity-best-practices** — General i18n patterns: document-level vs
-  field-level, `@sanity/document-internationalization`
-- **add-l10n-frontend** — Frontend rendering of localized content (Next.js
-  reference implementation, patterns for other frameworks)
+- **sanity-best-practices** — general Sanity i18n modelling: document-level vs
+  field-level, plugin setup, language fields.
+- **add-l10n-frontend** — rendering localized content: locale routing, locale
+  switcher, fallback content.

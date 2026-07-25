@@ -1,101 +1,84 @@
 ---
 name: add-l10n-frontend
-description: 'Add localized content rendering to a frontend project using the Sanity l10n plugin. The starter includes a complete Next.js reference implementation at apps/frontend/ — use this skill to understand those patterns, adapt them, or scaffold a frontend for a different framework (Astro, SvelteKit). Trigger on: add frontend, localized rendering, i18n routing, locale switcher, fallback content, frontend translation.'
+description: "Render localized Sanity content in a frontend: locale-prefixed routing, a locale switcher driven by l10n.locale documents, and fallback to the source language when a translation is missing. Use this skill when adding localized rendering to a web app, when reading the starter's Next.js reference at apps/frontend/ to adapt or extend it, or when porting those patterns to Astro, SvelteKit, Nuxt or another framework. Also use it for a site query returning every language at once — how a page query filters on the language field, and whether a slug is shared across a document's locales. Triggers on localized frontend, locale routing, /[lang]/ routes, locale switcher, language switcher, missing translation fallback, fallback banner, rendering translated content, querying content by locale. DO NOT use for the localization pipeline itself — glossaries, style guides, prompt assembly, Agent Actions translation, workflow runs, review gates, Functions or blueprints — that is sanity-l10n. DO NOT use for general Sanity internationalization content modelling — document-level vs field-level, plugin choice, language field design — that is sanity-best-practices."
 ---
 
-# Add Localized Frontend Rendering
+# Localized Frontend Rendering
 
-## What This Skill Covers
+The frontend's job in this pattern is small and read-only: pick a locale from the
+URL, query content filtered by that locale, fall back to the source language when
+a translation is missing, and let a person switch.
 
-This starter already includes a complete Next.js frontend at `apps/frontend/`.
-This skill helps you:
+`apps/frontend/` is a complete Next.js reference. It takes **no workspace
+dependency** on the l10n packages — deliberately, so it can be lifted out as a
+plain Next app. Its only coupling to the Studio is by convention: the
+`l10n.locale` document type and the `language` field name.
 
-1. **Understand the existing implementation** — read `apps/frontend/` as the
-   canonical reference for how path-based i18n routing, locale switching, and
-   fallback content work with the l10n plugin.
-2. **Scaffold a frontend for a different framework** — apply the same patterns
-   to Astro, SvelteKit, or another framework using the shared setup reference.
+## What the pattern requires of a frontend
 
-## Prerequisites
+1. **Locale in the path**, one segment: `/de-DE/article-slug`. A cookie or header
+   alone gives you no shareable URL and no per-locale caching.
+2. **Locales queried, not hardcoded.** `*[_type == "l10n.locale"]` — a new market
+   appears when an editor adds a document, without a deploy.
+3. **Content filtered by `language`.** The document tier stores one document per
+   locale, all sharing a slug: `slug.current == $slug && language == $language`.
+   Field-tier types instead carry language-keyed arrays, which the frontend reads
+   by picking the matching `_key`.
+4. **An explicit fallback, surfaced.** A missing translation renders the source
+   language _and says so_. Silent fallback looks like a bug to the reader and
+   hides coverage gaps from the team.
+5. **Read-only.** No write token, no Studio imports, no mutations.
 
-1. **Sanity project with l10n plugin** — Locales exist as `l10n.locale`
-   documents in the dataset.
-2. **Localized document types** — Document types (e.g. `article`) have a
-   `language` field injected by the l10n plugin.
+## The Next.js reference
 
-## If Using Next.js
+Already implemented. Modify these files rather than recreating them.
 
-The implementation already exists. Read these files directly:
+| File                                                 | What it does                                                                                                               |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `apps/frontend/src/proxy.ts`                         | Next 16 proxy (the old `middleware.ts` convention): unprefixed path → 307 to `/{locale}`, reading the `NEXT_LOCALE` cookie |
+| `apps/frontend/src/sanity/fetch.ts`                  | `server-only` fetch wrapper; builds its own client, no `defineLive`                                                        |
+| `apps/frontend/src/sanity/queries.ts`                | `defineQuery` GROQ, locale-filtered, plus the fallback query and `DEFAULT_LANGUAGE`                                        |
+| `apps/frontend/src/sanity/types.ts`                  | Hand-written result types — the frontend is outside the typegen path                                                       |
+| `apps/frontend/src/sanity/client.ts`                 | A tagged client, currently unused by anything                                                                              |
+| `apps/frontend/src/app/[lang]/layout.tsx`            | `<html lang>`, nav, locale switcher; `generateStaticParams` from the locale query                                          |
+| `apps/frontend/src/app/[lang]/page.tsx`              | Article list for the locale                                                                                                |
+| `apps/frontend/src/app/[lang]/[slug]/page.tsx`       | Detail view, and the fallback decision                                                                                     |
+| `apps/frontend/src/components/LocaleSwitcher.tsx`    | Swaps the first path segment, persists `NEXT_LOCALE`, flags via `Intl.Locale`                                              |
+| `apps/frontend/src/components/FallbackBanner.tsx`    | The "this is the source language" notice                                                                                   |
+| `apps/frontend/src/components/PortableText.tsx`      | Portable Text renderer                                                                                                     |
+| `apps/frontend/src/app/[lang]/architecture/page.tsx` | An in-app illustrated tour. Prose, not a source of truth — parts of it lag the code                                        |
 
-| File                                              | What it demonstrates                                |
-| ------------------------------------------------- | --------------------------------------------------- |
-| `apps/frontend/src/sanity/client.ts`              | Sanity client setup with `next-sanity`              |
-| `apps/frontend/src/sanity/fetch.ts`               | Server-only fetch wrapper (no `defineLive`)         |
-| `apps/frontend/src/sanity/queries.ts`             | GROQ queries filtered by locale                     |
-| `apps/frontend/src/sanity/types.ts`               | TypeScript types for query results                  |
-| `apps/frontend/src/proxy.ts`                      | Middleware: redirects `/` to `/{preferred locale}`  |
-| `apps/frontend/src/app/[lang]/layout.tsx`         | Root layout with `<html lang>`, locale switcher     |
-| `apps/frontend/src/app/[lang]/page.tsx`           | Article list filtered by locale                     |
-| `apps/frontend/src/app/[lang]/[slug]/page.tsx`    | Article detail with fallback logic                  |
-| `apps/frontend/src/components/LocaleSwitcher.tsx` | Path-based locale switching with cookie persistence |
-| `apps/frontend/src/components/FallbackBanner.tsx` | Fallback language notice                            |
-| `apps/frontend/src/components/PortableText.tsx`   | Portable Text renderer                              |
+Two known rough edges worth fixing rather than copying: `DEFAULT_LANGUAGE` is
+hardcoded in both `queries.ts` and `proxy.ts` rather than derived from the locale
+documents, and `proxy.ts` matches locales with `/^[a-z]{2}-[A-Z]{2}$/`, which
+rejects script subtags like `zh-Hans-CN` that `LocaleSwitcher` handles correctly
+via `Intl.Locale`.
 
-Visit `/en-US/architecture` in the running frontend for an interactive
-architecture overview.
+## Porting to another framework
 
-Do NOT recreate these files — modify the existing ones.
+Read `references/shared-setup.md` for the framework-agnostic parts — the shape of
+the queries, the fallback decision, and the two Studio conventions the frontend
+depends on. Then map four concerns onto your framework:
 
-## If Using a Different Framework
+| Concern         | Next.js (reference)  | Astro               | SvelteKit            |
+| --------------- | -------------------- | ------------------- | -------------------- |
+| Client          | `next-sanity`        | `@sanity/client`    | `@sanity/client`     |
+| Public env      | `NEXT_PUBLIC_`       | `PUBLIC_`           | `PUBLIC_`            |
+| Locale route    | `app/[lang]/`        | `src/pages/[lang]/` | `src/routes/[lang]/` |
+| Server fetch    | `server-only` module | frontmatter         | `+page.server.ts`    |
+| Locale redirect | `src/proxy.ts`       | middleware          | `hooks.server.ts`    |
 
-### Step 1 — Load Reference
+Verify by behaviour, not by file count:
 
-Read `references/shared-setup.md` for the framework-agnostic patterns: Sanity
-client setup, GROQ queries, TypeScript types, the fallback content pattern, and
-design principles.
+1. `/` redirects to the default locale.
+2. Switching locale changes both URL and rendered content.
+3. A document translated into only some locales renders the fallback plus its
+   banner in the others, and 404s when the source is missing too.
+4. Adding an `l10n.locale` document in the Studio makes a new locale reachable
+   without a code change.
 
-### Step 2 — Adapt the Patterns
+## Companion skills
 
-Apply the shared patterns using your framework's conventions:
-
-| Concern         | Next.js (reference)          | Astro               | SvelteKit            |
-| --------------- | ---------------------------- | ------------------- | -------------------- |
-| Client          | `next-sanity` `createClient` | `@sanity/client`    | `@sanity/client`     |
-| Env prefix      | `NEXT_PUBLIC_`               | `PUBLIC_`           | `PUBLIC_`            |
-| Routing         | `app/[lang]/` file-based     | `src/pages/[lang]/` | `src/routes/[lang]/` |
-| SSR fetch       | `server-only` module         | Astro frontmatter   | `+page.server.ts`    |
-| Locale redirect | `middleware.ts`              | Astro middleware    | `hooks.server.ts`    |
-
-### Step 3 — Implement
-
-Read the Next.js source files listed above for implementation patterns, then
-adapt them to your framework. The core logic is the same:
-
-1. **Locale routing** — path prefix (`/en-US/slug`, `/de-DE/slug`)
-2. **Locale switcher** — swap the path segment, persist preference in a cookie
-3. **Fallback content** — try target locale, fall back to default, show banner
-4. **Dynamic locales** — query `l10n.locale` documents, never hardcode
-
-### Step 4 — Verify
-
-1. Dev server starts without errors
-2. `/` redirects to `/{defaultLocale}/`
-3. Locale switcher changes URL and content
-4. Missing translations show fallback banner
-5. New locales added in Studio appear automatically
-
-## Extending This Skill
-
-To add a framework-specific reference:
-
-1. Create `references/<framework>-setup.md` covering framework-specific routing,
-   data fetching, and middleware patterns.
-2. Add the framework's config file pattern to the adaptation table above.
-3. No changes needed to `shared-setup.md` or the workflow steps.
-
-## Companion Skills
-
-- **sanity-l10n** — The l10n plugin, prompt assembly, glossaries, style guides,
-  evals, and serverless functions
-- **sanity-best-practices** — General i18n patterns: document-level vs
-  field-level
+- **sanity-l10n** — the localization pipeline: context as content, prompt
+  assembly, workflow runs, review, the distillation loop.
+- **sanity-best-practices** — general Sanity i18n modelling.

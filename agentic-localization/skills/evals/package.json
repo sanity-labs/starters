@@ -1,0 +1,22 @@
+{
+  "name": "@starter/skill-evals",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "eval": "vitest run --config vitest.live.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@sanity/client": "catalog:",
+    "@starter/l10n": "workspace:*",
+    "@starter/tsconfig": "workspace:*",
+    "@types/node": "^22.19.13",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "//scripts": [
+    "`test` is the deterministic suite and runs under root `pnpm test` in CI: no project, no credentials, no model. `eval` grades routing and guidance with a live model through Agent Actions and consumes AI credits, like packages/l10n's eval script."
+  ]
+}

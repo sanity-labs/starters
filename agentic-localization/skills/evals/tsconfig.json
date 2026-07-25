@@ -1,0 +1,10 @@
+{
+  "extends": "@starter/tsconfig/base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "resolveJsonModule": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}

@@ -1,86 +1,80 @@
-# Shared Setup — Framework-Agnostic
+# Framework-agnostic setup
 
-Patterns that apply regardless of frontend framework. For the Next.js
-implementation, read `apps/frontend/src/` directly.
+What a frontend needs from the Studio side, and the three decisions no framework
+makes for you. The Next.js implementation of all of it is
+`apps/frontend/src/sanity/` and `apps/frontend/src/app/[lang]/` — read those for
+working code.
 
-## Environment Variables
+## What the Studio side gives you
 
-| Variable   | Description                            | Framework prefix                                                      |
-| ---------- | -------------------------------------- | --------------------------------------------------------------------- |
-| Project ID | Sanity project ID                      | `NEXT_PUBLIC_` (Next.js), `PUBLIC_` (Astro/SvelteKit), `VITE_` (Vite) |
-| Dataset    | Dataset name                           | Same prefix pattern                                                   |
-| Read token | Read-only API token (server-side only) | `SANITY_API_READ_TOKEN` (no prefix — never expose to client)          |
+**`l10n.locale` documents.** `code` (BCP-47), `title`, `nativeName`, and a
+`fallback` reference to another locale. These documents are the locale list — the
+single source of truth, for the switcher, for static params, and for validating a
+path segment. Always query them. A hardcoded array is wrong the first time an
+editor adds a market, and it will be an editor who adds it, not you.
 
-## Sanity Client
+**A `language` field** on every document-tier localized type, holding a BCP-47
+code. The Studio writes it; the frontend only filters on it. Only types passed to
+`createL10n({localizedSchemaTypes})` have it.
 
-For Next.js, use `createClient` from `next-sanity`. For other frameworks, use
-`@sanity/client`. See `apps/frontend/src/sanity/client.ts` for the Next.js
-version.
+**Language-keyed arrays** on field-tier types instead — `internationalizedArray`
+values with `_key` set to the locale code. A frontend reads one by matching
+`_key`, and there is no separate document to fetch.
 
-### Request Tags
+## Queries
 
-The reference client at `apps/frontend/src/sanity/client.ts` sets
-`requestTagPrefix: 'kit.agentic-l10n'`, and per-call options take a
-`tag: '<area>.<action>'` (e.g. `tag: 'articles.list'`), producing the combined
-tag `kit.agentic-l10n.articles.list` — handy for filtering your own
-request logs. Change or remove `requestTagPrefix` in your client config to use
-whatever tagging scheme you prefer. See
-[Request tags](https://www.sanity.io/docs/apis-and-sdks/js-client-request-tags).
+Three shapes cover a locale-aware frontend. Read
+`apps/frontend/src/sanity/queries.ts` for the projections; these are the filters:
 
-## Key Concepts
+- All locales: `*[_type == "l10n.locale"] | order(title asc)`
+- A list for one locale: `*[_type == "article" && language == $language]`
+- One document: `*[_type == "article" && slug.current == $slug && language == $language][0]`
 
-### The `language` field
+Slugs are shared across a document's locales, so the slug plus the language is
+the identity. Project `"slug": slug.current` — the stored value is an object.
 
-A hidden, read-only string injected by the l10n plugin into every localized
-document type. Stores a BCP-47 locale code (e.g., `"en-US"`, `"de-DE"`).
-Managed by the Studio, not the frontend.
+## The fallback decision
 
-### The `l10n.locale` document type
+The only genuinely non-obvious logic in a localized frontend:
 
-Locales are Sanity documents with `_type: "l10n.locale"`. Each has `code`
-(BCP-47), `title` (display name), and `nativeName` (name in the locale's own
-language). Query these to build dynamic locale switchers — never hardcode locale
-lists.
+1. Query the requested locale.
+2. If null and the requested locale is not the source language, decide **where to
+   fall back to**. Each `l10n.locale` document carries a `fallback` reference, so
+   pt-BR can fall back to pt-PT before en-US. Walking that chain is the richer
+   behaviour and the schema supports it; the reference implementation is
+   **single-hop** — it goes straight to the source language and ignores the chain.
+   Whichever you pick, it is the site's job, not the Studio's.
+3. Query the same slug in the chosen fallback locale.
+4. If that resolves, render it **with a visible notice** that this is not a
+   translation.
+5. If it does not, 404.
 
-### Slug storage
+`apps/frontend/src/app/[lang]/[slug]/page.tsx` does this in two fetches and one
+banner (`FallbackBanner.tsx`).
 
-Slugs are stored as `{ current: "the-slug", _type: "slug" }`. Always project
-as `"slug": slug.current` in GROQ queries.
+## Three decisions to make deliberately
 
-### Localized document types
+**Where the default locale comes from.** Deriving it from the locale documents
+costs a query in the redirect path; hardcoding it costs a deploy when it changes.
+The reference hardcodes it in two places, which is the worst of both — pick one
+and keep it in one place.
 
-Only types listed in `createL10n({localizedSchemaTypes: [...]})` have the
-`language` field.
+**How strictly to match a locale segment.** A `xx-XX` regex is cheap and rejects
+valid tags with script subtags (`zh-Hans-CN`). Validating against the fetched
+locale codes, or with `Intl.Locale`, costs more and is correct.
 
-## GROQ Query Patterns
+**Whether the frontend is in the typegen path.** Sanity TypeGen only generates
+result types for query files it is configured to scan (`sanity.cli.ts` in the
+Studio). The reference frontend is outside it and hand-writes its result types,
+which is why they contain `any`. Adding it to the typegen `path` is the better
+answer for a real project.
 
-See `apps/frontend/src/sanity/queries.ts` for the complete queries. The key
-patterns:
+## Non-negotiables
 
-- **Filter by locale:** `*[_type == "article" && language == $language]`
-- **Fetch locales:** `*[_type == "l10n.locale"] | order(title asc)`
-- **Single doc by slug + locale:** `*[_type == "article" && slug.current == $slug && language == $language][0]`
-
-## Fallback Content Pattern
-
-When a translation is missing for the requested locale:
-
-1. Query for the document with the requested locale
-2. If null AND the locale is not the default language, query the same slug with
-   the default language (`en-US`)
-3. If a fallback is found, render it with a banner indicating the content is in
-   the default language
-4. If still null, show a 404
-
-See `apps/frontend/src/app/[lang]/[slug]/page.tsx` for the Next.js
-implementation.
-
-## Design Principles
-
-1. **Separate concerns** — Keep framework-agnostic Sanity code in `src/sanity/`.
-   Framework-specific rendering goes in pages/components.
-2. **Read-only frontend** — The frontend never mutates Sanity data. No write
-   tokens, no Studio dependencies.
-3. **Dynamic locales** — Always query `l10n.locale` documents instead of
-   hardcoding. New locales added in the Studio appear automatically.
-4. **Type safety** — Use `defineQuery()` (Next.js) or typed fetch wrappers.
+- **Read-only.** No write token in a frontend. A read token, if the dataset is
+  private, stays server-side.
+- **No Studio imports.** Nothing from `sanity`, `@sanity/ui` or the l10n Studio
+  package belongs in a frontend bundle. Duplicate a small helper instead — the
+  reference does exactly that in `LocaleSwitcher.tsx`, with a comment saying why.
+- **Server-side fetching.** Keep the client and the token out of the browser
+  bundle; the reference marks its wrapper `server-only`.

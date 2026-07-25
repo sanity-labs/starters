@@ -1,0 +1,242 @@
+[
+  {
+    "id": "greenfield-brief",
+    "kind": "positive",
+    "expect": "sanity-l10n",
+    "query": "we're kicking off a new marketing site on sanity and the ask from leadership is that german and japanese copy has to match our terminology exactly - like our product names can't get translated. i want AI doing the first pass but with an editor signing off. what do i need to stand up?"
+  },
+  {
+    "id": "greenfield-locales-as-content",
+    "kind": "positive",
+    "expect": "sanity-l10n",
+    "query": "setting up a fresh studio for a client who ships in 8 markets. where should the list of locales live so that adding a market later isn't a code deploy, and what has to read from it?"
+  },
+  {
+    "id": "brownfield-existing-studio",
+    "kind": "positive",
+    "expect": "sanity-l10n",
+    "query": "we have a production studio with about 4000 articles, half of them already translated by hand into de-DE and fr-FR with a `lang` string field we made up. i want to move onto automated translation with a review step. what's the migration path and what do i have to rip out?"
+  },
+  {
+    "id": "brownfield-replace-cron",
+    "kind": "positive",
+    "expect": "sanity-l10n",
+    "query": "right now a nightly cron in our vercel project pulls changed docs out of sanity, sends them to deepl, and writes them back. it double-translates constantly and nobody can tell what state a doc is in. how should this be rearchitected inside sanity?"
+  },
+  {
+    "id": "extend-legal-gate",
+    "kind": "positive",
+    "expect": "sanity-l10n",
+    "query": "our pharma client needs a compliance sign-off stage for de-DE only, after the machine draft but before anything publishes. the shipped definitions don't have that. how do i build my own on top of what's here, and how do i test it without burning credits against a real project?"
+  },
+  {
+    "id": "extend-back-translation",
+    "kind": "positive",
+    "expect": "sanity-l10n",
+    "query": "i want to add a back-translation QA pass: after each locale lands, translate it back to english and flag it if it drifts too far. where does that live and what do i register so it actually runs?"
+  },
+  {
+    "id": "extend-effect-handler",
+    "kind": "positive",
+    "expect": "sanity-l10n",
+    "query": "writing my own effect handler that calls an external MT vendor instead of agent actions. what's the signature, and how do i keep a redelivery from paying for the same call twice?"
+  },
+  {
+    "id": "operate-stuck",
+    "kind": "positive",
+    "expect": "sanity-l10n",
+    "query": "published an article 20 minutes ago and nothing is happening. no translations, no instance showing in the studio's workflows view. how do i work out which layer is broken?"
+  },
+  {
+    "id": "operate-publish-disabled",
+    "kind": "positive",
+    "expect": "sanity-l10n",
+    "query": "editor slacked me: the publish button on an article is greyed out and so is schedule. she says she can't do anything. what's holding it and how does she get out of it?"
+  },
+  {
+    "id": "operate-failed-locale",
+    "kind": "positive",
+    "expect": "sanity-l10n",
+    "query": "ja-JP came back empty while de-DE and fr-FR were fine, and the run carried on into review anyway. is that expected, and how do i retry just the one locale?"
+  },
+  {
+    "id": "context-glossary-authoring",
+    "kind": "positive",
+    "expect": "sanity-l10n",
+    "query": "i've got 300 terms from our old TMS termbase. do i load all of them, and how do i know if any of it is actually improving the output rather than just making the prompt longer?"
+  },
+  {
+    "id": "context-dnt",
+    "kind": "positive",
+    "expect": "sanity-l10n",
+    "query": "\"Studio\" and \"Releases\" keep coming back translated in german even though they're our product names. what's the right way to lock those, at the content layer not by editing a prompt string?"
+  },
+  {
+    "id": "pipeline-explain",
+    "kind": "positive",
+    "expect": "sanity-l10n",
+    "query": "new on this team - can you walk me through what actually happens between an editor hitting publish on an en-US article and a german version being live? i keep seeing references to instances and effects and drains and i don't know what owns what"
+  },
+  {
+    "id": "field-tier-coverage",
+    "kind": "positive",
+    "expect": "sanity-l10n",
+    "query": "person documents keep showing as not covered for es-ES even though the bio clearly has spanish in it. the seo fields might be empty. is that why?"
+  },
+  {
+    "id": "learning-loop",
+    "kind": "positive",
+    "expect": "sanity-l10n",
+    "query": "our reviewers fix the same three phrases every single week. is there a way for those corrections to feed back into the terminology automatically, and what stops it from writing something nobody approved?"
+  },
+  {
+    "id": "frontend-routing",
+    "kind": "positive",
+    "expect": "add-l10n-frontend",
+    "query": "need /de-DE/some-article style urls in our next app, and hitting / should send people somewhere sensible based on what they had last time. how is that wired up here?"
+  },
+  {
+    "id": "frontend-switcher",
+    "kind": "positive",
+    "expect": "add-l10n-frontend",
+    "query": "adding a language picker to the site header. i don't want a hardcoded array of languages in the component - where should the list come from?"
+  },
+  {
+    "id": "frontend-fallback",
+    "kind": "positive",
+    "expect": "add-l10n-frontend",
+    "query": "if an article hasn't been translated into pt-BR yet, what should the /pt-BR/ page show? right now we 404 and marketing hates it"
+  },
+  {
+    "id": "frontend-astro-port",
+    "kind": "positive",
+    "expect": "add-l10n-frontend",
+    "query": "we're on astro, not next. i want the same locale-prefixed routing and fallback behaviour the reference next app has. what maps onto what?"
+  },
+  {
+    "id": "frontend-query-by-locale",
+    "kind": "positive",
+    "expect": "add-l10n-frontend",
+    "query": "my groq in the site is returning every language's copy of the same article. how should the page query be filtered, and is the slug shared across locales or not?"
+  },
+  {
+    "id": "frontend-sveltekit-redirect",
+    "kind": "positive",
+    "expect": "add-l10n-frontend",
+    "query": "in sveltekit, where does the redirect from / to the default locale belong? hooks.server.ts? and how do i validate the segment is actually a locale and not a slug"
+  },
+  {
+    "id": "frontend-rtl-segment",
+    "kind": "positive",
+    "expect": "add-l10n-frontend",
+    "query": "adding zh-Hans-CN and our locale path matcher is rejecting it. it works fine for de-DE. what's the matcher supposed to look like"
+  },
+  {
+    "id": "negative-doc-vs-field",
+    "kind": "negative",
+    "expect": "none",
+    "route": "sanity-best-practices",
+    "query": "modelling question: for a product catalog in sanity, is it better to have one document per language or to put the translatable strings in arrays on a single document? what are the tradeoffs for editors and for querying?"
+  },
+  {
+    "id": "negative-doc-intl-plugin-setup",
+    "kind": "negative",
+    "expect": "none",
+    "route": "sanity-best-practices",
+    "query": "how do i install and configure @sanity/document-internationalization in a v4 studio, and what does it put on the document?"
+  },
+  {
+    "id": "negative-i18n-ui-strings",
+    "kind": "negative",
+    "expect": "none",
+    "route": "not a Sanity localization question",
+    "query": "what's the best way to handle ui string translation in a react app - next-intl vs react-i18next? we have about 400 strings in the interface itself, nothing to do with our CMS content"
+  },
+  {
+    "id": "negative-typegen",
+    "kind": "negative",
+    "expect": "none",
+    "route": "sanity:typegen",
+    "query": "sanity typegen keeps generating `any` for my portable text fields and my query result types are missing. how do i get it to pick up the queries in apps/frontend?"
+  },
+  {
+    "id": "negative-content-migration",
+    "kind": "negative",
+    "expect": "none",
+    "route": "sanity-migration",
+    "query": "i need to rename a field on 12000 documents and split an array into two. how do i write and dry-run a sanity migration safely?"
+  },
+  {
+    "id": "negative-starter-conventions",
+    "kind": "negative",
+    "expect": "none",
+    "route": "starter",
+    "query": "adding a new starter template to this repo. what does the package.json need, where do env vars go, and how is CI set up for it?"
+  },
+  {
+    "id": "negative-generic-workflow-engine",
+    "kind": "negative",
+    "expect": "none",
+    "route": "Editorial Workflows docs, not a localization skill",
+    "query": "we want an editorial approval chain for press releases - legal then comms then publish. nothing to do with translation. how do editorial workflows definitions model a multi-approver gate?"
+  },
+  {
+    "id": "negative-agent-actions-generate",
+    "kind": "negative",
+    "expect": "none",
+    "route": "Agent Actions docs",
+    "query": "using agent actions generate to write alt text for every image in the dataset. how do i target a specific field path and avoid overwriting alt text someone already wrote?"
+  },
+  {
+    "id": "negative-portable-text-render",
+    "kind": "negative",
+    "expect": "none",
+    "route": "portable-text-serialization",
+    "query": "my portable text renderer is dropping custom marks and the annotations come out as plain text. how do i map a custom annotation type to a component?"
+  },
+  {
+    "id": "negative-locale-formatting",
+    "kind": "negative",
+    "expect": "none",
+    "route": "not a Sanity localization question",
+    "query": "formatting currency and dates per locale in the browser - is Intl.NumberFormat enough or do i need a library? we show prices in 8 markets"
+  },
+  {
+    "id": "negative-groq-perf",
+    "kind": "negative",
+    "expect": "none",
+    "route": "groq / performance guidance",
+    "query": "this groq query takes 4 seconds against a 200k document dataset. it has three nested references and a count(). how do i make it fast?"
+  },
+  {
+    "id": "negative-deploy-studio",
+    "kind": "negative",
+    "expect": "none",
+    "route": "general Sanity deployment docs",
+    "query": "how do i deploy a studio to a custom domain and set up CORS for it?"
+  },
+  {
+    "id": "ambiguous-language-field-then-pipeline",
+    "kind": "ambiguous",
+    "expect": "sanity-l10n",
+    "query": "we already use @sanity/document-internationalization. what's the smallest thing i can add on top so that publishing english kicks off machine translation with our glossary applied?"
+  },
+  {
+    "id": "ambiguous-frontend-reads-glossary",
+    "kind": "ambiguous",
+    "expect": "add-l10n-frontend",
+    "query": "should the website ever read the glossary documents? i'm building the localized pages and wondering what of the localization setup the frontend actually needs to know about"
+  },
+  {
+    "id": "ambiguous-dashboard-coverage",
+    "kind": "ambiguous",
+    "expect": "sanity-l10n",
+    "query": "i need a view that shows which articles are missing which locales, and which ones are stale because the english changed. does that exist or am i building it?"
+  },
+  {
+    "id": "ambiguous-fallback-chain",
+    "kind": "ambiguous",
+    "expect": "add-l10n-frontend",
+    "query": "our locale documents have a fallback reference - pt-BR falls back to pt-PT then en-US. who is supposed to walk that chain, the studio or the site?"
+  }
+]

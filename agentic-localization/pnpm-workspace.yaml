@@ -4,6 +4,7 @@ packages:
   - e2e
   - packages/*
   - apps/*
+  - skills/evals
 
 catalog:
   '@sanity/assist': ^6.1.17

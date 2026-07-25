@@ -111,12 +111,22 @@ Three consequences worth acting on:
   `racejar/playwright` and are not written. `e2e/README.md` keeps the honest
   not-covered list.
 
-- **Skills teach the pattern, not this repo** (user, 2026-07-24). After the
-  package split, refocus `skills/sanity-l10n` and `skills/add-l10n-frontend` on
-  how the pattern works, its requirements, and how an agent adds its elements
-  to a greenfield or brownfield project. Much of the current skill content
-  documents machinery PRs 4–5 delete. The reworked skills ship **with skill
-  evals** (trigger, routing, guidance) living alongside them in the repo.
+- **Skills teach the pattern — built** (`skills/`, `skills/evals/`).
+  `sanity-l10n` is now the pattern and its adoption: `references/pattern.md`
+  (the phases, both tiers, the loop), `adopting.md` (greenfield and brownfield
+  element maps plus requirements), `extending.md` (definition → bench → handler
+  → deploy, the reference journey for a custom workflow), `operating.md`
+  (deploys, `sanity-workflows diagnose`, the stuck-run walk). `add-l10n-frontend`
+  is truth-passed to the Next 16 app. Everything the two package READMEs and the
+  ADRs own was deleted rather than restated.
+  Evals live in `skills/evals/`, outside both skill directories so a worker never
+  sees the expectations: a deterministic suite under `pnpm test` (path drift,
+  scenario coverage, description hygiene) and a live suite under
+  `pnpm --filter @starter/skill-evals eval` (38 routing queries with hard
+  negatives; 15 task scenarios worker-graded against weighted rubrics). Routing
+  needed two description edits to reach 38/38 — the misses were locales-as-content
+  and a guard-locked publish button, both of which read as general Sanity
+  questions until the trigger surface named them.
 - **Distill comments, docs and the README** to just what a human or agent needs
   to operate and incorporate the pattern (user, 2026-07-24). A standing
   constraint on new writing from PR 4 onward, plus a final pass.
