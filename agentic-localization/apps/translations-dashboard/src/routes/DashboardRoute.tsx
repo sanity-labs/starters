@@ -94,7 +94,7 @@ function DashboardRoute() {
 
   return (
     <Stack className="h-full overflow-y-auto" space={3}>
-      <Heading align="center" size={3} weight="regular">
+      <Heading align="center" as="h1" size={3} weight="regular">
         Sanity Translations Dashboard
       </Heading>
       <div className="dashboard-content">

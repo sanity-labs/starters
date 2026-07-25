@@ -39,12 +39,20 @@ export interface Session {
 }
 
 /**
- * Sanity Studio reads its token from `localStorage`, so an init script is the
- * whole of "log in" — no OAuth round trip, no stored auth state file.
- * `getAuthTokenStorageKey` in `sanity` is where the key comes from.
+ * Both dev servers read their token from `localStorage`, so an init script is
+ * the whole of "log in" — no OAuth round trip, no stored auth state file. The
+ * Studio's key comes from `getAuthTokenStorageKey` in `sanity`; the dashboard's
+ * from the App SDK's standalone auth store (`__sanity_auth_token`, read only
+ * outside a dashboard iframe — the same `{token}` shape). The SDK also accepts
+ * `authConfig.token` directly, but that would put a token path in the app's
+ * Vite bundle; injection stays suite-side instead.
  */
-function authTokenEntry(projectId: string, token: string): [string, string] {
-  return [`__studio_auth_token_${projectId}`, JSON.stringify({token})]
+function authTokenEntries(projectId: string, token: string): [string, string][] {
+  const value = JSON.stringify({token})
+  return [
+    [`__studio_auth_token_${projectId}`, value],
+    ['__sanity_auth_token', value],
+  ]
 }
 
 export async function openSession(origin: string, label: string): Promise<Session> {
@@ -53,12 +61,14 @@ export async function openSession(origin: string, label: string): Promise<Sessio
   const browser: Browser = await chromium.launch()
   const context = await browser.newContext({viewport: {width: 1800, height: 1100}})
   await context.addInitScript(
-    ([key, value]: [string, string]) => {
-      try {
-        window.localStorage.setItem(key, value)
-      } catch {}
+    (entries: [string, string][]) => {
+      for (const [key, value] of entries) {
+        try {
+          window.localStorage.setItem(key, value)
+        } catch {}
+      }
     },
-    authTokenEntry(projectId, token),
+    authTokenEntries(projectId, token),
   )
 
   const page = await context.newPage()

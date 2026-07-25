@@ -31,7 +31,12 @@ function ChartSection({children, featureName, isLoaded}: ChartSectionProps) {
 
   return (
     <ErrorBoundary featureName={featureName}>
-      <div className={hasAnimated ? 'chart-section-loaded' : undefined}>{children}</div>
+      <section
+        aria-label={featureName}
+        className={hasAnimated ? 'chart-section-loaded' : undefined}
+      >
+        {children}
+      </section>
     </ErrorBoundary>
   )
 }

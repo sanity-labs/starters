@@ -27,10 +27,11 @@ const session = await openSession(DASHBOARD_ORIGIN, 'dashboard')
 /**
  * Did the app render, or did the SDK bounce the tab to the login page?
  *
- * The Studio's `localStorage` token does not apply here: `SanityApp` resolves
- * its session through a stamped-token exchange on sanity.io, which needs an
- * interactive login. The probe reports where the tab actually ended up, so the
- * skip line is checkable rather than an assertion about the world.
+ * Standalone (no dashboard iframe), the App SDK reads the suite's injected
+ * `__sanity_auth_token` from `localStorage` — see `authTokenEntries` in
+ * `session.ts` — so this normally passes. A bounce means the token was absent
+ * or rejected; the probe reports where the tab actually ended up, so the skip
+ * line is checkable rather than an assertion about the world.
  */
 async function probeSession(): Promise<GateReason> {
   await session.goto('/')
@@ -94,6 +95,17 @@ Feature<StudioJourney>({
         const cards = context.session.page.getByRole('button', {name: / translations/})
         await settle(cards.first(), 'the first status card', context.session.page)
         expect(await cards.count()).toBeGreaterThan(1)
+      },
+    ),
+
+    Then<StudioJourney, string>(
+      'the {string} section is announced to assistive tech',
+      async (context, name) => {
+        await settle(
+          context.session.page.getByRole('region', {name}),
+          `the "${name}" landmark region`,
+          context.session.page,
+        )
       },
     ),
 

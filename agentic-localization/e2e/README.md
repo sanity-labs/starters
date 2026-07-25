@@ -116,8 +116,11 @@ honest arrangement, and it keeps both layers on one runner and one config.
 
 A feature file opens a session in module scope, closes it in `afterAll`, and
 threads it through `context.session` — the same shape as `createHarness` in the
-API journeys. Logging in is one line: Sanity Studio reads its token from
-`localStorage`, so an init script is the whole of it.
+API journeys. Logging in is one init script: the Studio reads its token from
+`localStorage` (`__studio_auth_token_<projectId>`), and standalone the App SDK
+reads the same `{token}` shape from `__sanity_auth_token`, so one injection
+covers both dev servers. (The SDK also takes `authConfig.token` in app config —
+not used here, because that would put a token path in the app's Vite bundle.)
 
 ### Conditional tags
 
@@ -132,21 +135,21 @@ and the run says why.
 | `@requires-auth`     | `E2E_BROWSER_VERBS` unset (verbs write to a run — opt in explicitly), no verb offered, or a login-page bounce |
 | `@requires-open-run` | Every inbox section counts zero                                                                               |
 
-Both are closed today. The review verbs need an engine session that resolves
-account-globally, which an automated browser has none of; the dashboard
-authenticates by stamped-token exchange, which it cannot complete at all. The
-inbox's row-opening scenario needs an open run, and making one is not cheap —
-publishing a source edit hands the deployed `start-localization` Function a real
-subject and fans out to every locale with real Agent Actions.
+The dashboard scenarios run under the injected token. The review verbs stay
+closed today: they arm only behind `E2E_BROWSER_VERBS=1`, and even armed they
+need an open run in review. The inbox's row-opening scenario needs one too, and
+making one is not cheap — publishing a source edit hands the deployed
+`start-localization` Function a real subject and fans out to every locale with
+real Agent Actions.
 
 ## What this does NOT cover
 
 Being explicit, because a green suite that is quietly narrow is worse than a
 missing one:
 
-- **No browser verbs.** The Studio journeys are read-only. Approve,
-  request-changes and the whole dashboard are written and tagged, not proven —
-  see "Conditional tags" above for exactly why each is closed.
+- **No browser verbs.** The Studio journeys are read-only. Approve and
+  request-changes are written and tagged, not proven — see "Conditional tags"
+  above for exactly why each is closed.
 - **No document actions and no release picker in the browser.** The Start dialog,
   the schedule gate and the release-scoped run have no journey at either layer.
 - **Every API journey rides the harness's own engine**, so no host's engine
