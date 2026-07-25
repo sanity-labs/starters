@@ -8,14 +8,14 @@ inferred from docs. Where the docs and reality disagree, this file records reali
 
 ## 0. Where things stand
 
-| PR                                    | State                                |
-| ------------------------------------- | ------------------------------------ |
-| **PR 1** — Studio v5 → v6             | **Committed** (`0d24679`)            |
-| **PR 2** — definitions + bench specs  | **Committed** (`b9f000b`)            |
-| **PR 3** — workflows dataset + deploy | **In the working tree, uncommitted** |
-| PR 4 — effect handlers + runtime      | Not started                          |
-| PR 5 — Studio and dashboard surfaces  | Not started                          |
-| PR 6 — field-level tier               | Not started                          |
+| PR                                    | State                     |
+| ------------------------------------- | ------------------------- |
+| **PR 1** — Studio v5 → v6             | **Committed** (`0d24679`) |
+| **PR 2** — definitions + bench specs  | **Committed** (`b9f000b`) |
+| **PR 3** — workflows dataset + deploy | **Committed** (`d3784c5`) |
+| PR 4 — effect handlers + runtime      | Not started               |
+| PR 5 — Studio and dashboard surfaces  | Not started               |
+| PR 6 — field-level tier               | Not started               |
 
 Branch: `feature/use-workflows-for-localization`. Baseline before this work was
 169 tests; it is now **213** (`pnpm --filter @starter/l10n test`), with typecheck
