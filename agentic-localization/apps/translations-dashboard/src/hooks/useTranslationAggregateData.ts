@@ -1,12 +1,10 @@
-import type {LocalizedObject} from '@starter/l10n'
+import type {LocalizedObject, SubjectRun} from '@starter/l10n'
 
 import {getFlagFromCode} from '@starter/l10n'
 import {DocumentId, getPublishedId} from '@sanity/id-utils'
 import {useQuery} from '@sanity/sdk-react'
 import {defineQuery} from 'groq'
 import {useMemo} from 'react'
-
-import type {LocalizationRun} from '../lib/localizationRun'
 
 import {useTranslationConfig} from '../contexts/TranslationConfigContext'
 import {useL10nEngine} from './useL10nEngine'
@@ -25,7 +23,7 @@ export type AggregateData = {
   locales: AggregateLocale[]
   metadata: AggregateMetadata[]
   /** Open localization runs, keyed by the base document's own `_id`. */
-  runs: Map<string, LocalizationRun>
+  runs: Map<string, SubjectRun>
 }
 
 export type AggregateLocale = {
@@ -138,7 +136,7 @@ export function useTranslationAggregateData(): {data: AggregateData; isPending: 
 function cleanAggregateData(
   raw: AggregateQueryResult,
   defaultLanguage: string,
-  runsBySubject: Map<string, LocalizationRun>,
+  runsBySubject: Map<string, SubjectRun>,
 ): AggregateData {
   const locales = raw.locales
     .filter((l) => l.tag !== defaultLanguage)
@@ -150,7 +148,7 @@ function cleanAggregateData(
     return meta.translations.some((t) => baseDocIds.has(t.ref))
   })
 
-  const runs = new Map<string, LocalizationRun>()
+  const runs = new Map<string, SubjectRun>()
   for (const doc of raw.baseDocuments) {
     const run = runsBySubject.get(getPublishedId(DocumentId(doc._id)))
     if (run) runs.set(doc._id, run)

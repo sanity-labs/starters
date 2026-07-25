@@ -18,7 +18,7 @@ export interface StaleDocumentEntry {
   hasFailedLocales: boolean
   instanceId: string
   /** Locales the open run is holding for review. */
-  locales: string[]
+  locales: readonly string[]
   /** When the run started — how long the drift has been waiting on someone. */
   since: string
 }

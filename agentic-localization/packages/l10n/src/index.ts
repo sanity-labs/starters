@@ -96,6 +96,7 @@ export {
   type LocaleRun,
   type LocaleRunStage,
 } from './core/localeRuns'
+export {readSubjectRun, type SubjectRun} from './core/subjectRuns'
 
 export {getTranslationMetadataId} from './core/ids'
 export {sanitizeTranslationValue} from './core/sanitizeTranslationValue'

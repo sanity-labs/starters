@@ -7,17 +7,15 @@
  */
 
 import type {Engine} from '@sanity/workflow-engine'
+import type {SubjectRun} from '@starter/l10n'
 
 import {useWorkflowInstances} from '@sanity/workflow-sdk'
+import {readSubjectRun} from '@starter/l10n'
 import {localizeDocument} from '@starter/l10n/workflows'
 import {useMemo} from 'react'
 
-import type {LocalizationRun} from '../lib/localizationRun'
-
-import {runFromInstance} from '../lib/localizationRun'
-
 export interface LocalizationRuns {
-  bySubject: Map<string, LocalizationRun>
+  bySubject: Map<string, SubjectRun>
   loading: boolean
 }
 
@@ -28,9 +26,9 @@ export function useLocalizationRuns(engine: Engine): LocalizationRuns {
   })
 
   return useMemo(() => {
-    const bySubject = new Map<string, LocalizationRun>()
+    const bySubject = new Map<string, SubjectRun>()
     for (const instance of instances ?? []) {
-      const run = runFromInstance(instance)
+      const run = readSubjectRun(instance)
       if (run) bySubject.set(run.subjectId, run)
     }
     return {bySubject, loading}

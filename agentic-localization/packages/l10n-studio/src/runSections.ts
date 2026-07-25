@@ -12,10 +12,8 @@
  * locale is two jobs, and the editor should find it under both.
  */
 
-import type {WorkflowInstance} from '@sanity/workflow-engine'
+import type {SubjectRun} from '@starter/l10n'
 import {BehaviorSubject} from 'rxjs'
-
-import {readDocumentId, readFlag, readLocaleRequests} from '@starter/l10n'
 
 export const RUN_SECTIONS = [
   'needs-review',
@@ -25,22 +23,6 @@ export const RUN_SECTIONS = [
 ] as const
 
 export type RunSectionId = (typeof RUN_SECTIONS)[number]
-
-/** One open `localize-document` run, flattened to what the inbox reads. */
-export interface SubjectRun {
-  instanceId: string
-  /** Published id of the document the run is about. */
-  subjectId: string
-  stage: string
-  /**
-   * The locales this run is working on. Empty while `analyzing` is still
-   * deciding, which reads as "the whole document".
-   */
-  locales: readonly string[]
-  sourceChanged: boolean
-  hasFailedLocales: boolean
-  startedAt: string
-}
 
 export type RunSections = Record<RunSectionId, readonly SubjectRun[]>
 
@@ -53,26 +35,6 @@ export const EMPTY_RUN_SECTIONS: RunSections = {
 
 /** Stages where the engine is doing the work. */
 const IN_PROGRESS_STAGES = new Set(['analyzing', 'translating'])
-
-/** Null when the instance carries no readable subject — never a half-formed run. */
-export function subjectRunFromInstance(instance: WorkflowInstance): SubjectRun | null {
-  const subjectId = readDocumentId(instance, 'subject')
-  if (!subjectId) return null
-
-  // A reviewer who narrowed the re-run narrowed the cohort with it.
-  const requested = readLocaleRequests(instance, 'retranslateLocales')
-  const targets = requested.length > 0 ? requested : readLocaleRequests(instance, 'targetLocales')
-
-  return {
-    instanceId: instance._id,
-    subjectId,
-    stage: instance.currentStage,
-    locales: targets.map((request) => request.locale),
-    sourceChanged: readFlag(instance, 'sourceChanged'),
-    hasFailedLocales: readFlag(instance, 'hasFailedLocales'),
-    startedAt: instance.startedAt,
-  }
-}
 
 /**
  * Every section this run belongs in. `failed-locales` covers the whole-run

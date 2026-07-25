@@ -31,7 +31,7 @@ import {
 import type {UserComponent} from 'sanity/structure'
 import type {SUBJECT_DOCUMENTS_QUERY_RESULT} from '@starter/sanity-types'
 
-import {getFlagFromCode} from '@starter/l10n'
+import {getFlagFromCode, type SubjectRun} from '@starter/l10n'
 import {l10nLocaleNamespace} from '../i18n'
 import {useOpenSiblingPane} from '../translations/paneNavigation'
 import {
@@ -39,7 +39,6 @@ import {
   localizationRuns$,
   RUN_SECTIONS,
   type RunSectionId,
-  type SubjectRun,
 } from '../runSections'
 
 const SUBJECT_DOCUMENTS_QUERY = defineQuery(`*[_id in $ids]{_id, _type}`)

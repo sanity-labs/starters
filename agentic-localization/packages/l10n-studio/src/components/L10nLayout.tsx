@@ -18,9 +18,10 @@ import {ErrorBoundary} from 'react-error-boundary'
 import type {LayoutProps} from 'sanity'
 
 import {useWorkflowInstances} from '@sanity/workflow-studio'
+import {readSubjectRun} from '@starter/l10n'
 
 import {L10nProvider} from '../L10nProvider'
-import {bucketRuns, publishLocalizationRuns, subjectRunFromInstance} from '../runSections'
+import {bucketRuns, publishLocalizationRuns} from '../runSections'
 import {LOCALIZE_DOCUMENT_DEFINITION, useLocalizationEngine} from '../translations/workflowEngine'
 
 /**
@@ -37,8 +38,7 @@ function LocalizationRunsSubscriber() {
   const {instances} = useWorkflowInstances({engine, filter: OPEN_LOCALIZATIONS})
 
   const sections = useMemo(
-    () =>
-      bucketRuns((instances ?? []).flatMap((instance) => subjectRunFromInstance(instance) ?? [])),
+    () => bucketRuns((instances ?? []).flatMap((instance) => readSubjectRun(instance) ?? [])),
     [instances],
   )
 

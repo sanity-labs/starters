@@ -1,67 +1,8 @@
-import {
-  WORKFLOW_INSTANCE_TYPE,
-  type ResolvedFieldEntry,
-  type WorkflowInstance,
-} from '@sanity/workflow-engine'
+import type {SubjectRun} from '@starter/l10n'
+
 import {describe, expect, it} from 'vitest'
 
-import {
-  bucketRuns,
-  sectionsEqual,
-  sectionsFor,
-  subjectRunFromInstance,
-  type SubjectRun,
-} from './runSections'
-
-const SUBJECT_FIELD: ResolvedFieldEntry = {
-  _key: 'k-subject',
-  _type: 'subject',
-  name: 'subject',
-  value: {id: 'dataset:p1:production:article-1', type: 'article'},
-}
-
-function instance(overrides: Partial<WorkflowInstance> = {}): WorkflowInstance {
-  return {
-    _createdAt: '2026-07-24T09:00:00.000Z',
-    _id: 'production.wf-instance.abc',
-    _rev: 'rev-1',
-    _type: WORKFLOW_INSTANCE_TYPE,
-    _updatedAt: '2026-07-24T09:00:00.000Z',
-    ancestors: [],
-    context: [],
-    currentStage: 'review',
-    definition: 'localize-document',
-    definitionSnapshot: '{}',
-    effectHistory: [],
-    fields: [SUBJECT_FIELD],
-    history: [],
-    lastChangedAt: '2026-07-24T09:00:00.000Z',
-    pendingEffects: [],
-    pinnedVersion: 1,
-    stages: [],
-    startedAt: '2026-07-24T09:00:00.000Z',
-    tag: 'production',
-    workflowResource: {id: 'p1.workflows', type: 'dataset'},
-    ...overrides,
-  }
-}
-
-function localesField(name: string, locales: string[]): ResolvedFieldEntry {
-  return {
-    _key: `k-${name}`,
-    _type: 'array',
-    name,
-    of: [
-      {name: 'locale', type: 'string'},
-      {name: 'reason', type: 'string'},
-    ],
-    value: locales.map((locale) => ({_key: locale, locale, reason: 'body changed'})),
-  }
-}
-
-function flagField(name: string, value: boolean): ResolvedFieldEntry {
-  return {_key: `k-${name}`, _type: 'boolean', name, value}
-}
+import {bucketRuns, sectionsEqual, sectionsFor} from './runSections'
 
 function run(overrides: Partial<SubjectRun> = {}): SubjectRun {
   return {
@@ -75,47 +16,6 @@ function run(overrides: Partial<SubjectRun> = {}): SubjectRun {
     ...overrides,
   }
 }
-
-describe('subjectRunFromInstance', () => {
-  it('reads the subject, stage and locales off the instance', () => {
-    expect(
-      subjectRunFromInstance(
-        instance({fields: [SUBJECT_FIELD, localesField('targetLocales', ['de-DE', 'fr-FR'])]}),
-      ),
-    ).toEqual(run({locales: ['de-DE', 'fr-FR']}))
-  })
-
-  it('narrows to the locales a reviewer asked to redo', () => {
-    const subject = subjectRunFromInstance(
-      instance({
-        fields: [
-          SUBJECT_FIELD,
-          localesField('targetLocales', ['de-DE', 'fr-FR', 'ja-JP']),
-          localesField('retranslateLocales', ['fr-FR']),
-        ],
-      }),
-    )
-    expect(subject?.locales).toEqual(['fr-FR'])
-  })
-
-  it('is null when the instance carries no readable subject', () => {
-    expect(subjectRunFromInstance(instance({fields: []}))).toBeNull()
-  })
-
-  it('carries the advisory flags through', () => {
-    expect(
-      subjectRunFromInstance(
-        instance({
-          fields: [
-            SUBJECT_FIELD,
-            flagField('sourceChanged', true),
-            flagField('hasFailedLocales', true),
-          ],
-        }),
-      ),
-    ).toEqual(run({locales: [], sourceChanged: true, hasFailedLocales: true}))
-  })
-})
 
 describe('sectionsFor', () => {
   it('routes an open review to needs-review', () => {
