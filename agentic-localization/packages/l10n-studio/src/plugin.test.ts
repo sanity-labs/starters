@@ -7,6 +7,7 @@ import type {
   DocumentBadgesContext,
 } from 'sanity'
 import {proposalTypeName} from '@starter/l10n'
+import {SOURCE_LANGUAGE} from '@starter/l10n/workflows'
 
 import {createL10n} from './plugin'
 import {proposalActions} from './proposals'
@@ -66,7 +67,7 @@ describe('documentInternationalization badges', () => {
  * opened a proposal and found the default action set.
  */
 describe('the proposal registration', () => {
-  const {plugin} = createL10n({localizedSchemaTypes: ['article']})
+  const {plugin} = createL10n({localizedSchemaTypes: ['article'], defaultLanguage: SOURCE_LANGUAGE})
 
   function actionsContext(schemaType: string): DocumentActionsContext {
     return {schemaType} as unknown as DocumentActionsContext

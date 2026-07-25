@@ -12,13 +12,6 @@ export const EFFECT_NAMES = [ANALYZE_SOURCE, TRANSLATE_LOCALE, PUBLISH_RELEASE] 
 export type EffectName = (typeof EFFECT_NAMES)[number]
 
 /**
- * The language a localization run reads from. Deployed definitions are static,
- * so this cannot come from the plugin's `defaultLanguage` option at runtime —
- * change it here and redeploy if the starter's source language changes.
- */
-export const SOURCE_LANGUAGE = 'en-US'
-
-/**
  * The terminal stage of `localize-document` a reviewer's approval reaches.
  *
  * Here for the same reason the effect names are: the `distill-review` blueprint

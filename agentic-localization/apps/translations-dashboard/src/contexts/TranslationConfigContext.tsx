@@ -26,10 +26,10 @@ export type LanguageData = {
 }
 
 export type TranslationConfigContextType = {
-  defaultLanguage: null | string
+  defaultLanguage: string
   getLanguages: (client: SanityClient) => Promise<LanguageData[]>
   languages: LanguageData[]
-  setDefaultLanguage: (language: null | string) => void
+  setDefaultLanguage: (language: string) => void
   setLanguages: (languages: LanguageData[]) => void
   supportedTypes: string[]
   translationsConfig: ResolvedTranslationsConfig
@@ -75,9 +75,7 @@ export function TranslationConfigProvider({
     [config],
   )
 
-  const [defaultLanguage, setDefaultLanguage] = useState<null | string>(
-    config.defaultLanguage || null,
-  )
+  const [defaultLanguage, setDefaultLanguage] = useState(config.defaultLanguage)
   const [languages, setLanguagesInternal] = useState<LanguageData[]>([])
   const setLanguages = (newLanguages: LanguageData[]) => {
     setLanguagesInternal(newLanguages)

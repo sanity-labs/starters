@@ -1,6 +1,7 @@
 import {NextResponse, type NextRequest} from 'next/server'
 
-const defaultLocale = 'en-US'
+import {DEFAULT_LANGUAGE} from '@/sanity/queries'
+
 const localePattern = /^[a-z]{2}-[A-Z]{2}$/
 
 export default function proxy(request: NextRequest) {
@@ -9,7 +10,7 @@ export default function proxy(request: NextRequest) {
 
   if (localePattern.test(firstSegment)) return
 
-  const preferredLocale = request.cookies.get('NEXT_LOCALE')?.value || defaultLocale
+  const preferredLocale = request.cookies.get('NEXT_LOCALE')?.value || DEFAULT_LANGUAGE
 
   request.nextUrl.pathname = `/${preferredLocale}${pathname}`
   return NextResponse.redirect(request.nextUrl)

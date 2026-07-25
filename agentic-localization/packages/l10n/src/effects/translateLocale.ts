@@ -34,7 +34,7 @@ import {entriesOf, entryFor, internationalizedFields} from '../core/fieldTier'
 import {getTranslationMetadataId} from '../core/ids'
 import {sanitizeTranslationValue} from '../core/sanitizeTranslationValue'
 import {postProcessTranslation} from '../translate'
-import {SOURCE_LANGUAGE} from '../workflows/effects'
+import {SOURCE_LANGUAGE} from '../workflows/config'
 import {
   agentClient,
   contentClientFor,

@@ -1,13 +1,18 @@
 import {createOrReplace, defineMigration} from 'sanity/migrate'
 
 import {localeTypeName, resolveLocaleDefaults} from '@starter/l10n'
+import {SOURCE_LANGUAGE} from '@starter/l10n/workflows'
 
 /**
  * Locale codes to seed. Edit this array before running to customize.
  * All metadata is auto-derived from the BCP-47 code via Intl APIs.
+ *
+ * The first entry is the source locale, so it reads `SOURCE_LANGUAGE` rather
+ * than a literal: every other code is a translation target, and a run derives
+ * its targets by excluding the source from this set.
  */
 const LOCALE_CODES = [
-  'en-US', // American English — source locale
+  SOURCE_LANGUAGE, // the source locale — packages/l10n/src/workflows/config.ts
   'de-DE', // German (Germany)
   'fr-FR', // French (France)
   'ja-JP', // Japanese (Japan)

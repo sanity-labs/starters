@@ -109,13 +109,12 @@ export function buildTranslationMap(
 
 export function useTranslationAggregateData(): {data: AggregateData; isPending: boolean} {
   const {defaultLanguage, translationsConfig} = useTranslationConfig()
-  const lang = defaultLanguage ?? 'en-US'
   const engine = useL10nEngine()
   const {bySubject} = useLocalizationRuns(engine)
 
   const {data: rawData, isPending} = useQuery<AggregateQueryResult>({
     params: {
-      defaultLanguage: lang,
+      defaultLanguage,
       docTypes: translationsConfig.internationalizedTypes,
       languageField: translationsConfig.languageField,
     },
@@ -123,8 +122,8 @@ export function useTranslationAggregateData(): {data: AggregateData; isPending: 
   })
 
   const data = useMemo(
-    () => cleanAggregateData(rawData, lang, bySubject),
-    [rawData, lang, bySubject],
+    () => cleanAggregateData(rawData, defaultLanguage, bySubject),
+    [rawData, defaultLanguage, bySubject],
   )
 
   return {data, isPending}

@@ -8,7 +8,8 @@ import {
   defineWorkflow,
 } from '@sanity/workflow-engine/define'
 
-import {ANALYZE_SOURCE, SOURCE_LANGUAGE} from './effects'
+import {SOURCE_LANGUAGE} from './config'
+import {ANALYZE_SOURCE} from './effects'
 import {localizeLocale} from './localizeLocale'
 
 /**

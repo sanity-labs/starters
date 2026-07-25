@@ -5,7 +5,12 @@ import {
   defineDocumentFunction,
   defineRobotToken,
 } from '@sanity/blueprints'
-import {APPROVED_STAGE, WORKFLOW_TAG, WORKFLOWS_DATASET} from '@starter/l10n/workflows'
+import {
+  APPROVED_STAGE,
+  SOURCE_LANGUAGE,
+  WORKFLOW_TAG,
+  WORKFLOWS_DATASET,
+} from '@starter/l10n/workflows'
 
 // Load env — jiti (which loads this file) doesn't support process.loadEnvFile,
 // so we parse .env manually. import.meta.dirname is synthesized by jiti.
@@ -121,12 +126,10 @@ export default defineBlueprint({
       robotToken: '$.resources.fn-robot.token',
       event: {
         on: ['publish'],
-        // Inlined, not imported: the blueprint is loaded by jiti, and the
-        // deployed definitions carry the same literal (workflows/effects.ts).
         // A field-tier type has no language field — its locales live in
         // internationalized arrays — so only the document tier is filtered
         // down to its source language.
-        filter: "(_type == 'article' && language == 'en-US') || _type == 'person'",
+        filter: `(_type == 'article' && language == '${SOURCE_LANGUAGE}') || _type == 'person'`,
         projection: '{_id, _rev, _type, language}',
         resource: {type: 'dataset', id: `${projectId}.${datasetName}`},
       },
@@ -144,10 +147,9 @@ export default defineBlueprint({
       robotToken: '$.resources.fn-robot.token',
       event: {
         on: ['update'],
-        // Inlined, not imported: the blueprint is loaded by jiti. `APPROVED_STAGE`
-        // and the definition name are interpolated so the filter cannot drift
-        // from the deployed definition — `distillTrigger.test.ts` bench-proves
-        // that `approved` is a real terminal stage of it.
+        // `APPROVED_STAGE` is interpolated so the filter cannot drift from the
+        // deployed definition — `distillTrigger.test.ts` bench-proves that
+        // `approved` is a real terminal stage of it.
         filter:
           `_type == 'sanity.workflow.instance' && definition == 'localize-document' ` +
           `&& currentStage == '${APPROVED_STAGE}'`,

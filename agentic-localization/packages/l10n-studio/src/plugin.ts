@@ -20,10 +20,11 @@ import {createTranslationInspector} from './translations/createTranslationPanePl
 
 interface L10nOptions {
   localizedSchemaTypes: readonly string[]
-  defaultLanguage?: string
+  /** The source language every run reads from — `SOURCE_LANGUAGE`. */
+  defaultLanguage: string
 }
 
-export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L10nOptions) {
+export function createL10n({localizedSchemaTypes, defaultLanguage}: L10nOptions) {
   const translationInspector = createTranslationInspector({
     internationalizedTypes: [...localizedSchemaTypes],
     defaultLanguage,

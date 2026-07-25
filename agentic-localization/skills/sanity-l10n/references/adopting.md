@@ -50,18 +50,22 @@ Non-negotiable, and worth checking before promising a timeline:
   Functions write content and workflow instances.
 - **A deployed schema.** Agent Actions resolves its target against the deployed
   schema, not the local one.
-- **One source language.** `SOURCE_LANGUAGE` in
-  `packages/l10n/src/workflows/effects.ts` is a constant because deployed
-  definitions are static artifacts, not runtime config.
+- **A source language, set before the first deploy.** `SOURCE_LANGUAGE` in
+  `packages/l10n/src/workflows/config.ts` is the coordinate every run reads
+  from — the Studio's `defaultLanguage`, the dashboard, the publish Function's
+  blueprint filter and `LOCALE_CODES[0]` all take it from there. A constant
+  rather than runtime config because deployed definitions are static artifacts:
+  change it and redeploy the definitions and the blueprint.
 - **Exactly pinned `@sanity/workflow-*`.** Every one is an exact-version peer of
   the others and breaking changes ship in minors. Pin in one place — here, the
   `pnpm-workspace.yaml` catalog.
 
 ## Greenfield
 
-1. **Decide the locale set and the source language.** Edit `LOCALE_CODES` in
-   `studio/migrations/seed-locales.ts`; everything else derives from the BCP-47
-   code via `Intl`.
+1. **Decide the locale set and the source language.** `SOURCE_LANGUAGE` in
+   `packages/l10n/src/workflows/config.ts` is the source; the targets are
+   `LOCALE_CODES` in `studio/migrations/seed-locales.ts`, whose first entry is
+   that constant. Everything else derives from the BCP-47 code via `Intl`.
 2. **Decide the tier per content type.** One document per locale (document tier)
    or language-keyed fields on one document (field tier). See the tier table in
    `references/pattern.md`. This choice is hard to reverse — it is a storage

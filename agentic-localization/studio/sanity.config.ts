@@ -12,7 +12,7 @@ import {
   LOCALIZE_DOCUMENT_DEFINITION,
   withLocaleFilter,
 } from '@starter/l10n-studio'
-import {WORKFLOW_TAG, WORKFLOWS_DATASET} from '@starter/l10n/workflows'
+import {SOURCE_LANGUAGE, WORKFLOW_TAG, WORKFLOWS_DATASET} from '@starter/l10n/workflows'
 import {schemaTypes} from './schemaTypes'
 
 const l10nTypes = [
@@ -33,7 +33,7 @@ const localizationSubjectTypes = [...documentTierTypes, ...fieldTierTypes()]
 const projectId = import.meta.env?.SANITY_STUDIO_PROJECT_ID ?? process.env.SANITY_STUDIO_PROJECT_ID!
 const dataset = import.meta.env?.SANITY_STUDIO_DATASET ?? process.env.SANITY_STUDIO_DATASET!
 
-const l10n = createL10n({localizedSchemaTypes: documentTierTypes, defaultLanguage: 'en-US'})
+const l10n = createL10n({localizedSchemaTypes: documentTierTypes, defaultLanguage: SOURCE_LANGUAGE})
 
 const titleAsc = [{field: 'title', direction: 'asc'} as const]
 const nameAsc = [{field: 'name', direction: 'asc'} as const]

@@ -41,7 +41,8 @@ import {
 } from '../core/instanceFields'
 import {buildLocaleRuns, childInstanceIds, toChildRun} from '../core/localeRuns'
 import {extractDocumentText} from '../prompts/promptAssembly'
-import {SOURCE_LANGUAGE, TRANSLATE_LOCALE} from '../workflows/effects'
+import {SOURCE_LANGUAGE} from '../workflows/config'
+import {TRANSLATE_LOCALE} from '../workflows/effects'
 
 /**
  * The `@sanity/client` slice the loop uses. Narrow deliberately: a spec stands

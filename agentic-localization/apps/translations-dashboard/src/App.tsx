@@ -6,6 +6,7 @@ import {createClient} from '@sanity/client'
 import {type SanityConfig} from '@sanity/sdk'
 import {SanityApp} from '@sanity/sdk-react'
 import {WorkflowTelemetryProvider} from '@sanity/workflow-sdk'
+import {SOURCE_LANGUAGE} from '@starter/l10n/workflows'
 import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import type {SanityClient} from 'sanity'
 
@@ -34,14 +35,14 @@ const SANITY_CONFIG: SanityConfig = {
  * field carries the language. The one source of truth for the app.
  */
 const TRANSLATIONS_CONFIG: TranslationsConfig = {
-  defaultLanguage: 'en-US',
+  defaultLanguage: SOURCE_LANGUAGE,
   internationalizedTypes: DOCUMENT_INTERNATIONALIZATION_TYPES,
   languageField: 'language',
 }
 
 function App() {
   const appConfig = {
-    defaultLanguage: TRANSLATIONS_CONFIG.defaultLanguage ?? 'en-US',
+    defaultLanguage: SOURCE_LANGUAGE,
     schemaTypes: [...TRANSLATIONS_CONFIG.internationalizedTypes],
     supportedLanguages: async (client: SanityClient) => {
       return await getLocales(client)

@@ -25,7 +25,7 @@ import type {ModelProposal, ProposalDocument, ProposalEvidence} from './proposal
 import {computeDistillDelta, distillText, normalizeText} from '../core/distillDelta'
 import {distillationTypeName} from '../core/typeNames'
 import {LOCALE_CODES_QUERY} from '../prompts/queries'
-import {SOURCE_LANGUAGE} from '../workflows/effects'
+import {SOURCE_LANGUAGE} from '../workflows/config'
 import {gatherRun, silent} from './gather'
 import {buildDistillPrompt} from './prompt'
 import {

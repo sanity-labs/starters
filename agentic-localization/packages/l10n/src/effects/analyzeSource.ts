@@ -29,7 +29,7 @@ import {getTranslationMetadataId} from '../core/ids'
 import {isRecord} from '../core/isRecord'
 import {ANALYSIS_PROMPT_INSTRUCTION} from '../core/staleAnalysisPrompt'
 import {LOCALE_CODES_QUERY, TRANSLATIONS_FOR_DOCUMENT_QUERY} from '../prompts/queries'
-import {SOURCE_LANGUAGE} from '../workflows/effects'
+import {SOURCE_LANGUAGE} from '../workflows/config'
 import {
   agentClient,
   contentClientFor,

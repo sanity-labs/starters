@@ -1,5 +1,6 @@
 import {defineQuery} from 'next-sanity'
 
+/** Must match `SOURCE_LANGUAGE` in `packages/l10n/src/workflows/config.ts`. */
 export const DEFAULT_LANGUAGE = 'en-US'
 
 const ARTICLE_CARD_FIELDS = `_id, title, "slug": slug.current, excerpt, publishedAt, language`

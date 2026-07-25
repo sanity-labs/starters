@@ -7,12 +7,11 @@ export {
   APPROVED_STAGE,
   EFFECT_NAMES,
   PUBLISH_RELEASE,
-  SOURCE_LANGUAGE,
   TRANSLATE_LOCALE,
 } from './effects'
 export type {EffectName} from './effects'
 
-export {WORKFLOW_TAG, WORKFLOWS_DATASET} from './config'
+export {SOURCE_LANGUAGE, WORKFLOW_TAG, WORKFLOWS_DATASET} from './config'
 export {projectResourceClients} from './resourceClients'
 export type {ProjectResourceClients} from './resourceClients'
 
