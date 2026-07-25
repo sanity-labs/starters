@@ -322,6 +322,19 @@ Every item here cost real time. None of it is obvious from the docs.
   documented default, and the only shape that works for in-place translation.
   `buildTranslateParams({inPlace: true})` emits it.
 
+### Write-path revisions (learned shipping machineRev)
+
+- `client.action` for `sanity.action.document.version.create` returns only
+  `{transactionId}` — no `_rev`. The transaction id **is** the resulting
+  revision (Content Lake `_rev` = last transaction id); this repo already
+  treats them as one identifier space (`previousRevision()` feeds
+  transaction-log ids into `?revision=`). Note the test fake mints
+  `transactionId` independently of its `bumpRev()`, so the equivalence does
+  not hold under `@sanity-labs/client-fake-for-test`.
+- Reading a **literal** `drafts.<id>` / `versions.<release>.<id>` id needs
+  `perspective: 'raw'` — under any resolving perspective (client default
+  `drafts`), `_id == $literalId` silently matches nothing.
+
 ### Test bench
 
 - `createBench({now, documents})`, deterministic clock, no network, no project.
