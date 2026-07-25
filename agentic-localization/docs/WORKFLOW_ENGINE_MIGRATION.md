@@ -98,17 +98,18 @@ Three consequences worth acting on:
   an adversarial debate, a verifying judge, and two owner rulings. The starter
   is a **reference**: each entry is an extension surface for building custom
   translation workflows on the layers.
-- **e2e coverage does not exist yet.** Today there are unit tests and live-model
-  evals. The bench suite proves the definitions but nothing exercises a deployed
-  run end to end. Add once PR 4 makes a run actually executable. Strategy
-  (user, 2026-07-24): **critical user journeys as Gherkin `.feature` files
-  driven by racejar** (`racejar/playwright` for Studio/dashboard journeys,
-  `racejar/vitest` for API-level); individual modules keep their own unit and
-  integration tests. Prior art: `email-marketing/e2e` in this monorepo — copy
-  its structure (fixtures/steps, sanity-client fixture, session-token
-  storageState), but not its positional `Feature(featureText, defs)` call; the
-  real signature is `Feature({featureText, stepDefinitions, parameterTypes?,
-hooks?})`.
+- **e2e coverage is partially closed** (PR 1, `e2e/`). Four API-level journeys run
+  against a dedicated dataset pair through `racejar/vitest`: publish→approved,
+  request-changes, partial failure (all mode P — the harness plays the handlers)
+  and the field tier (mode H — the real handlers, Agent Actions canned). Run with
+  `pnpm e2e`; nightly via `.github/workflows/e2e.yml`. It earned its keep on the
+  first run by finding the `resourceClients` gap in §3.
+  Still open: **J4/J5** (campaign + release publish), **mode F** (live model —
+  the eval suite covers quality, so F only proves the API still answers),
+  **document-tier write paths** under mode H, and **every browser journey** —
+  the Studio inspector, document actions and dashboard need
+  `racejar/playwright` and are not written. `e2e/README.md` keeps the honest
+  not-covered list.
 
 - **Skills teach the pattern, not this repo** (user, 2026-07-24). After the
   package split, refocus `skills/sanity-l10n` and `skills/add-l10n-frontend` on
@@ -258,6 +259,25 @@ Every item here cost real time. None of it is obvious from the docs.
   shape core's copy-document-url uses. And it takes the release **name**
   (`summer`), not the title ("Summer Campaign") — `useEditState`'s version
   param likewise. Feeding a title silently reads a nonexistent version.
+
+### Split-dataset deploys must DECLARE the content resource (found by e2e PR 1)
+
+The engine gates every ref a caller supplies at runtime — `startInstance`'s
+subject `initialFields`, an action's param-sourced op values, an effect's
+completion ops — on the deployment's **declared resource surface**: the
+`workflowResource` itself, plus every resource the `resourceClients` resolver
+serves. An off-surface ref throws `RefResourceUndeclaredError` and the commit
+aborts. Engine storage here is a dedicated dataset and content is in the main
+one, so **every** ref this starter supplies is off-surface by default.
+
+`functions/engine.ts` wired no resolver, which meant `start-localization` could
+not start a run at all — every publish threw. Not caught earlier because the
+bench declares its own store and `@sanity/workflow-studio` wires
+`studioResourceClients()` for you, so the Studio path worked while the Function
+path did not. Fixed by `projectResourceClients()`: return a `withConfig`-derived
+sibling for any dataset of the same project. Returning the client IS the
+declaration; the sibling is the one the engine's router would have derived
+anyway. Anything that builds an engine by hand needs the same wiring.
 
 ### Perspectives (learned in PR 6a, bench-proven)
 
@@ -659,8 +679,9 @@ onto it are removed.
 ## 7. Verification
 
 ```bash
-pnpm --filter @starter/l10n test     # 312 tests; the bench suite is the design gate
-pnpm --filter l10n eval              # quality gate — needs credentials (PR 4 onward)
+pnpm --filter @starter/l10n test     # 328 tests; the bench suite is the design gate
+pnpm e2e                             # the journeys — real datasets, real engine, no AI spend
+pnpm eval                            # quality gate — live model, needs credentials
 pnpm typecheck                       # from the ROOT: `pretypecheck` runs typegen.
                                      # `pnpm -r typecheck` skips it and checks stale types
 pnpm lint                            # 0 errors, 0 warnings
