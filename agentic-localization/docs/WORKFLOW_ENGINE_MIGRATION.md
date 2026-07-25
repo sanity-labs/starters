@@ -227,6 +227,25 @@ Every item here cost real time. None of it is obvious from the docs.
   deploy mid-run briefly leaves no live Function; relevant once PR 4's
   drainer/heartbeat carry the pipeline.
 
+### Runtime and deploy (learned in PR 4, against the real project)
+
+- **`drainEffects` has no claim-count knob** — it drains every claimable
+  effect on one instance, serially. Backpressure is instead a property of the
+  definitions: each holds ≤1 pending effect at any lifecycle point,
+  bench-proven in `pendingEffects.test.ts`. A drain invocation is therefore
+  ≤1 AI call by construction.
+- **Scheduled Functions deploy only to organization-scoped stacks**
+  (`sanity blueprints promote`); `sanity init` creates project-scoped ones.
+  The heartbeat is opt-in (commented resource in the blueprint); the pipeline
+  runs without it because `start-localization` ticks on every publish.
+- The deploy CLI's blueprint parser (0.22) **refuses the `expression`
+  schedule shape** the 0.12.2 authoring lib emits — use explicit cron fields.
+- The instance's terminal marker is **`completedAt`** ("stamped on entry into
+  any terminal stage, aborts included"), not `terminatedAt`/`abortedAt`.
+- The eval suite is **single-sample and live-model**: consecutive runs fail
+  different marginal cases with byte-identical prompt-assembly code. Treat a
+  red eval as "diff the eval path first"; robustness work is tracked.
+
 ### Test bench
 
 - `createBench({now, documents})`, deterministic clock, no network, no project.
@@ -328,40 +347,42 @@ blueprint deploy created `workflows`, definitions landed as
 `production.localize-{locale,document,campaign}.v1`, and `deploy --dry-run`
 reports a no-op.
 
-### PR 4 — effect handlers + runtime Functions
+### PR 4 — effect handlers + runtime Functions — DONE (as built)
 
-Handlers for the three effect names. Register on `createEngine({effectHandlers})`.
+- Handlers live in `packages/l10n/src/handlers/` (`@starter/l10n/handlers`),
+  React-free, keyed by the constants in `workflows/effects.ts`.
+  `translate-locale` calls `buildTranslateParams()` at
+  `handlers/translateLocale.ts:102` — the same call shape as the eval, with a
+  unit test pinning the argument object so the paths cannot drift.
+- `analyze-source` diffs the publish against the source's previous revision
+  (History transaction log); on `refresh-from-source` re-entry it diffs
+  against `analyzedRev`. `targetLocales` = all configured `l10n.locale` codes
+  minus source, computed in code: missing translations always included,
+  existing ones only when the diff warrants. A new `explanation` field on
+  `localize-document` (v2, deployed) carries the analysis summary.
+- `translate-locale` branches on `release` (draft vs version-into-release),
+  keeps `noWrite: true` and writes itself so `postProcessTranslation`
+  (slug/image handling, moved to `@starter/l10n/translate`) stays in the
+  path, and links `translation.metadata` for first-time locales (keyed by
+  locale, idempotent).
+- Idempotency: `ctx.effectKey` checked against `effectHistory[]` before AI
+  calls; deterministic target ids; `publish-release` guards on the release's
+  own state.
+- Runtime Functions: `drain-effects` (filter `count(pendingEffects) > 0`,
+  drain + tick), `start-localization` (deterministic
+  `instanceId = <tag>.wf-instance.<sha256(id:_rev)[:16]>`; on
+  `StartNotAllowedError` → `instancesForDocument` → `tick`, which is what
+  makes `sourceChanged` observable), `handle-deleted-subject` (sequential
+  aborts, failures collected and thrown), `heartbeat` (built; blueprint
+  resource commented — see §3 org-scope constraint).
+- Deleted: `mark-translations-stale` (146), `analyze-stale-translations`
+  (508) and their blueprint resources. `person` is deferred to PR 6.
+- Backpressure is the bench-proven ≤1-pending-effect invariant (§3), not a
+  claim knob. `effectLeaseMs: 150_000` clears the 120s Function timeout.
 
-- `analyze-source` — the body of today's `functions/analyze-stale-translations`.
-  Must write, via completion ops at **workflow** scope: `analyzedRev`,
-  `materiality` (one of the closed list), and `targetLocales` as
-  `[{locale, reason}]`. Delete the old Function.
-- `translate-locale` — **must call `buildTranslateParams()`** (§1). Branch on the
-  `release` binding: absent → write a draft; present → write a version into that
-  release. Report progress with `ctx.setProgress('translationProgress', n)`.
-- `publish-release` — schedule when `publishAt` is bound, else publish now. Make it
-  idempotent: check `releases.get()` state before acting.
-
-Runtime Functions in the existing `sanity.blueprint.ts`:
-
-- `drain-effects` — on create/update of `sanity.workflow.instance` in the workflows
-  dataset: `drainEffects` then `tick`.
-- `heartbeat` — scheduled `tick`; this is what makes `sourceChanged` observable.
-- `start-localization` — replaces `mark-translations-stale`; on publish of a
-  source document, `startInstance` (pass a caller-supplied `instanceId` as the
-  idempotency key) or `tick` an existing run.
-- `handle-deleted-subject` — on delete, `instancesForDocument` then `abortInstance`
-  sequentially; do not swallow individual failures.
-
-**Backpressure lives here** (user's decision): the drainer decides how many effects
-to claim per invocation. The old semaphores (5/5/8/3) are deleted, and the engine
-does not throttle spawn — a 50-document campaign × 8 locales queues 400 AI calls.
-
-Handlers must be idempotent on `ctx.effectKey`; delivery is at-least-once and the
-claim lease is 5 minutes (`effectLeaseMs`).
-
-**Verify:** `pnpm --filter l10n eval` must still pass with `qualityDelta >= 0`
-across all three eval cases. That is the gate that keeps the quality claim honest.
+Verified: 275 unit/bench tests, typecheck/lint/format clean, definitions v2
+and three Functions deployed live. Eval: unstable at single-sample precision
+(§3) — the seam is instead pinned by the handler's argument test.
 
 ### PR 5 — Studio and dashboard surfaces
 

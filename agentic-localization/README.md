@@ -120,8 +120,10 @@ remaining stages and the engine behaviour verified along the way.
 ```
 sanity.blueprint.ts              Infrastructure-as-code: dataset, CORS, robot token, functions
 functions/                       Serverless automation (Sanity Functions)
-  mark-translations-stale.ts       Detects source changes, flags affected translations
-  analyze-stale-translations.ts    AI-analyzes what changed, pre-translates affected fields
+  drain-effects/                   Dispatches a workflow instance's pending effects
+  start-localization/              Starts (or ticks) a run when a source publishes
+  handle-deleted-subject/          Aborts runs whose source was deleted
+  heartbeat/                       Scheduled sweep: stale claims + time-based conditions
 studio/                          Sanity Studio workspace
   schemaTypes/                     Article, person, topic, tag schemas
   migrations/                      Deterministic locale seeding
