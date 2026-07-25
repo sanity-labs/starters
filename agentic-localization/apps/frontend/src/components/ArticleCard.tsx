@@ -2,6 +2,9 @@ import Link from 'next/link'
 import type {ArticleCard as ArticleCardType} from '@/sanity/types'
 
 export function ArticleCard({article, lang}: {article: ArticleCardType; lang: string}) {
+  // The query filters undefined slugs; without one there is no page to link to.
+  if (!article.slug) return null
+
   return (
     <Link
       href={`/${lang}/${article.slug}`}

@@ -20,29 +20,39 @@ async function loadSitemapData() {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const {locales, articles} = await loadSitemapData()
 
-  const localeHome = locales.map((locale) => ({
-    url: absolute(`/${locale.code}`),
+  const codes = locales.flatMap((locale) => (locale.code ? [locale.code] : []))
+
+  const localeHome = codes.map((code) => ({
+    url: absolute(`/${code}`),
     alternates: {
       languages: Object.fromEntries(
-        locales.map((alternate) => [alternate.code, absolute(`/${alternate.code}`)]),
+        codes.map((alternate) => [alternate, absolute(`/${alternate}`)]),
       ),
     },
   }))
 
   // One entry per locale rendition, each pointing at every sibling. Slugs
   // differ per locale, so the alternates come from the translation join.
-  const articlePages = articles.map((article) => ({
-    url: absolute(`/${article.language}/${article.slug}`),
-    lastModified: article._updatedAt,
-    alternates: {
-      languages: Object.fromEntries(
-        listTranslations(article).map((entry) => [
-          entry.language,
-          absolute(`/${entry.language}/${entry.slug}`),
-        ]),
-      ),
-    },
-  }))
+  const articlePages = articles.flatMap((article) => {
+    const translations = listTranslations(article)
+    const self = translations.find((entry) => entry.language === article.language)
+    if (!self) return []
+
+    return [
+      {
+        url: absolute(`/${self.language}/${self.slug}`),
+        lastModified: article._updatedAt,
+        alternates: {
+          languages: Object.fromEntries(
+            translations.map((entry) => [
+              entry.language,
+              absolute(`/${entry.language}/${entry.slug}`),
+            ]),
+          ),
+        },
+      },
+    ]
+  })
 
   return [...localeHome, ...articlePages]
 }

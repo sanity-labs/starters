@@ -228,8 +228,8 @@ async function ArchitectureContent({lang}: {lang: string}) {
             <code className="text-xs bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
               l10n.locale
             </code>{' '}
-            document with code, title, native name, text direction, and fallback chain. Adding a new
-            language is creating a document, not changing code.
+            document with a BCP-47 code, a display title, a native name, and a reference to the
+            locale it falls back to. Adding a language is creating a document, not changing code.
           </p>
         </Card>
       </div>
@@ -281,6 +281,18 @@ async function ArchitectureContent({lang}: {lang: string}) {
       </CodeBlock>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
+        The site&apos;s own chrome uses the same shape. Every label on this frontend &mdash; the nav
+        links, the headings, the fallback notice you see on an untranslated article &mdash; is an
+        internationalized array on a single{' '}
+        <code className="text-sm bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
+          l10n.uiStrings
+        </code>{' '}
+        document. Chrome is content in every language the site ships, so it goes through the
+        translation run rather than a redeploy. Each string resolves on its own and walks the same
+        locale fallback chain the articles do, so a half-translated locale shows the half it has.
+      </p>
+
+      <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
         Field-level translations run the same editorial workflow as document-level &mdash; the same{' '}
         <code className="text-sm bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
           localize-document
@@ -326,14 +338,41 @@ async function ArchitectureContent({lang}: {lang: string}) {
         </Card>
       </div>
 
-      <CodeBlock title="Custom slug validator — isUniqueOtherThanLanguage.ts">
-        {`// Only check for duplicates within the same language
-const query = \`!defined(*[
-  _type == $type &&
+      <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
+        Scoping the query is the easy half. The hard half is that a document has more than one id: a
+        draft, the published version, and one per release. The check has to exclude all of them, or
+        a document collides with itself the moment you edit it.{' '}
+        <code className="text-sm bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
+          sanity::versionOf()
+        </code>{' '}
+        does that in one predicate — given the <em>published</em> id, which is what{' '}
+        <code className="text-sm bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
+          getPublishedId
+        </code>{' '}
+        from{' '}
+        <code className="text-sm bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
+          @sanity/id-utils
+        </code>{' '}
+        is for.
+      </p>
+
+      <CodeBlock title="Custom slug validator — @starter/l10n-studio/schemas/isUniqueOtherThanLanguage.ts">
+        {`export const SLUG_UNIQUE_QUERY = defineQuery(\`!defined(*[
+  !(sanity::versionOf($id)) &&
   slug.current == $slug &&
-  language == $language &&
-  !(_id in [$draft, $published])
-][0]._id)\`
+  language == $language
+][0]._id)\`)
+
+export async function isUniqueOtherThanLanguage(slug, context) {
+  const {document, getClient} = context
+  if (!document?.language) return true
+
+  return getClient({apiVersion: '2025-03-11'}).fetch(SLUG_UNIQUE_QUERY, {
+    id: getPublishedId(DocumentId(document._id)),
+    language: document.language,
+    slug,
+  })
+}
 
 // Applied to slug fields:
 defineField({
@@ -365,7 +404,8 @@ defineField({
           <p className="text-sm font-medium text-green-700 mb-1">Best practice</p>
           <code className="text-sm">/en-US/getting-started</code>
           <p className="text-xs text-[var(--color-text-muted)] mt-1">
-            Unique URL per locale, SEO-friendly, CDN-cacheable
+            One URL per locale, crawlable, and prerendered: every locale is its own static shell,
+            revalidated by tag when Sanity changes
           </p>
         </Card>
         <Card>
@@ -392,7 +432,25 @@ defineField({
             <code className="text-xs bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
               /en-US
             </code>
-            ). A simple regex check on the first path segment.
+            ). A returning visitor&apos;s{' '}
+            <code className="text-xs bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
+              NEXT_LOCALE
+            </code>{' '}
+            cookie wins; otherwise it negotiates{' '}
+            <code className="text-xs bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
+              Accept-Language
+            </code>{' '}
+            with{' '}
+            <code className="text-xs bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
+              Intl.Locale
+            </code>
+            , so <code className="text-xs">de</code> resolves to{' '}
+            <code className="text-xs">de-DE</code> and <code className="text-xs">zh-Hans</code> to{' '}
+            <code className="text-xs">zh-CN</code>. The redirect carries{' '}
+            <code className="text-xs bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
+              Vary
+            </code>
+            , so a shared cache cannot hand one visitor&apos;s locale to the next.
           </p>
         </Card>
         <Card>
@@ -431,12 +489,20 @@ defineField({
 
       <CodeBlock title="File structure">
         {`src/
+├── negotiateLocale.ts         # Accept-Language → a locale code
 ├── proxy.ts                   # / → /{preferred locale} redirect
+├── sanity/
+│   ├── queries.ts             # Every GROQ query, via defineQuery
+│   ├── locales.ts             # Fallback chain + sibling translations
+│   ├── uiStrings.ts           # l10n.uiStrings → resolved UI copy
+│   └── sanity.types.ts        # Generated by TypeGen (gitignored)
 └── app/
     ├── sitemap.ts             # Per-locale entries + hreflang alternates
     └── [lang]/
         ├── layout.tsx         # <html lang={lang}>, Sanity Live
         ├── page.tsx           # Article list for this locale
+        ├── not-found.tsx      # 404 — [lang]/ is the root layout
+        ├── error.tsx          # Render errors, inside that layout
         ├── architecture/
         │   └── page.tsx       # This page
         └── [slug]/
@@ -544,7 +610,7 @@ defineField({
         config.
       </p>
 
-      <CodeBlock title="The fallback field on l10n.locale — translationLocale.tsx">
+      <CodeBlock title="The fallback field on l10n.locale — @starter/l10n-studio/schemas/translationLocale.ts">
         {`defineField({
   name: 'fallback',
   title: 'Fallback Locale',
@@ -757,9 +823,13 @@ defineField({
         </div>
 
         <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/40 px-4 py-3 mb-4">
-          <div className="flex items-center justify-center gap-3 text-sm">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm">
             <span className="font-mono text-xs text-[var(--color-text-secondary)]">
               person.bio <span className="text-[var(--color-text-muted)]">[en-US, de-DE, ...]</span>
+            </span>
+            <span className="font-mono text-xs text-[var(--color-text-secondary)]">
+              l10n.uiStrings{' '}
+              <span className="text-[var(--color-text-muted)]">[en-US, de-DE, ...]</span>
             </span>
           </div>
           <p className="text-[11px] text-[var(--color-text-muted)] text-center mt-1">

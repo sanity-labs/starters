@@ -5,16 +5,20 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --port 3000",
+    "prebuild": "pnpm run typegen",
     "build": "next build",
     "start": "next start",
+    "test": "vitest run",
+    "typegen": "sanity typegen generate",
+    "pretypecheck": "pnpm run typegen",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@portabletext/react": "^6.0.0",
     "@sanity/image-url": "^2.0.0",
     "@tailwindcss/typography": "^0.5.19",
-    "next": "^16.0.0",
-    "next-sanity": "^13.2.1",
+    "next": "catalog:",
+    "next-sanity": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "server-only": "^0.0.1"
@@ -24,7 +28,12 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "postcss": "^8.5.0",
+    "sanity": "catalog:",
     "tailwindcss": "^4.1.0",
-    "typescript": "catalog:"
-  }
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "//devDependencies": [
+    "sanity is the typegen CLI only — nothing in src/ imports it. `sanity.cli.ts` is a typegen-only config; the Studio lives in ../../studio."
+  ]
 }

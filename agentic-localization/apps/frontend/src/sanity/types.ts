@@ -1,66 +1,28 @@
-import type {ComponentProps} from 'react'
-import type {PortableText} from '@portabletext/react'
-import {
-  ARTICLE_QUERY,
-  ARTICLE_SLUGS_QUERY,
-  ARTICLES_BY_LANGUAGE_QUERY,
-  LOCALES_QUERY,
-  SITEMAP_QUERY,
-} from './queries'
-
-type PortableTextValue = ComponentProps<typeof PortableText>['value']
-
-export interface Locale {
-  code: string
-  title: string
-  nativeName: string | null
-  /** Locale to try when this one has no translation. Chains, so walk it. */
-  fallback: string | null
-}
-
-/** One locale's rendition of a document: its own language, its own slug. */
-export interface Translation {
-  language: string
-  slug: string
-}
-
-export interface ArticleCard {
-  _id: string
-  title: string
-  slug: string
-  excerpt: string | null
-  publishedAt: string | null
-  language: string
-}
-
-export interface ArticleDetail extends ArticleCard {
-  body: PortableTextValue | null
-  author: {name: string} | null
-}
-
-export interface ArticleResolution extends ArticleDetail {
-  translations: Translation[] | null
-  locales: Locale[]
-}
-
-export interface SitemapEntry {
-  language: string
-  slug: string
-  _updatedAt: string
-  translations: Translation[] | null
-}
+import type {
+  ARTICLE_QUERY_RESULT,
+  ARTICLES_BY_LANGUAGE_QUERY_RESULT,
+  LOCALES_QUERY_RESULT,
+} from './sanity.types'
 
 /**
- * This app sits outside the Studio's TypeGen glob so it stays a plain Next app
- * you can lift out. Augmenting `SanityQueries` by query string gives
- * `sanityFetch` the typed `data` TypeGen would, with no casts at the call sites.
+ * The app's vocabulary, projected out of what TypeGen generated for each query
+ * in `queries.ts`. Nothing here is hand-written: `sanity.types.ts` is generated
+ * from `studio/schema.json` by this app's own `sanity.cli.ts`, and it carries
+ * the `SanityQueries` augmentation that gives `sanityFetch` its typed `data`.
+ *
+ * GROQ cannot promise a field is set, so a projection is nullable wherever the
+ * schema is. `Present` narrows the one shape the app only ever handles
+ * complete; the guard that proves it is `listTranslations` in `locales.ts`.
  */
-declare module '@sanity/client' {
-  interface SanityQueries
-    extends
-      Record<typeof LOCALES_QUERY, Locale[]>,
-      Record<typeof ARTICLES_BY_LANGUAGE_QUERY, ArticleCard[]>,
-      Record<typeof ARTICLE_SLUGS_QUERY, Array<{slug: string}>>,
-      Record<typeof ARTICLE_QUERY, ArticleResolution | null>,
-      Record<typeof SITEMAP_QUERY, SitemapEntry[]> {}
-}
+type Present<T> = {[K in keyof T]: NonNullable<T[K]>}
+
+export type Locale = LOCALES_QUERY_RESULT[number]
+
+/** One locale's rendition of a document: its own language, its own slug. */
+export type Translation = Present<
+  NonNullable<NonNullable<NonNullable<ARTICLE_QUERY_RESULT>['translations']>[number]>
+>
+
+export type ArticleCard = ARTICLES_BY_LANGUAGE_QUERY_RESULT[number]
+
+export type ArticleResolution = NonNullable<ARTICLE_QUERY_RESULT>

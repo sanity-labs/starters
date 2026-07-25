@@ -17,12 +17,26 @@ const LOCALE_FIELDS = `code, title, nativeName, "fallback": fallback->code`
 const SIBLING_TRANSLATIONS = `*[_type == "translation.metadata" && references(^._id)][0]
     .translations[defined(value->slug.current)].value->{"language": language, "slug": slug.current}`
 
+/** The chrome strings on the `l10n.uiStrings` singleton, one array per string. */
+const UI_STRING_FIELDS = `siteTitle, siteTagline, articlesHeading, emptyArticles, backToArticles, homeLabel, architectureLabel, fallbackNotice`
+
 export const LOCALES_QUERY = defineQuery(
   `*[_type == "l10n.locale"] | order(title asc) { ${LOCALE_FIELDS} }`,
 )
 
+/**
+ * The chrome and the locale graph in one round trip: resolving a string to a
+ * locale needs the same `fallback` chain an article does.
+ */
+export const CHROME_QUERY = defineQuery(
+  `{
+    "strings": *[_type == "l10n.uiStrings"][0] { ${UI_STRING_FIELDS} },
+    "locales": *[_type == "l10n.locale"] | order(title asc) { ${LOCALE_FIELDS} }
+  }`,
+)
+
 export const ARTICLES_BY_LANGUAGE_QUERY = defineQuery(
-  `*[_type == "article" && language == $language] | order(publishedAt desc) { ${ARTICLE_CARD_FIELDS} }`,
+  `*[_type == "article" && language == $language && defined(slug.current)] | order(publishedAt desc) { ${ARTICLE_CARD_FIELDS} }`,
 )
 
 export const ARTICLE_SLUGS_QUERY = defineQuery(

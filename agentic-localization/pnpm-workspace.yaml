@@ -30,6 +30,8 @@ catalog:
   '@types/react-dom': ^19.2.3
   groq: ^6.6.0
   lucide-react: ^0.574.0
+  next: ^16.0.0
+  next-sanity: ^13.2.1
   react: ^19.2.8
   react-dom: ^19.2.8
   # Prerelease: pinned exactly so the Functions bundle and the bundle-shape

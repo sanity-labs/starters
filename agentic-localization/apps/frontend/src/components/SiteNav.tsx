@@ -1,6 +1,5 @@
 import Link from 'next/link'
-import {sanityFetch} from '@/sanity/live'
-import {LOCALES_QUERY} from '@/sanity/queries'
+import {getChrome} from '@/sanity/chrome'
 import type {Translation} from '@/sanity/types'
 import {LocaleSwitcher, type LocaleLink} from '@/components/LocaleSwitcher'
 
@@ -13,21 +12,22 @@ import {LocaleSwitcher, type LocaleLink} from '@/components/LocaleSwitcher'
 export async function SiteNav({lang, translations}: {lang: string; translations?: Translation[]}) {
   'use cache'
 
-  const {data: locales} = await sanityFetch({
-    query: LOCALES_QUERY,
-    perspective: 'published',
-    stega: false,
-  })
+  const {strings, locales} = await getChrome(lang)
 
-  const links: LocaleLink[] = locales.map((locale) => {
+  // A locale document with no code has no URL, so it cannot be switched to.
+  const links: LocaleLink[] = locales.flatMap((locale) => {
+    if (!locale.code) return []
+
     const translation = translations?.find((entry) => entry.language === locale.code)
-    return {
-      code: locale.code,
-      title: locale.title,
-      nativeName: locale.nativeName,
-      href: translation ? `/${locale.code}/${translation.slug}` : `/${locale.code}`,
-      translated: !translations || Boolean(translation),
-    }
+    return [
+      {
+        code: locale.code,
+        title: locale.title ?? locale.code,
+        nativeName: locale.nativeName,
+        href: translation ? `/${locale.code}/${translation.slug}` : `/${locale.code}`,
+        translated: !translations || Boolean(translation),
+      },
+    ]
   })
 
   return (
@@ -35,7 +35,7 @@ export async function SiteNav({lang, translations}: {lang: string; translations?
       <Link
         href={`/${lang}`}
         className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-[color] duration-[var(--transition-fast)]"
-        title="Home"
+        title={strings.homeLabel}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -55,7 +55,7 @@ export async function SiteNav({lang, translations}: {lang: string; translations?
           href={`/${lang}/architecture`}
           className="text-sm font-medium text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-[color] duration-[var(--transition-fast)]"
         >
-          Architecture
+          {strings.architectureLabel}
         </Link>
         <div className="h-4 w-px bg-[var(--color-border)]" />
         <LocaleSwitcher locales={links} />

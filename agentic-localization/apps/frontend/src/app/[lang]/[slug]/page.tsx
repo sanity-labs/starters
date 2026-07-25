@@ -1,10 +1,12 @@
 import type {Metadata} from 'next'
 import {notFound, redirect} from 'next/navigation'
 import Link from 'next/link'
+import {getChrome} from '@/sanity/chrome'
 import {sanityFetch} from '@/sanity/live'
 import {listTranslations, resolveFallbackChain} from '@/sanity/locales'
 import {ARTICLE_QUERY, ARTICLE_SLUGS_QUERY, DEFAULT_LANGUAGE} from '@/sanity/queries'
 import type {ArticleResolution, Translation} from '@/sanity/types'
+import {formatUiString} from '@/sanity/uiStrings'
 import {FallbackBanner} from '@/components/FallbackBanner'
 import {Body} from '@/components/PortableText'
 import {SiteNav} from '@/components/SiteNav'
@@ -19,7 +21,7 @@ export async function generateStaticParams({params}: {params: {lang: string}}) {
     stega: false,
   })
 
-  if (slugs.length > 0) return slugs
+  if (slugs.length > 0) return definedSlugs(slugs)
 
   // Cache Components rejects an empty result. A locale with no translations of
   // its own still serves every default-language slug, as a fallback render.
@@ -30,7 +32,11 @@ export async function generateStaticParams({params}: {params: {lang: string}}) {
     stega: false,
   })
 
-  return fallbackSlugs
+  return definedSlugs(fallbackSlugs)
+}
+
+function definedSlugs(rows: {slug: string | null}[]): {slug: string}[] {
+  return rows.flatMap((row) => (row.slug ? [{slug: row.slug}] : []))
 }
 
 async function loadArticle(slug: string, language: string) {
@@ -110,7 +116,7 @@ export async function generateMetadata({
     },
     openGraph: {
       type: 'article',
-      title: article.title,
+      title: article.title ?? undefined,
       description: article.excerpt ?? undefined,
       url: `/${lang}/${slug}`,
       locale: lang.replace('-', '_'),
@@ -127,7 +133,7 @@ export default async function ArticlePage({
   params: Promise<{lang: string; slug: string}>
 }) {
   const {lang, slug} = await params
-  const resolved = await resolve(slug, lang)
+  const [resolved, {strings}] = await Promise.all([resolve(slug, lang), getChrome(lang)])
 
   if (!resolved) {
     notFound()
@@ -146,10 +152,17 @@ export default async function ArticlePage({
         <span className="transition-transform duration-[var(--transition-fast)] group-hover:-translate-x-0.5">
           &larr;
         </span>
-        Back to articles
+        {strings.backToArticles}
       </Link>
 
-      {fallbackFrom && <FallbackBanner locale={fallbackFrom} fallbackLanguage={article.language} />}
+      {fallbackFrom && article.language && (
+        <FallbackBanner
+          notice={formatUiString(strings.fallbackNotice, {
+            locale: fallbackFrom,
+            fallback: article.language,
+          })}
+        />
+      )}
 
       <article className="prose prose-lg max-w-none">
         <h1>{article.title}</h1>

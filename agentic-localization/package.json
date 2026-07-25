@@ -34,7 +34,7 @@
     "lint": "eslint --cache --cache-location node_modules/.cache/eslint/ .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
-    "typegen": "pnpm --filter studio typegen",
+    "typegen": "pnpm --filter studio typegen && pnpm --filter @starter/frontend typegen",
     "pretypecheck": "pnpm run typegen",
     "typecheck": "pnpm -r typecheck",
     "validate": "sanity-template-validate",
