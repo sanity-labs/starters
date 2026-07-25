@@ -172,6 +172,19 @@ offers `perspectiveField`, so a field-tier run started from the picker reads
 drafts. Start those from the publish Function or the dashboard. The inspector says
 so when it sees one.
 
+## Localize from the Studio picker asks for a release
+
+Expected today, and not `perspectiveField`'s doing — a `person`, whose mapping
+carries none, asks too. `localize-document` declares `release` as an
+input-sourced entry because that is the only channel a parent's `spawn.with` can
+hand a value down, and
+`@sanity/workflow-studio-plugin@0.23.0` renders every uncovered input entry as
+mandatory regardless of the definition's `required` flag. Selecting the release
+in the Studio perspective covers it and the prompt disappears; a drafts-scoped
+run starts from the dashboard (**Drafts** in the batch picker) or from the
+publish Function. The mechanics and the upstream inconsistency are in
+`extending.md`.
+
 ## Field-tier specifics
 
 - **A locale never shows as covered.** Coverage is all-or-nothing:

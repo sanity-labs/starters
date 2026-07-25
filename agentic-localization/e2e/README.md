@@ -83,6 +83,11 @@ missing one:
 - **No browser.** Nothing here exercises the Studio inspector, the document
   actions, the release picker, or the dashboard. Those are `racejar/playwright`
   journeys, not written yet.
+- **Every journey rides the harness's own engine**, so no host's engine
+  construction is under test here — the dashboard's is a unit spec
+  (`apps/translations-dashboard/src/hooks/useL10nEngine.test.ts`), because a
+  missing `resourceClients` there refuses every start while this suite stays
+  green.
 - **No deployed Functions.** The handlers are imported and called with a
   synthesized event envelope. The blueprint's filters, projections, robot token
   and timeouts are not exercised — a publish event that the platform would never

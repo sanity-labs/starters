@@ -13,6 +13,8 @@ export {
 export type {EffectName} from './effects'
 
 export {WORKFLOW_TAG, WORKFLOWS_DATASET} from './config'
+export {projectResourceClients} from './resourceClients'
+export type {ProjectResourceClients} from './resourceClients'
 
 import {localizeCampaign} from './localizeCampaign'
 import {localizeDocument} from './localizeDocument'

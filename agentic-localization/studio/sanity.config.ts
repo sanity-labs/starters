@@ -141,6 +141,14 @@ export default defineConfig({
       // Start action only offers `perspectiveField` — so a field-tier run is
       // only fully correct when the publish Function or the dashboard starts
       // it. The inspector says so when it sees a run reading drafts.
+      //
+      // `perspectiveField` is also the only way to start from the picker at
+      // all: the Start dialog demands every uncovered input entry of the
+      // definition, `release` included, and covering it is what a selected
+      // release does. Absent one — as on `person` — the dialog asks for a
+      // release outright. Drafts-scoped runs start from the dashboard. See
+      // "Localize from the Studio picker asks for a release" in
+      // `skills/sanity-l10n/references/operating.md`.
       mappings: [
         {
           docType: 'article',

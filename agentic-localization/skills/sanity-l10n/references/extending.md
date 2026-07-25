@@ -83,6 +83,25 @@ non-trivial; every item cost real debugging time.
   against a raw client; dataset access control is the only hard boundary today.
 - **`start.filter` reads the loaded candidate document.** Passing an
   `{_id, _type}` stub to `definitionsForDocument` silently defeats it.
+- **`resourceClients` IS the deployment's ref declaration.** The surface a
+  runtime-supplied ref is checked against is `workflowResource` plus whatever
+  that resolver serves — nothing else. `resourceAliases` on the deployment is a
+  deploy-time alias expansion inside definitions and widens nothing at
+  `startInstance`. A split-dataset host without the resolver cannot start a run:
+  every subject, `doc.refs` row and `release.ref` is refused with
+  `RefResourceUndeclaredError`. `@sanity/workflow-studio`'s `useWorkflowEngine`
+  wires it by default; a hand-built engine does not.
+- **A `release.ref` input takes no empty value.** `null` and `undefined` both
+  fail `assertInputValueShape`, and `InitialFieldValue` types every value as
+  `NonNullable`. "No release" is expressed by omitting the entry, never by
+  seeding a blank one.
+- **The Studio plugin's Start dialog gates on field _kind_, not `required`.**
+  `@sanity/workflow-studio-plugin@0.23.0` renders every input-sourced entry the
+  mapping does not cover and blocks Start until each is filled, exempting only
+  `array`, `assignees` and `doc.refs`. An optional `release.ref` is therefore
+  demanded — and only in the dialog: the same plugin's auto-start path reads the
+  definition's `required` flag, and an omitted entry starts fine. See "Localize
+  from the Studio picker asks for a release" in `operating.md`.
 
 ## 2. Prove it on the bench
 
