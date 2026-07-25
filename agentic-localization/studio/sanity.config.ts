@@ -65,10 +65,8 @@ const structure = ((S, {i18n}) =>
         .title('Localization')
         .icon(EarthGlobeIcon)
         .child(() =>
-          withRunSections(
-            S,
-            i18n,
-            l10nTypes.map((type) =>
+          withRunSections(S, i18n, [
+            ...l10nTypes.map((type) =>
               S.documentTypeListItem(type).child(
                 type === 'translation.metadata'
                   ? S.documentTypeList(type)
@@ -79,12 +77,18 @@ const structure = ((S, {i18n}) =>
                     : S.documentTypeList(type).defaultOrdering(titleAsc),
               ),
             ),
-          ),
+            // The UI-strings singleton: one document, pinned — a list of one
+            // would only add a click.
+            S.listItem()
+              .title('UI Strings')
+              .id('uiStrings')
+              .child(S.document().schemaType('l10n.uiStrings').documentId('uiStrings')),
+          ]),
         ),
       S.divider(),
       ...S.documentTypeListItems().filter(
         (item) =>
-          !['article', 'person', 'editorialTopic', 'tag', ...l10nTypes].includes(
+          !['article', 'person', 'editorialTopic', 'tag', 'l10n.uiStrings', ...l10nTypes].includes(
             item.getId() ?? '',
           ),
       ),
