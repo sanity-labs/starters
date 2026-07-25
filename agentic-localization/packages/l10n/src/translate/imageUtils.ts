@@ -1,7 +1,4 @@
 /**
- * Utilities for preserving Sanity image crop/hotspot metadata
- * during translation operations.
- *
  * When the translate agent creates a new document, it may leave
  * crop/hotspot fields empty. These helpers deep-copy the values
  * from the base document so published images stay correctly framed.
@@ -61,10 +58,9 @@ function readHotspot(value: unknown): SanityImageHotspot | undefined {
  * Two shapes mean "no". The one the translate agent leaves behind: keys absent
  * or explicitly null. And the one it echoes: a region equal to
  * `@sanity/asset-utils`' default, which _is_ the whole image — a zeroed crop
- * crops nothing, a centred full-size hotspot focuses nothing. Ours used to test
- * only the first, so an echoed default overwrote framing a person had chosen
- * with itself. Restoring is the safe branch for both: the fallback is the base
- * document's own framing, never a guess.
+ * crops nothing, a centred full-size hotspot focuses nothing. Restoring is the
+ * safe branch for both: the fallback is the base document's own framing, never a
+ * guess.
  */
 function framesWithCrop(region: unknown): boolean {
   if (!isRecord(region)) return false

@@ -19,7 +19,6 @@ export interface Published {
   _type: string
 }
 
-/** The shape a fixture write needs: a document with an id and a type. */
 type FixtureDocument = Record<string, unknown> & {_id: string; _type: string}
 
 /** Locale fixtures are stable across runs: `LOCALE_CODES_QUERY` reads them by type. */

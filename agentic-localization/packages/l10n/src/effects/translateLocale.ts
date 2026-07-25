@@ -153,8 +153,6 @@ export const translateLocale: EffectHandler = async (params, ctx) => {
 
 /**
  * The document tier: one document per locale, joined on `translation.metadata`.
- * Returns the published id of the translated document, and the revision the
- * machine draft was written at.
  */
 async function translateIntoSibling(job: TranslationJob): Promise<TranslationWrite> {
   const {client, ctx, documentType, locale, publishedSourceId, release} = job
@@ -166,7 +164,7 @@ async function translateIntoSibling(job: TranslationJob): Promise<TranslationWri
   )
 
   // An existing translation is overwritten in place; a new one lets the agent
-  // mint the id, which is how the dashboard's executor has always worked.
+  // mint the id.
   const existingId = metadata?.translations?.find((row) => row.language === locale)?.ref ?? null
 
   const translateParams = buildTranslateParams({
@@ -256,8 +254,7 @@ async function translateIntoSibling(job: TranslationJob): Promise<TranslationWri
 /**
  * The field tier: every locale lives in the subject, so this child writes
  * entries into the subject's own draft (or release version) rather than a
- * document of its own. Returns the subject's published id, and the revision its
- * locale entries landed at.
+ * document of its own.
  *
  * Sibling locale children run concurrently against that one document. They do
  * not conflict: each patch touches only its own locale's entries, and a Content

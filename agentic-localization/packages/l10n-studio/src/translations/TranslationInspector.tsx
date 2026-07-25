@@ -110,10 +110,6 @@ function DocLevelInspector({
   )
 }
 
-/**
- * Create a TranslationInspector component bound to a specific config.
- * Used by `createTranslationInspector()` to produce the inspector's component.
- */
 export function createTranslationInspectorComponent(config: ResolvedTranslationsConfig) {
   function BoundTranslationInspector(props: DocumentInspectorProps) {
     return <TranslationInspectorInternal {...props} config={config} />

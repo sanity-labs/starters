@@ -87,14 +87,12 @@ function set(field: string, value: unknown) {
   }
 }
 
-// --- The trigger ------------------------------------------------------------
-
 test('the approved stage the trigger names is a real terminal stage', async () => {
   const {bench, instanceId} = await approvedRun()
   const approved = await bench.getInstance({instanceId})
 
   expect(approved.currentStage).toBe(APPROVED_STAGE)
-  // §3: the terminal marker is `completedAt`, not `terminatedAt`/`abortedAt`.
+  // the terminal marker is `completedAt`, not `terminatedAt`/`abortedAt`.
   expect(approved.completedAt).toBeDefined()
   expect(approved.abortedAt).toBeUndefined()
 
@@ -114,8 +112,6 @@ test('an approved run has nothing left pending for a drainer to claim', async ()
     expect(await bench.listPendingEffects({instanceId: child._id})).toEqual([])
   }
 })
-
-// --- The instance shape the gatherer reads ----------------------------------
 
 test('the approved instance carries the fields the gatherer reads', async () => {
   const {bench, instanceId} = await approvedRun()

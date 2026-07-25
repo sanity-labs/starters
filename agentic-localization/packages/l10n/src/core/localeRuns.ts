@@ -47,7 +47,6 @@ function toStage(stage: string | undefined): LocaleRunStage {
   return 'failed'
 }
 
-/** Project a `localize-locale` instance down to what a row needs. */
 export function toChildRun(instance: {
   _id: string
   currentStage: string

@@ -1,20 +1,3 @@
-/**
- * The dashboard's one data layer: content state from a single GROQ query,
- * workflow state from the engine's live instance list, joined per document.
- *
- *   useTranslationAggregateData()
- *     ├── useTranslationSummary()      → SummaryBar
- *     ├── useStatusBreakdown()         → StatusCards
- *     ├── useCoverageMatrix()          → CoverageHeatmap
- *     ├── useGapDocuments()            → GapCloserView
- *     ├── useStatusFilteredDocuments() → StatusFilterView
- *     └── useStaleDocuments()          → StaleDocumentsSection
- *
- * The derived hooks are pure `useMemo` over this; they fetch nothing. Both
- * sources are realtime (Live Content API / the App SDK document store), so
- * neither half is polled.
- */
-
 import type {LocalizedObject} from '@starter/l10n'
 
 import {getFlagFromCode} from '@starter/l10n'
@@ -28,8 +11,6 @@ import type {LocalizationRun} from '../lib/localizationRun'
 import {useTranslationConfig} from '../contexts/TranslationConfigContext'
 import {useL10nEngine} from './useL10nEngine'
 import {useLocalizationRuns} from './useLocalizationRuns'
-
-// --- Types ---
 
 export type AggregateBaseDocument = {
   _id: string
@@ -63,8 +44,6 @@ export type TranslationMetadataEntry = LocalizedObject & {
   ref: string
 }
 
-// --- GROQ Query ---
-
 const AGGREGATE_QUERY = defineQuery(`{
   "baseDocuments": *[
     _type in $docTypes
@@ -87,8 +66,6 @@ const AGGREGATE_QUERY = defineQuery(`{
 }`)
 
 type AggregateQueryResult = Omit<AggregateData, 'runs'>
-
-// --- Aggregation Utilities ---
 
 /** Build a fallback locale lookup: localeTag → fallbackLocaleTag */
 export function buildFallbackMap(locales: AggregateLocale[]): Map<string, null | string> {
@@ -129,8 +106,6 @@ export function buildTranslationMap(
   }
   return map
 }
-
-// --- Hook ---
 
 export function useTranslationAggregateData(): {data: AggregateData; isPending: boolean} {
   const {defaultLanguage, translationsConfig} = useTranslationConfig()

@@ -283,9 +283,9 @@ export function LocalizationRun({instanceId, documentType, onEditField}: Localiz
   const fieldTier = isFieldTier(documentType)
   // A field-tier run writes its translations into the subject, so it can only
   // tell a source edit from its own output when it reads the published layer.
-  // The Studio's own Start action has no perspective hook (see the migration
-  // notes), so a run started from the picker carries the drafts default and
-  // reports itself as drift. Say so rather than let the flag lie.
+  // The Studio's own Start action has no perspective hook, so a run started
+  // from the picker carries the drafts default and reports itself as drift.
+  // Say so rather than let the flag lie.
   const driftUnreliable = fieldTier && perspective !== 'published'
   const materiality = readMateriality(instance)
   const explanation = readText(instance, 'explanation')

@@ -1,9 +1,5 @@
 /**
  * Status filter view — the drill-down from a status card.
- *
- * Sortable table plus, for the statuses a run can act on, one batch CTA and the
- * "ships as" picker that decides whether the batch becomes N document runs or
- * one campaign.
  */
 
 import type {ReleaseDocument} from '@sanity/sdk'
@@ -39,8 +35,6 @@ interface StatusFilterViewProps {
   totalSlots: number
 }
 
-// --- Sort Header Styles ---
-
 const thStyle = (sortable: boolean): React.CSSProperties => ({
   borderBottom: '1px solid var(--card-border-color)',
   cursor: sortable ? 'pointer' : 'default',
@@ -53,8 +47,6 @@ const tdStyle: React.CSSProperties = {
   padding: '8px 12px',
   verticalAlign: 'middle',
 }
-
-// --- Status Filter View ---
 
 function StatusFilterView({
   data,

@@ -57,8 +57,6 @@ export function createTranslationInspector(config: TranslationsConfig): Document
   })
 }
 
-// --- Internal hooks ---
-
 /**
  * The badge, read off the open run's instance rather than off content — the
  * same source for both tiers, because both run the same definition. The two

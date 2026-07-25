@@ -46,10 +46,6 @@ function loadFilter(): string[] {
   return []
 }
 
-/**
- * Returns the singleton BehaviorSubject for the locale filter, creating it on first call.
- * Attaches a localStorage persistence subscription when storage is available.
- */
 function isLocaleFilter(value: unknown): value is BehaviorSubject<string[]> {
   if (!(value instanceof BehaviorSubject)) return false
   const current: unknown = value.getValue()

@@ -1,11 +1,3 @@
-/**
- * Shared plumbing for the three effect handlers: client narrowing, effect
- * parameter narrowing, GDR arithmetic, and the at-least-once idempotency read.
- *
- * Engine-and-stdlib only, like `src/workflows/` — a handler runs inside a
- * Sanity Function, so nothing here may drag React or Studio internals in.
- */
-
 import type {SanityClient} from '@sanity/client'
 import type {
   EffectHandler,
@@ -28,9 +20,7 @@ export type EffectContext = Parameters<EffectHandler>[1]
 
 /**
  * Agent Actions are served by the unversioned API while content reads and
- * writes run against a dated one. The Function this replaces built two clients
- * from `context.clientOptions`; a handler is handed a client instead, so the
- * agent one is derived from it.
+ * writes run against a dated one.
  */
 export const AGENT_API_VERSION = 'vX'
 

@@ -5,15 +5,13 @@
  * in code: glossaries, style guides and protected phrases stored as content,
  * assembled into the parameters an Agent Actions translate call takes.
  *
- * React-free, like the rest of the node floor. `buildTranslateParams` returns a
- * `TranslateDocument` straight from `@sanity/client`, so a caller hands it to
- * `client.agent.action.translate()` unchanged.
+ * `buildTranslateParams` returns a `TranslateDocument` straight from
+ * `@sanity/client`, so a caller hands it to `client.agent.action.translate()`
+ * unchanged.
  *
  * Quality is measured, not asserted: `evals/` runs the assembled prompts against
  * the live model (`pnpm --filter l10n eval`).
  */
-
-// --- Prompt assembly ---
 
 export {
   assembleStyleGuide,
@@ -29,8 +27,6 @@ export {
   type GlossaryEntry,
   type StyleGuide,
 } from './promptAssembly'
-
-// --- The reads that supply it ---
 
 export {
   GLOSSARIES_QUERY,

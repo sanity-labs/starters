@@ -10,9 +10,8 @@
  * word-granular while CJK — which has no token characters by this definition —
  * is left exactly as the semantic cleanup produced it.
  *
- * Pure: engine-free, React-free, node-floor safe. Both the AI prompt path
- * (`buildFieldSummary`) and the reviewer's rendered diff read these segments,
- * so the two can never disagree about what changed.
+ * Both the AI prompt path (`buildFieldSummary`) and the reviewer's rendered diff
+ * read these segments, so the two can never disagree about what changed.
  */
 
 import {diffInput, wrap} from '@sanity/diff'
@@ -75,8 +74,6 @@ interface ChangeRun {
 }
 
 /**
- * Grow every change run out to token boundaries, then flatten back to segments.
- *
  * Runs are walked left to right so each only ever borrows unchanged text that no
  * earlier run has already claimed.
  */

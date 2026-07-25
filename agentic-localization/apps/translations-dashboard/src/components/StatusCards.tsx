@@ -1,10 +1,5 @@
 /**
  * Status cards — the primary drill-down mechanism.
- *
- * One clickable card per status, navigating to `/translations?status=X`.
- * `usingFallback` folds into the Missing card rather than taking a slot.
- * Zero-count cards stay visible and muted: the point is the full taxonomy
- * ("nothing is stale — good"), not a shifting card count.
  */
 
 import type {CardTone} from '@sanity/ui'
@@ -19,8 +14,6 @@ import type {StatusBreakdownEntry} from '../hooks/useStatusBreakdown'
 import type {DashboardStatus} from '../lib/localizationRun'
 
 import {STATUS_ICONS} from '../lib/statusIcons'
-
-// --- Constants ---
 
 /** Low-volume threshold: suppress percentages below this count */
 const LOW_VOLUME_THRESHOLD = 10
@@ -44,13 +37,9 @@ const CARD_TONES: Record<DashboardStatus, CardTone> = {
   usingFallback: 'default',
 }
 
-// --- Types ---
-
 interface StatusCardsProps {
   data: StatusBreakdownEntry[]
 }
-
-// --- Skeleton ---
 
 export function StatusCardsSkeleton() {
   return (
@@ -67,8 +56,6 @@ export function StatusCardsSkeleton() {
     </Flex>
   )
 }
-
-// --- Single Card ---
 
 interface StatusCardProps {
   /** Show celebration state (positive tone + "All caught up!") */
@@ -164,8 +151,6 @@ function StatusCard({
     </Tooltip>
   )
 }
-
-// --- Status Cards ---
 
 function StatusCards({data}: StatusCardsProps) {
   const navigate = useNavigate()

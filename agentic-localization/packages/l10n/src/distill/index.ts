@@ -12,8 +12,6 @@
  * An observer of finished runs, not a phase of one — see
  * `docs/decisions/adr-002-learning-loop.md`. Nothing here can fail a
  * localization run, and nothing here decides anything.
- *
- * React-free, like the rest of the node floor: this runs inside a Sanity Function.
  */
 
 export {

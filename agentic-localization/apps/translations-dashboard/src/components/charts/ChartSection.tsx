@@ -23,7 +23,6 @@ function ChartSection({children, featureName, isLoaded}: ChartSectionProps) {
   const wasLoaded = useRef(false)
 
   useEffect(() => {
-    // Trigger fade-in animation on first data load
     if (isLoaded && !wasLoaded.current) {
       wasLoaded.current = true
       setHasAnimated(true)

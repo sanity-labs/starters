@@ -13,15 +13,11 @@ import type {StaleDocumentEntry, StaleDocumentsResult} from '../hooks/useStaleDo
 
 import OpenInStudioButton from './OpenInStudioButton'
 
-// --- Types ---
-
 interface StaleDocumentsSectionProps {
   state: StaleDocumentsResult
   /** Total count (may exceed the displayed cap) */
   totalStaleCount?: number
 }
-
-// --- Component ---
 
 function StaleDocumentsSection({state, totalStaleCount}: StaleDocumentsSectionProps) {
   const {data} = state
@@ -49,8 +45,6 @@ function StaleDocumentsSection({state, totalStaleCount}: StaleDocumentsSectionPr
     </Card>
   )
 }
-
-// --- Row Component ---
 
 function StaleDocumentRow({entry}: {entry: StaleDocumentEntry}) {
   const navigate = useNavigate()
@@ -104,8 +98,6 @@ function StaleDocumentRow({entry}: {entry: StaleDocumentEntry}) {
     </Card>
   )
 }
-
-// --- Helpers ---
 
 const relativeTime = new Intl.RelativeTimeFormat(undefined, {numeric: 'auto', style: 'narrow'})
 

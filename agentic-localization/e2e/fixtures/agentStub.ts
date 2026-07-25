@@ -1,10 +1,6 @@
 /**
  * Canned Agent Actions.
  *
- * Mode H runs the real effect handlers — the real prompt assembly, the real
- * GDR arithmetic, the real Content Lake writes — with only the two AI calls
- * replaced. Everything else about the run is production code.
- *
  * The seam is a recursive proxy rather than a hand-built fake client: the
  * engine derives siblings from the client it is given (`withConfig` onto its
  * own API version, and `agentClient` onto `vX`), so a wrapper that does not

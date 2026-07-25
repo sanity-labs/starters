@@ -18,8 +18,6 @@ import type {CampaignTarget} from '../../hooks/useStartLocalization'
 import ReleaseSelector from '../ReleaseSelector'
 import SummaryCard from '../SummaryCard'
 
-// --- Celebration Empty State ---
-
 export function CelebrationState({status}: {status: DashboardStatus}) {
   const display = getStatusDisplay(status)
 
@@ -39,8 +37,6 @@ export function CelebrationState({status}: {status: DashboardStatus}) {
     </Card>
   )
 }
-
-// --- Summary Cards ---
 
 function computeTopLocale(
   data: StatusFilteredDocument[],
@@ -89,8 +85,6 @@ export function StatusSummaryCards({
     </Flex>
   )
 }
-
-// --- Batch Action Bar ---
 
 /** SpinnerIcon wrapper that spins -- for use as Button icon prop */
 const SpinningBatchIcon = () => <SpinnerIcon className="spinner" />

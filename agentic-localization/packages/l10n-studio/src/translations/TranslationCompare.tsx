@@ -26,7 +26,6 @@
  *
  * What we did take is the stable half of the same machinery: `@sanity/diff` is
  * `@public`, and `core/textDiff` reads its `StringDiff`/`ArrayDiff` directly.
- * This file renders those segments; it no longer computes any.
  */
 
 import {EditIcon} from '@sanity/icons'

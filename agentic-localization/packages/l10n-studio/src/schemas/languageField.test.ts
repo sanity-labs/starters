@@ -3,15 +3,11 @@ import {defineType, defineField} from 'sanity'
 import type {SanityClient} from '@sanity/client'
 import {LOCALE_EXISTS_QUERY, validateLocaleCode, injectLanguageField} from './languageField'
 
-// --- mock client ---
-
 type MockSanityClient = SanityClient & {fetch: Mock}
 
 function createMockClient(): MockSanityClient {
   return {fetch: vi.fn()} as unknown as MockSanityClient
 }
-
-// --- validateLocaleCode ---
 
 describe('validateLocaleCode', () => {
   it('returns true for undefined (no value set)', async () => {
@@ -39,8 +35,6 @@ describe('validateLocaleCode', () => {
     expect(client.fetch).toHaveBeenCalledWith(LOCALE_EXISTS_QUERY, {code: 'de-DE'})
   })
 })
-
-// --- injectLanguageField ---
 
 const article = defineType({
   name: 'article',

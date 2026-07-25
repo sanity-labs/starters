@@ -1,8 +1,3 @@
-/**
- * The three clients the suite needs: one per dataset, plus a project-scoped one
- * for the datasets API.
- */
-
 import type {SanityClient} from '@sanity/client'
 
 import {createClient} from '@sanity/client'

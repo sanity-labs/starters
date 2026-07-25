@@ -141,7 +141,6 @@ function LocaleDropdownContent({
   const [, startTransition] = useTransition()
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Focus the first option when the dropdown mounts (popover opens)
   useEffect(() => {
     containerRef.current?.querySelector<HTMLElement>('[role="option"]')?.focus()
   }, [])

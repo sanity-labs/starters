@@ -32,7 +32,7 @@ export interface InternationalizedField {
   /**
    * Ancestor objects that have to exist before the array can be patched. A
    * Sanity patch does not create missing parents, so `seo.metaTitle` needs
-   * `seo` set first — the latent bug in the hook this replaces.
+   * `seo` set first.
    */
   containers: {path: string; value: {_type: string}}[]
 }

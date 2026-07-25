@@ -28,8 +28,6 @@ import type {CampaignTarget} from '../hooks/useStartLocalization'
 import {STATUS_ICONS} from '../lib/statusIcons'
 import ReleaseSelector from './ReleaseSelector'
 
-// --- Types ---
-
 interface GapCloserViewProps {
   docTypeLabel: string
   gapData: GapDocumentsData
@@ -41,8 +39,6 @@ interface GapCloserViewProps {
   onStartOne?: (doc: GapDocument, target: CampaignTarget) => void
   releases?: ReleaseDocument[]
 }
-
-// --- Source status display ---
 
 const SOURCE_STATUS_CONFIG: Record<
   GapDocument['sourceStatus'],
@@ -61,8 +57,6 @@ const SOURCE_STATUS_ORDER: Record<GapDocument['sourceStatus'], number> = {
   published: 0,
   unknown: 3,
 }
-
-// --- TanStack Column Definitions ---
 
 const columnHelper = createColumnHelper<GapDocument>()
 
@@ -138,8 +132,6 @@ function buildColumns(
 
 /** SpinnerIcon wrapper that spins — for use as Button icon prop */
 const SpinningIcon = () => <SpinnerIcon className="spinner" />
-
-// --- Component ---
 
 function GapCloserView({
   docTypeLabel,
@@ -224,7 +216,6 @@ function GapCloserView({
 
   return (
     <Stack space={4}>
-      {/* Scoped header */}
       <Stack className="text-center" space={3}>
         <Heading as="h2" size={3}>
           {localeFlag} <strong>{docTypeLabel}</strong> missing in <strong>{localeName}</strong>
@@ -235,7 +226,6 @@ function GapCloserView({
         </Text>
       </Stack>
 
-      {/* Action card — source status + CTA + where the batch ships */}
       <Card border padding={4} radius={2}>
         <Stack space={4}>
           <Stack space={3}>
@@ -293,7 +283,6 @@ function GapCloserView({
         </Stack>
       </Card>
 
-      {/* Document table */}
       <Stack space={2}>
         <Text muted size={0}>
           Sorted by source status: published first

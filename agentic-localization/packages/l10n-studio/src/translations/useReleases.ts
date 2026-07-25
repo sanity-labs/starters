@@ -1,12 +1,3 @@
-/**
- * Hook to fetch active Sanity releases for the release target selector.
- *
- * Delegates to Studio's `useActiveReleases()` hook for realtime release
- * data, filtering to campaign-style releases (cardinality: 'many').
- *
- * Returns `undefined` while loading, then `Release[]`.
- */
-
 import {useMemo} from 'react'
 import {useActiveReleases} from 'sanity'
 

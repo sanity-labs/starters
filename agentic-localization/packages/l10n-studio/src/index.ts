@@ -1,14 +1,3 @@
-/**
- * `@starter/l10n-studio` — the Studio surface of the localization pattern.
- *
- * The only layer allowed `react`, `sanity` and `@sanity/ui`. Everything that is
- * not UI — status tables, instance readers, prompt assembly, the workflow
- * definitions — comes from `@starter/l10n` and its entries, and is not
- * re-exported here.
- *
- * Schemas live at `@starter/l10n-studio/schemas`.
- */
-
 // --- The plugin and its structure helpers ---
 
 export {createL10n} from './plugin'

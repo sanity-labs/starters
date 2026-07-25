@@ -6,26 +6,18 @@
  * This is the first thing rendered, before SanityApp even resolves.
  */
 
-/**
- * Pulsing placeholder block.
- */
 function Pulse({className = ''}: {className?: string}) {
   return <div className={`bg-gray-200 rounded animate-pulse ${className}`} />
 }
 
-/**
- * Summary bar skeleton — 2 hero cards (Launch Readiness + Translated).
- */
 function SummaryBarSkeleton() {
   return (
     <div className="grid grid-cols-2 gap-3">
-      {/* Launch Readiness hero card */}
       <div className="rounded-lg border border-gray-200 p-4 shadow-sm">
         <Pulse className="h-4 w-20 mb-2" />
         <Pulse className="h-8 w-16 mb-2" />
         <Pulse className="h-4 w-24" />
       </div>
-      {/* Translated secondary card */}
       <div className="rounded-lg border border-gray-200 p-4">
         <Pulse className="h-4 w-20 mb-2" />
         <Pulse className="h-8 w-16 mb-2" />
@@ -35,9 +27,6 @@ function SummaryBarSkeleton() {
   )
 }
 
-/**
- * Heatmap skeleton — full-width grid of cells.
- */
 function HeatmapSkeleton() {
   return (
     <div className="rounded-lg border border-gray-200 p-4">
@@ -56,9 +45,6 @@ function HeatmapSkeleton() {
   )
 }
 
-/**
- * Recent changes skeleton — list of activity items.
- */
 function RecentChangesSkeleton() {
   return (
     <div className="rounded-lg border border-gray-200 p-4">
@@ -76,25 +62,17 @@ function RecentChangesSkeleton() {
   )
 }
 
-/**
- * Full dashboard skeleton — matches the actual layout structure.
- */
 function DashboardSkeleton() {
   return (
     <div className="h-full space-y-0">
-      {/* Summary Bar */}
       <div className="px-4 pt-4 pb-2">
         <SummaryBarSkeleton />
       </div>
 
-      {/* StatusCards placeholder */}
-
-      {/* Coverage Heatmap — full width */}
       <div className="px-4 pb-2">
         <HeatmapSkeleton />
       </div>
 
-      {/* Recent Changes */}
       <div className="px-4 pb-4">
         <RecentChangesSkeleton />
       </div>

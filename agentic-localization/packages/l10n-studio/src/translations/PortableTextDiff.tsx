@@ -19,11 +19,7 @@ import {diffBlockTexts} from '@starter/l10n'
 import {l10nLocaleNamespace} from '../i18n'
 import {InlineDiff} from './InlineDiff'
 
-// --- Constants ---
-
 const DEFAULT_MAX_BLOCKS = 5
-
-// --- Types ---
 
 interface PortableTextDiffProps {
   oldBlocks: unknown[]
@@ -31,8 +27,6 @@ interface PortableTextDiffProps {
   /** Max changed blocks to show before truncation (default: 5) */
   maxBlocks?: number
 }
-
-// --- Styles ---
 
 const ADDED_TEXT_STYLE: React.CSSProperties = {
   backgroundColor: 'color-mix(in srgb, var(--card-badge-positive-bg-color) 20%, transparent)',
@@ -46,8 +40,6 @@ const REMOVED_TEXT_STYLE: React.CSSProperties = {
   borderRadius: 2,
   padding: '0 1px',
 }
-
-// --- Sub-components ---
 
 const CONTEXT_TRUNCATE_LENGTH = 100
 
@@ -69,14 +61,12 @@ function BlockDiffRow({blockDiff}: {blockDiff: BlockChange}) {
 
   return (
     <Flex gap={2} align="flex-start">
-      {/* Block number prefix */}
       <Box style={{flexShrink: 0, width: 32, textAlign: 'right'}}>
         <Text size={0} muted>
           ¶ {blockDiff.blockNumber}
         </Text>
       </Box>
 
-      {/* Block content */}
       <Box flex={1}>
         {blockDiff.type === 'changed' && (
           <InlineDiff oldValue={blockDiff.oldText!} newValue={blockDiff.newText!} />
@@ -127,8 +117,6 @@ function BlockDiffRow({blockDiff}: {blockDiff: BlockChange}) {
   )
 }
 
-// --- Main component ---
-
 export function PortableTextDiff({
   oldBlocks,
   newBlocks,
@@ -155,7 +143,6 @@ export function PortableTextDiff({
         changesIncluded++
         if (changesIncluded <= maxBlocks) result.push(diff)
       } else if (changesIncluded < maxBlocks) {
-        // Include context/separator only if we haven't hit the limit yet
         result.push(diff)
       }
     }

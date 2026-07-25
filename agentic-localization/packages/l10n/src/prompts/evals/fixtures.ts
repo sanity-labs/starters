@@ -9,8 +9,6 @@ function mdToBlocks(markdown: string): NonNullable<StyleGuide['additionalInstruc
   return markdownToPortableText(markdown) as NonNullable<StyleGuide['additionalInstructions']>
 }
 
-// --- Locales ---
-
 function locale(code: string) {
   const {title} = resolveLocaleDefaults(code)
   return {code, title}
@@ -20,8 +18,6 @@ export const enUS = locale('en-US')
 export const deDE = locale('de-DE')
 export const frFR = locale('fr-FR')
 export const jaJP = locale('ja-JP')
-
-// --- Glossary entries ---
 
 /** Fill null defaults for unset entry fields (TypeGen requires all fields present). */
 function entry(
@@ -183,8 +179,6 @@ export const headlessCmsForbiddenEntry: GlossaryEntry = entry({
     'Avoid this category label for Sanity. Use "Content Operating System" or describe specific capabilities instead.',
 })
 
-// --- Glossary ---
-
 export const techGlossary: Glossary = {
   title: 'Sanity Product Terminology',
   sourceLocale: enUS,
@@ -208,8 +202,6 @@ export const techGlossary: Glossary = {
     headlessCmsForbiddenEntry,
   ],
 }
-
-// --- Style guides ---
 
 export const deDEStyleGuide: StyleGuide = {
   title: 'German (Germany) Style Guide',
@@ -267,15 +259,11 @@ export const jaJPStyleGuide: StyleGuide = {
   ),
 }
 
-// --- Style guide lookup helper for tests/evals ---
-
 export const styleGuides = [deDEStyleGuide, frFRStyleGuide, jaJPStyleGuide]
 
 export function styleGuideForLocale(locale: string): StyleGuide | undefined {
   return styleGuides.find((sg) => sg.locale?.code === locale)
 }
-
-// --- Sample source texts for eval cases ---
 
 export const sourceTexts = {
   productTitle: 'Sanity Studio: Real-time Structured Content Platform',

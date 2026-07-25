@@ -1,11 +1,7 @@
-// --- Intl-powered locale utilities ---
-
 const languageNames = new Intl.DisplayNames(undefined, {type: 'language', fallback: 'none'})
 const regionNames = new Intl.DisplayNames(undefined, {type: 'region', fallback: 'none'})
 
 /**
- * Validate a BCP-47 locale code (e.g., "en-US", "ja-JP", "zh-Hans-CN").
- *
  * Three checks are performed:
  * 1. Is the code structurally valid? (rejects "en_US", "en-", etc.)
  * 2. Does it only contain a language, script, and/or region? (rejects made-up suffixes)
@@ -29,7 +25,6 @@ export function isValidLocale(code: string | undefined): boolean {
   }
 }
 
-// Derive text direction from Intl.Locale (getTextInfo is a V8/Node 18+ extension)
 /**
  * Convert a region code (e.g., "US") to its flag emoji using regional indicator symbols.
  */
@@ -53,10 +48,6 @@ export function getFlagFromCode(localeCode: string): string {
   return ''
 }
 
-/**
- * Derive locale metadata from a BCP-47 code using Intl APIs.
- * Returns display name and native name.
- */
 export function resolveLocaleDefaults(code: string): {
   title: string
   nativeName: string
@@ -72,15 +63,11 @@ export function resolveLocaleDefaults(code: string): {
   return {title, nativeName}
 }
 
-// --- Intl-powered pluralization for Studio UI strings ---
-
 const localePlural = new Intl.PluralRules()
 
 function pluralize(count: number, one: string, other: string): string {
   return `${count} ${localePlural.select(count) === 'one' ? one : other}`
 }
-
-// --- Sanity schema validators ---
 
 export function uniqueLocaleValidator(
   translations: {locale?: {_ref?: string}}[] | undefined,
@@ -90,8 +77,6 @@ export function uniqueLocaleValidator(
   const unique = new Set(refs)
   return unique.size === refs.length || 'Each locale may only appear once'
 }
-
-// --- Sanity Studio preview helpers ---
 
 export function prepareGlossaryEntry({
   title,

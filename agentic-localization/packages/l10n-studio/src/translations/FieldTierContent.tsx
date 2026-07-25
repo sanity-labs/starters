@@ -54,7 +54,6 @@ function CoverageCard({
     )
   }
 
-  // Whatever the editor is looking at: the draft if there is one, else published.
   const document = editState.draft ?? editState.published
   const covered = new Set(
     document ? coveredLocales(document, internationalizedFields(documentType)) : [],

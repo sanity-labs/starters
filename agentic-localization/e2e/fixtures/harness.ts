@@ -1,15 +1,6 @@
 /**
  * One harness per feature file: a run tag, the definitions deployed under it,
  * an engine to read and drive with, and the cleanup that unwinds all of it.
- *
- * Two drive modes, both against the real engine and the real Content Lake:
- *
- *  - **P** — no handlers. The harness plays them, completing each pending
- *    effect with the ops a real handler would write. Proves the definitions,
- *    the guards, the cohort gates and the Functions, spends nothing.
- *  - **H** — the real `localizationEffectHandlers`, with only the two Agent
- *    Actions canned. Proves the write paths: what lands in the lake, at which
- *    revision, and which documents are NOT created.
  */
 
 import type {SanityClient} from '@sanity/client'

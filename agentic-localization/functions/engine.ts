@@ -1,8 +1,3 @@
-/**
- * Shared construction for the runtime Functions. All four drive the same
- * engine and differ only in which verb they call.
- */
-
 import type {ClientConfig, SanityClient} from '@sanity/client'
 import type {
   DeclaredExecutionContext,

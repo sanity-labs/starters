@@ -1,22 +1,11 @@
 /**
  * Summary bar — the top-level orientation component.
- *
- * Two hero metrics:
- * 1. Launch Readiness % (hero) = approved / total — "Can I ship?"
- * 2. Translated % (secondary) = (approved + needsReview + usingFallback + stale) / total — "How much work is left?"
- *
- * Low-volume threshold: below 10 visible docs → counts only, 10+ → counts + percentage.
- * Tooltip on hover shows full breakdown.
- *
- * Uses @sanity/ui Badge tones for color, pulled at runtime for dark mode compat.
  */
 
 import {CheckmarkCircleIcon, TranslateIcon} from '@sanity/icons'
 import {Box, Card, Flex, Heading, Stack, Text, Tooltip} from '@sanity/ui'
 
 import type {TranslationSummary} from '../../hooks/useTranslationSummary'
-
-// --- Types ---
 
 interface SummaryBarProps {
   data: TranslationSummary
@@ -27,8 +16,6 @@ interface SummaryBarProps {
 /** Low-volume threshold: suppress percentages below this count */
 const LOW_VOLUME_THRESHOLD = 10
 
-// --- Helpers ---
-
 function formatMetric(count: number, total: number, showPercentage: boolean): string {
   if (showPercentage) {
     const pct = total > 0 ? Math.round((count / total) * 100) : 0
@@ -37,14 +24,11 @@ function formatMetric(count: number, total: number, showPercentage: boolean): st
   return `${count} of ${total}`
 }
 
-// --- Summary Bar ---
-
 function SummaryBar({data, selectedLocale, selectedLocaleName}: SummaryBarProps) {
   const localeName = selectedLocaleName || selectedLocale
   const showPercentage = data.totalPossible >= LOW_VOLUME_THRESHOLD
   const translated = data.approved + data.needsReview + data.usingFallback + data.stale
 
-  // Tooltip: full breakdown
   const breakdownTooltip = [
     data.translating > 0 ? `${data.translating} in progress` : null,
     `${data.approved} approved`,
@@ -60,7 +44,6 @@ function SummaryBar({data, selectedLocale, selectedLocaleName}: SummaryBarProps)
 
   return (
     <Flex gap={3}>
-      {/* Hero: Launch Readiness */}
       <Tooltip
         animate
         content={
@@ -101,7 +84,6 @@ function SummaryBar({data, selectedLocale, selectedLocaleName}: SummaryBarProps)
         </Card>
       </Tooltip>
 
-      {/* Secondary: Translated */}
       <Tooltip
         animate
         content={

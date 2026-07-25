@@ -11,8 +11,6 @@ import {useMemo} from 'react'
 
 import type {AggregateData} from './useTranslationAggregateData'
 
-// --- Types ---
-
 export interface StaleDocumentEntry {
   documentId: string
   documentType: string
@@ -30,10 +28,7 @@ export type StaleDocumentsResult = {
   totalCount: number
 }
 
-/** Maximum number of documents to display */
 const MAX_STALE_DISPLAY = 5
-
-// --- Hook ---
 
 export function useStaleDocuments(aggregateData: AggregateData): StaleDocumentsResult {
   const data = useMemo(() => {

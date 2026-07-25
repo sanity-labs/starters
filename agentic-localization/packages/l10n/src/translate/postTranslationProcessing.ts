@@ -1,8 +1,3 @@
-/**
- * Shared post-processing for translated documents: slug generation,
- * field cleanup, and image crop/hotspot restoration.
- */
-
 import {isRecord} from '../core/isRecord'
 import {generateLocalizedSlug} from './generateLocalizedSlug'
 import {restoreImageCropHotspot} from './imageUtils'
@@ -28,10 +23,6 @@ interface PostProcessOptions {
   translatedResult: Record<string, unknown>
 }
 
-/**
- * Apply slug generation, field cleanup, and image crop/hotspot restoration
- * to a freshly translated document result. Returns the processed result.
- */
 export async function postProcessTranslation({
   baseDocumentId,
   baseLanguage,

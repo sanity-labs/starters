@@ -1,6 +1,4 @@
 /**
- * Shared types for the Translations plugin.
- *
  * Consumed by every surface — the dashboard, the Studio pane and the effect
  * handlers — so it sits on the node floor and takes its types from
  * `@sanity/types` rather than `sanity`.
@@ -11,7 +9,6 @@ import type {KeyedObject, Reference} from '@sanity/types'
 import type {languageFieldName} from './typeNames'
 
 /**
- * Configuration for the translations system.
  * Passed to `createL10n()` and used by the SDK dashboard.
  */
 export interface TranslationsConfig {
@@ -42,7 +39,6 @@ export interface TranslationsConfig {
 }
 
 /**
- * Resolved config with defaults applied.
  * Used internally — consumers pass `TranslationsConfig`, internals use this.
  */
 export interface ResolvedTranslationsConfig {
@@ -68,9 +64,6 @@ export type TranslationWorkflowStatus =
  */
 export type TranslationInFlightStatus = 'translating' | 'failed'
 
-/**
- * Union of all possible translation statuses (workflow + in-flight).
- */
 export type TranslationStatus = TranslationWorkflowStatus | TranslationInFlightStatus
 
 /**
@@ -93,7 +86,6 @@ export type LocalizedObject = KeyedObject & {[K in typeof languageFieldName]: st
  */
 export interface InternationalizedArrayItem<T = unknown> {
   _key: string
-  /** Always `internationalizedArray<Type>Value`. */
   _type: `internationalizedArray${string}Value`
   language: string
   value?: T
@@ -108,24 +100,17 @@ export interface TranslationReference extends InternationalizedArrayItem<Referen
   value: Reference
 }
 
-// ---------------------------------------------------------------------------
-// AI Stale Change Analysis types
-// ---------------------------------------------------------------------------
-
 /** AI analysis of stale source changes — what changed and whether it matters. */
 export interface StaleAnalysisResult {
   /** Combined explanation: what changed and whether it matters for translations (2-3 sentences) */
   explanation: string
-  /** Overall impact assessment */
   materiality: 'cosmetic' | 'minor' | 'material'
-  /** Per-field suggestions */
   suggestions: StaleAnalysisSuggestion[]
   /** Number of AI suggestions dropped due to hallucinated field names (R5) */
   droppedSuggestionCount?: number
 }
 
 /**
- * Reason codes categorizing the nature of a source change.
  * Used to render editor-facing impact chips without parsing free-text explanations.
  */
 export type SuggestionReasonCode =
@@ -144,19 +129,14 @@ export interface StaleAnalysisSuggestion {
   fieldName: string
   /** 1-2 sentences about what changed in this field */
   explanation: string
-  /** AI recommendation */
   recommendation: 'retranslate' | 'dismiss'
   /** Short, non-technical description of what changed (falls back to `explanation` if absent) */
   changeSummary?: string
-  /** Structured reason code for the change */
   reasonCode?: SuggestionReasonCode
   /** Short editor-facing tags describing the impact (e.g. "Fact changed", "CTA added") */
   impactTags?: string[]
 }
 
-/**
- * Apply defaults to a partial TranslationsConfig.
- */
 export function resolveConfig(config: TranslationsConfig): ResolvedTranslationsConfig {
   return {
     internationalizedTypes: config.internationalizedTypes,

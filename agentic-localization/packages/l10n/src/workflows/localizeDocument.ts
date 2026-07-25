@@ -268,16 +268,13 @@ export const localizeDocument = defineWorkflow({
     defineStage({
       name: 'review',
       title: 'Review',
-      // The successor to the starter's hand-rolled publish gate: hold the source
-      // while a human decision on its localization is pending.
-      //
       // `publish` only, deliberately. Denying `update` would block the source edit
       // that `source-changed` exists to surface, and this workflow's position is
       // that drift is reported to the reviewer rather than prevented.
       //
       // Known limit: a guard's idRefs resolves to exactly one document, so the
       // parent cannot also hold the translated documents — they live in child runs
-      // that are terminal before this stage is entered. Holding those is PR 5 work.
+      // that are terminal before this stage is entered.
       guards: [
         defineGuard({
           name: 'hold-source-publish-during-review',

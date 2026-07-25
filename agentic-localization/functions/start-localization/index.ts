@@ -1,9 +1,6 @@
 /**
  * Sanity Function: start (or advance) a localization run when a source
  * document is published.
- *
- * Replaces the old `mark-translations-stale` chain: no staleness is written
- * anywhere, the run itself is the record.
  */
 
 import {createHash} from 'node:crypto'

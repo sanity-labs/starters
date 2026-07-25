@@ -44,7 +44,6 @@ export function getStudioDocumentUrl(doc: DocumentHandle): string {
       ? 'http://localhost:3333'
       : ''
 
-  // Open the document in the structure tool with the translations inspector pane
   return `${studioBase}/structure/${doc.documentType};${encodeURIComponent(`${docId},inspect=translations`)}`
 }
 

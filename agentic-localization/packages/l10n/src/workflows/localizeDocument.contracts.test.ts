@@ -42,8 +42,6 @@ async function reachTranslating(locales = ['de-DE']) {
   return {bench, instanceId}
 }
 
-// --- Effect completion contracts -------------------------------------------
-
 test('a handler cannot smuggle back an output the effect never declared', async () => {
   const {bench, instanceId} = await startRun()
 
@@ -200,8 +198,6 @@ test('the analysis explains its verdict to the reviewer', async () => {
   expect(await bench.queryInScope({instanceId, groq: '$fields.explanation'})).toBe(explanation)
 })
 
-// --- Discovery --------------------------------------------------------------
-
 test('only source-language documents are offered a localization run', async () => {
   const bench = createBench({
     now: T0,
@@ -231,8 +227,6 @@ test('only source-language documents are offered a localization run', async () =
     'localize-document',
   )
 })
-
-// --- Partial failure is reported to the reviewer ----------------------------
 
 test('a failed locale is flagged for the reviewer', async () => {
   const {bench, instanceId} = await reachTranslating(['de-DE', 'fr-FR'])
@@ -306,8 +300,6 @@ test('a successful retry clears the failure flag', async () => {
   expect(retried.fields.find((entry) => entry.name === 'hasFailedLocales')?.value).toBeFalsy()
 })
 
-// --- Audit trail ------------------------------------------------------------
-
 test('the run records who decided what, and which work was automated', async () => {
   const {bench, instanceId} = await reachTranslating()
   const [child] = await bench.children({instanceId})
@@ -327,8 +319,7 @@ test('the run records who decided what, and which work was automated', async () 
   const fired = history.filter((entry) => entry._type === 'actionFired')
 
   // The human decision is attributed and distinguishable from the triggers the
-  // engine fired on its own — the audit trail the hand-rolled `reviewedBy` and
-  // `source` columns were approximating.
+  // engine fired on its own.
   const approve = fired.find((entry) => entry.action === 'approve')
   expect(approve?.actor?.id).toBe('g-ada')
   expect(approve?.triggered).toBeFalsy()
@@ -341,8 +332,6 @@ test('the run records who decided what, and which work was automated', async () 
     history.some((entry) => entry._type === 'stageEntered' && entry.stage === 'approved'),
   ).toBe(true)
 })
-
-// --- What a UI is allowed to render ----------------------------------------
 
 test('automated stages offer a caller nothing to do', async () => {
   const {bench, instanceId} = await startRun()

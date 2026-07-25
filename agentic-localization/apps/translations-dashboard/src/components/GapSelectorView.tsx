@@ -1,10 +1,6 @@
 /**
  * Gap selector view — "Choose a gap to close."
  *
- * Shown when the user navigates to /translations without filter params.
- * Displays the top gaps from the coverage matrix as quick-link cards,
- * guiding the user to pick a specific gap to close.
- *
  * The Translations route is always purposeful — no browse mode.
  */
 
@@ -14,8 +10,6 @@ import {useNavigate} from 'react-router-dom'
 
 import type {CoverageMatrixResult} from '../hooks/useCoverageMatrix'
 
-// --- Types ---
-
 type GapEntry = {
   docType: string
   docTypeLabel: string
@@ -24,25 +18,19 @@ type GapEntry = {
   locale: string
   localeFlag: string
   localeName: string
-  /** Breakdown for display */
   missing: number
   stale: number
   usingFallback: number
 }
 
 interface GapSelectorViewProps {
-  /** Coverage matrix data for identifying top gaps */
   coverageMatrix: CoverageMatrixResult
-  /** Locale info for display */
   localeInfo: Array<{flag: string; name: string; tag: string}>
 }
-
-// --- Component ---
 
 function GapSelectorView({coverageMatrix, localeInfo}: GapSelectorViewProps) {
   const navigate = useNavigate()
 
-  // Build locale lookup
   const localeLookup = useMemo(() => {
     const map = new Map<string, {flag: string; name: string}>()
     for (const loc of localeInfo) {
@@ -51,7 +39,6 @@ function GapSelectorView({coverageMatrix, localeInfo}: GapSelectorViewProps) {
     return map
   }, [localeInfo])
 
-  // Find top gaps sorted by missing count (descending)
   const topGaps = useMemo((): GapEntry[] => {
     if (!coverageMatrix.data) return []
 
@@ -77,10 +64,8 @@ function GapSelectorView({coverageMatrix, localeInfo}: GapSelectorViewProps) {
       }
     }
 
-    // Sort by gap count descending (biggest gaps first)
     gaps.sort((a, b) => b.gapCount - a.gapCount)
 
-    // Return top 8 gaps
     return gaps.slice(0, 8)
   }, [coverageMatrix.data, localeLookup])
 
@@ -145,7 +130,6 @@ function GapSelectorView({coverageMatrix, localeInfo}: GapSelectorViewProps) {
                 {gap.stale > 0 && <span> ({gap.stale} stale)</span>}
                 {gap.usingFallback > 0 && <span> ({gap.usingFallback} fallback)</span>}
               </Text>
-              {/* Mini progress bar showing the gap */}
               <div
                 className="h-[3px] rounded-sm overflow-hidden"
                 style={{background: 'var(--card-border-color)'}}
@@ -162,8 +146,6 @@ function GapSelectorView({coverageMatrix, localeInfo}: GapSelectorViewProps) {
     </Stack>
   )
 }
-
-// --- Skeleton ---
 
 function GapSelectorSkeleton() {
   return (

@@ -1,6 +1,4 @@
 /**
- * Derived hook: Status breakdown for StatusCards.
- *
  * Every status is always present, zero counts included, so the cards show the
  * whole taxonomy ("nothing is stale — good") rather than a shifting card count.
  */
@@ -20,8 +18,6 @@ import {
   buildTranslationMap,
 } from './useTranslationAggregateData'
 
-// --- Types ---
-
 export type StatusBreakdownEntry = {
   count: number
   label: string
@@ -30,8 +26,6 @@ export type StatusBreakdownEntry = {
   /** Badge tone — typed from getStatusDisplay()'s return, a subset of `BadgeTone` */
   tone: StatusTone
 }
-
-// --- Hook ---
 
 const STATUS_ORDER: DashboardStatus[] = [
   'translating',

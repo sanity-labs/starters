@@ -1,5 +1,3 @@
-// --- Document text extraction ---
-
 import {portableTextToMarkdown} from '@portabletext/markdown'
 import {toPlainText} from '@portabletext/toolkit'
 import type {PortableTextBlock} from '@portabletext/types'
@@ -9,11 +7,6 @@ import {isImage, isPortableTextTextBlock, isReference, isSlug} from '@sanity/typ
 
 const isString = (v: unknown): v is string => typeof v === 'string'
 
-/**
- * Recursively extract all human-readable text from an arbitrary Sanity document.
- * Handles plain strings, Portable Text blocks (via @portabletext/toolkit), nested
- * objects, and arrays — without requiring knowledge of the document's schema.
- */
 export function extractDocumentText(value: unknown): string {
   switch (true) {
     case value == null:
@@ -45,13 +38,6 @@ export function extractDocumentText(value: unknown): string {
   }
 }
 
-// --- Content-aware glossary filtering ---
-
-/**
- * Filter glossary entries to only those whose terms appear in the source document.
- * Uses extractDocumentText to handle any Sanity document shape, then does
- * case-insensitive substring matching against each glossary term.
- */
 export function filterGlossaryByContent(
   glossaries: Glossary[],
   sourceDocument: Record<string, unknown>,
@@ -100,8 +86,7 @@ export type StyleGuide = NonNullable<STYLE_GUIDE_FOR_LOCALE_QUERY_RESULT>
  * `forbidden` passes too — it is an instruction to avoid a term, which is only
  * useful if the model is told about it.
  *
- * Checked on every path, `doNotTranslate` included. A `provisional` DNT entry
- * used to bypass this and reach `protectedPhrases`.
+ * Checked on every path, `doNotTranslate` included.
  */
 function isReviewed(entry: GlossaryEntry): boolean {
   return entry.status === 'approved' || entry.status === 'forbidden'
@@ -184,12 +169,7 @@ export function buildStyleGuideSection(styleGuide: StyleGuide): string {
     .join('\n')
 }
 
-// --- Protected phrases extraction ---
-
 /**
- * Extract Do Not Translate terms from glossaries for the Translate
- * action's `protectedPhrases` parameter.
- *
  * Status-gated like `buildGlossarySection`: an unreviewed proposal must not be
  * able to pin a phrase in the source language.
  */
@@ -204,14 +184,8 @@ export function extractProtectedPhrases(glossaries: Glossary[]): string[] {
   return [...phrases]
 }
 
-// --- Style guide size measurement ---
-
 export const STYLE_GUIDE_WARN_THRESHOLD = 12_000
 
-/**
- * Measure the size of an assembled styleGuide string. Callers can use this
- * to decide whether to warn, truncate, or proceed.
- */
 export function measureStyleGuide(styleGuide: string): {
   charCount: number
   estimatedTokens: number
@@ -222,12 +196,6 @@ export function measureStyleGuide(styleGuide: string): {
   return {charCount, estimatedTokens, isOverThreshold: charCount > STYLE_GUIDE_WARN_THRESHOLD}
 }
 
-// --- Translate action orchestration ---
-
-/**
- * Build the complete parameter object for the Sanity Agent Actions Translate API.
- * Maps the l10n plugin's data model to the API's expected shape.
- */
 export function buildTranslateParams(options: {
   schemaId: string
   documentId: string
@@ -288,8 +256,6 @@ function buildTargetDocument(options: {
     ? {operation, ...(options.targetDocumentId && {_id: options.targetDocumentId})}
     : {operation, _id: options.targetDocumentId!}
 }
-
-// Main assembler
 
 export function assembleStyleGuide(
   glossaries: Glossary[],

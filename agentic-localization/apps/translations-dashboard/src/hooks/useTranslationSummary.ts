@@ -1,10 +1,3 @@
-/**
- * Derived hook: Translation summary for the summary bar.
- *
- *   Launch Readiness % = approved / total
- *   Translated %       = (approved + needsReview + usingFallback + stale) / total
- */
-
 import {useMemo} from 'react'
 
 import type {DashboardStatus} from '../lib/localizationRun'
@@ -16,8 +9,6 @@ import {
   buildMetadataLookup,
   buildTranslationMap,
 } from './useTranslationAggregateData'
-
-// --- Types ---
 
 export type TranslationSummary = {
   /** Translations approved by a human reviewer */
@@ -43,8 +34,6 @@ export type TranslationSummary = {
   /** Translations covered by a fallback locale */
   usingFallback: number
 }
-
-// --- Hook ---
 
 export function useTranslationSummary(
   aggregateData: AggregateData,

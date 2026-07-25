@@ -1,6 +1,4 @@
 /**
- * Shared prompt instruction for AI stale change analysis.
- *
  * Used by both the Sanity Function (T2) and client-side fallback (T3).
  *
  * The `$fieldSummary` placeholder is replaced at runtime with the output

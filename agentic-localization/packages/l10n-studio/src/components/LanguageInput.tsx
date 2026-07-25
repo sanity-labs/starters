@@ -64,7 +64,6 @@ export function LanguageInput(props: StringInputProps) {
     onChange(set(selectedValue))
   }
 
-  // Loading state
   if (!languages) {
     return (
       <Card border padding={3} radius={2} tone="transparent">
@@ -112,7 +111,6 @@ export function LanguageInput(props: StringInputProps) {
     )
   }
 
-  // Empty state — Autocomplete picker
   return (
     <Autocomplete
       {...elementProps}

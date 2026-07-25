@@ -1,8 +1,5 @@
 /**
  * Dashboard route — the "see" mode.
- *
- * Summary bar, status cards, coverage heatmap, the runs in flight, and the
- * documents whose source moved while a review was open.
  */
 
 import {useCurrentUser} from '@sanity/sdk-react'
@@ -22,8 +19,6 @@ import {useStaleDocuments} from '../hooks/useStaleDocuments'
 import {useStatusBreakdown} from '../hooks/useStatusBreakdown'
 import {useTranslationAggregateData} from '../hooks/useTranslationAggregateData'
 import {useTranslationSummary} from '../hooks/useTranslationSummary'
-
-// --- Welcome Header ---
 
 /** Deterministic hash for avatar fallback color */
 function hashString(str: string): number {
@@ -75,8 +70,6 @@ function WelcomeHeader({name, profileImage}: {name: string; profileImage?: strin
   )
 }
 
-// --- Skeleton fallbacks for Suspense boundaries ---
-
 function SectionSkeleton({height = 120}: {height?: number}) {
   return <div className="skeleton w-full rounded-lg" style={{height}} />
 }
@@ -86,7 +79,6 @@ function DashboardRoute() {
   const currentUser = useCurrentUser()
   const {data: aggregateData} = useTranslationAggregateData()
 
-  // All derived from the same aggregate — no extra fetches
   const summaryData = useTranslationSummary(aggregateData, null, null)
   const statusBreakdownData = useStatusBreakdown(aggregateData, null, null)
   const coverageMatrix = useCoverageMatrix(aggregateData)
@@ -112,7 +104,6 @@ function DashboardRoute() {
           </div>
         )}
 
-        {/* Summary Bar — two hero metrics (Launch Readiness + Translated) */}
         <div className="px-4 pt-4 pb-2">
           <Suspense fallback={<SectionSkeleton height={100} />}>
             <ChartSection featureName="Summary Bar" isLoaded={true}>
@@ -121,7 +112,6 @@ function DashboardRoute() {
           </Suspense>
         </div>
 
-        {/* Status Cards — clickable navigation to /translations?status=X */}
         <div className="px-4 pb-2">
           <Suspense fallback={<SectionSkeleton height={80} />}>
             <ErrorBoundary featureName="Status Cards">
@@ -130,7 +120,6 @@ function DashboardRoute() {
           </Suspense>
         </div>
 
-        {/* Coverage Heatmap — full width */}
         <div className="px-4 pb-2">
           <Suspense fallback={<SectionSkeleton height={200} />}>
             <ChartSection featureName="Coverage Heatmap" isLoaded={true}>
@@ -143,7 +132,6 @@ function DashboardRoute() {
           </Suspense>
         </div>
 
-        {/* Runs in flight — hidden when nothing is running */}
         <div className="px-4 pb-2">
           <Suspense fallback={<SectionSkeleton height={80} />}>
             <ErrorBoundary featureName="Active Runs">
@@ -152,7 +140,6 @@ function DashboardRoute() {
           </Suspense>
         </div>
 
-        {/* Source drift under review — hidden when empty */}
         <div className="px-4 pb-4">
           <Suspense fallback={<SectionSkeleton height={80} />}>
             <ErrorBoundary featureName="Source Changed">

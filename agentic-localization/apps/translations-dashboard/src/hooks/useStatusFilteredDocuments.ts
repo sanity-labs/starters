@@ -1,11 +1,3 @@
-/**
- * Derived hook: Documents filtered by status.
- *
- * Powers StatusFilterView (`/translations?status=X`). Groups by base document
- * and lists the locales that match, carrying the run behind them so a row can
- * link to it.
- */
-
 import {useMemo} from 'react'
 
 import type {DashboardStatus} from '../lib/localizationRun'
@@ -17,8 +9,6 @@ import {
   buildMetadataLookup,
   buildTranslationMap,
 } from './useTranslationAggregateData'
-
-// --- Types ---
 
 /** A locale that matches the filtered status for a given document */
 export type FilteredLocaleEntry = {
@@ -46,8 +36,6 @@ export type StatusFilteredResult = {
   /** Total count of doc×locale pairs matching the status */
   totalSlots: number
 }
-
-// --- Hook ---
 
 export function useStatusFilteredDocuments(
   aggregateData: AggregateData,

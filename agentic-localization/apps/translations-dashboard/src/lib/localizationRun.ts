@@ -1,11 +1,5 @@
 /**
  * Workflow state → dashboard status.
- *
- * The state split the migration locked in: the instance owns workflow state
- * (which locales are in flight, whether a review is open, whether the source
- * moved), `translation.metadata` owns content state (a translation exists, a
- * fallback covers the gap). This module is the only place the two meet, and the
- * only place `localize-document`'s stage names are interpreted.
  */
 
 import type {TranslationWorkflowStatus} from '@starter/l10n'

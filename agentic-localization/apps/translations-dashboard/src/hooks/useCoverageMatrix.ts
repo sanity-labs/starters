@@ -1,11 +1,3 @@
-/**
- * Derived hook: Coverage matrix for the heatmap.
- *
- * A document type × locale matrix. Each cell counts by status and carries a
- * coverage percentage for colouring: red (missing), yellow (fallback only),
- * green (has a direct translation, whatever its review state).
- */
-
 import {useMemo} from 'react'
 
 import type {DashboardStatus} from '../lib/localizationRun'
@@ -19,8 +11,6 @@ import {
   buildMetadataLookup,
   buildTranslationMap,
 } from './useTranslationAggregateData'
-
-// --- Types ---
 
 export type CoverageCell = {
   /** Approved translations (ready for launch) */
@@ -60,7 +50,6 @@ export function useCoverageMatrix(aggregateData: AggregateData): CoverageMatrixR
     const metadataLookup = buildMetadataLookup(baseDocuments, metadata)
     const fallbackMap = buildFallbackMap(locales)
 
-    // Group base documents by type
     const docsByType = new Map<string, typeof baseDocuments>()
     for (const doc of baseDocuments) {
       const existing = docsByType.get(doc._type) || []
@@ -68,7 +57,6 @@ export function useCoverageMatrix(aggregateData: AggregateData): CoverageMatrixR
       docsByType.set(doc._type, existing)
     }
 
-    // Build matrix rows — one per configured document type that has documents
     const rows: CoverageMatrixRow[] = translationsConfig.internationalizedTypes
       .filter((type) => docsByType.has(type))
       .map((docType): CoverageMatrixRow => {

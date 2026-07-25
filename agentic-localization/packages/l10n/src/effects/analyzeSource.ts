@@ -2,10 +2,6 @@
  * `analyze-source` — works out what changed in a source document and which
  * locales that change affects.
  *
- * The analysis half of the Function this replaces. The pre-translation fan-out
- * that used to follow it is gone: `spawn` in the `localize-document` definition
- * does that now, one child run per locale.
- *
  * The AI judges materiality. It never picks the locales — those come from the
  * `translation.metadata` join document, in code, so a hallucinated language tag
  * cannot start a translation run.
@@ -169,9 +165,8 @@ function comparableProjection(
 }
 
 /**
- * Parse and validate the AI analysis response. Strips markdown fences, rejects
- * an out-of-list materiality, and drops suggestions naming fields that did not
- * change — the model does invent them.
+ * Strips markdown fences, rejects an out-of-list materiality, and drops
+ * suggestions naming fields that did not change — the model does invent them.
  */
 export function parseAnalysisResponse(
   raw: string,
@@ -215,9 +210,8 @@ export function parseAnalysisResponse(
 }
 
 /**
- * Build the `textExtracts` map for Portable Text fields. The History API hands
- * back raw JSON, so the text has to be flattened here rather than projected
- * with `pt::text()`.
+ * The History API hands back raw JSON, so the text has to be flattened here
+ * rather than projected with `pt::text()`.
  */
 export function buildTextExtracts(changes: FieldChange[]): TextExtracts {
   const extracts: TextExtracts = {}

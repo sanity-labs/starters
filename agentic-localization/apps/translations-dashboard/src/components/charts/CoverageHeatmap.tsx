@@ -1,20 +1,7 @@
-/**
- * Coverage heatmap — the hero visualization.
- *
- * Document type × locale matrix showing translation coverage.
- *
- * Percentage-based gradient: red → orange → yellow → green.
- * Thresholds are tuned to show meaningful visual steps.
- *
- * Cells are clickable — clicking navigates to the gap-closer route.
- */
-
 import {Box, Card, Flex, Heading, Stack, Text, Tooltip} from '@sanity/ui'
 import React, {useCallback} from 'react'
 
 import type {CoverageCell, CoverageMatrixRow} from '../../hooks/useCoverageMatrix'
-
-// --- Types ---
 
 interface CoverageHeatmapProps {
   activeCell?: {documentType: string; locale: string}
@@ -22,8 +9,6 @@ interface CoverageHeatmapProps {
   localeColumns: Array<{flag: string; tag: string; title: string}>
   onCellClick?: (documentType: string, locale: string) => void
 }
-
-// --- Heatmap Cell ---
 
 interface HeatmapCellProps {
   cell: CoverageCell
@@ -114,8 +99,6 @@ function HeatmapCell({cell, isActive, locale, onClick, row}: HeatmapCellProps) {
   )
 }
 
-// --- Skeleton ---
-
 export function HeatmapSkeleton() {
   return (
     <Card padding={4} radius={2} tone="default">
@@ -130,8 +113,6 @@ export function HeatmapSkeleton() {
     </Card>
   )
 }
-
-// --- Heatmap ---
 
 function CoverageHeatmap({activeCell, data, localeColumns, onCellClick}: CoverageHeatmapProps) {
   const handleCellClick = useCallback(
@@ -163,7 +144,6 @@ function CoverageHeatmap({activeCell, data, localeColumns, onCellClick}: Coverag
           Translation Coverage
         </Heading>
 
-        {/* Header row — locale flags + names */}
         <div
           style={{
             display: 'grid',
@@ -182,17 +162,14 @@ function CoverageHeatmap({activeCell, data, localeColumns, onCellClick}: Coverag
             </Flex>
           ))}
 
-          {/* Data rows */}
           {data.map((row) => (
             <React.Fragment key={row.documentType}>
-              {/* Row label */}
               <Flex align="center">
                 <Text size={2} textOverflow="ellipsis" weight="medium">
                   {row.documentTypeLabel}
                 </Text>
               </Flex>
 
-              {/* Cells */}
               {localeColumns.map((locale) => {
                 const cell = row.locales[locale.tag]
                 if (!cell) return <div key={locale.tag} />

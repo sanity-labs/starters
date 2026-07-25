@@ -1,6 +1,4 @@
 /**
- * Generate a localized slug for a translated document.
- *
  * Script-preserving, not ASCII-only: a `[^a-z0-9]` filter empties the slug of
  * every ja/zh/ko/ar title, and an empty `current` collides across every
  * document in that locale. Latin diacritics are folded (`café` → `cafe`), marks
@@ -11,10 +9,6 @@
  * does not export. Left unadopted: `speakingurl` ships no resolvable types
  * (`typings/` is not referenced from its `package.json`) and adds 16–40 KB to
  * every Function bundle, to ASCII-fold every script (and `ß` → `ss`).
- *
- * @param title - The translated document title
- * @param localeCode - The target locale code (e.g., 'es-MX')
- * @returns A slug object with `current` and `fullUrl` fields
  */
 export function generateLocalizedSlug(
   title: string,
@@ -26,9 +20,9 @@ export function generateLocalizedSlug(
     .replace(/[\u0300-\u036f]/g, '') // Fold Latin diacritics
     .replace(/[^\p{L}\p{N}\p{M}\s-]/gu, '') // Drop punctuation, symbols, emoji
     .normalize('NFC')
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Collapse multiple hyphens
-    .replace(/^-|-$/g, '') // Trim leading/trailing hyphens
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
 
   // By code point: a `slice` mid-surrogate would emit a lone half, which the
   // mutate endpoint rejects (see `sanitizeTranslationValue`).

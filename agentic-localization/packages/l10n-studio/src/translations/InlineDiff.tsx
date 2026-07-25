@@ -18,8 +18,6 @@ import type {TextSegment} from '@starter/l10n'
 import {diffTextSegments} from '@starter/l10n'
 import {l10nLocaleNamespace} from '../i18n'
 
-// --- Constants ---
-
 const DEFAULT_MAX_LENGTH = 500
 
 // CSS custom properties for theme-aware colors (dark mode compatible)
@@ -36,8 +34,6 @@ const ADDITION_STYLE: React.CSSProperties = {
   padding: '0 1px',
 }
 
-// --- Types ---
-
 interface InlineDiffProps {
   oldValue: string
   newValue: string
@@ -45,28 +41,21 @@ interface InlineDiffProps {
   maxLength?: number
 }
 
-// --- Helpers ---
-
-/** Count words in diff segments of a given action */
 function countWords(segments: TextSegment[], action: 'added' | 'removed'): number {
   return segments
     .filter((segment) => segment.action === action)
     .reduce((count, segment) => count + segment.text.trim().split(/\s+/).filter(Boolean).length, 0)
 }
 
-/** Compute total character length of all diff segments */
 function totalLength(segments: TextSegment[]): number {
   return segments.reduce((sum, segment) => sum + segment.text.length, 0)
 }
-
-// --- Main component ---
 
 export function InlineDiff({oldValue, newValue, maxLength = DEFAULT_MAX_LENGTH}: InlineDiffProps) {
   const {t} = useTranslation(l10nLocaleNamespace)
   const [showFull, setShowFull] = useState(false)
   const toggleFull = useCallback(() => setShowFull((prev) => !prev), [])
 
-  // Memoize the diff computation — don't recompute on every render
   const segments = useMemo(() => diffTextSegments(oldValue, newValue), [oldValue, newValue])
 
   const wordsRemoved = useMemo(() => countWords(segments, 'removed'), [segments])
@@ -74,7 +63,6 @@ export function InlineDiff({oldValue, newValue, maxLength = DEFAULT_MAX_LENGTH}:
 
   const isTruncated = !showFull && totalLength(segments) > maxLength
 
-  // Build truncated diff segments if needed
   const visibleSegments = useMemo(() => {
     if (!isTruncated) return segments
 
@@ -103,7 +91,6 @@ export function InlineDiff({oldValue, newValue, maxLength = DEFAULT_MAX_LENGTH}:
         <Text>{t('diff.sr-summary', {removed: wordsRemoved, added: wordsAdded})}</Text>
       </SrOnly>
 
-      {/* Inline diff content */}
       <Text size={1} style={{lineHeight: 1.6, wordBreak: 'break-word'}}>
         {visibleSegments.map((segment, i) => {
           if (segment.action === 'removed') {
@@ -144,8 +131,6 @@ export function InlineDiff({oldValue, newValue, maxLength = DEFAULT_MAX_LENGTH}:
   )
 }
 
-// --- Simple value diff for non-text types ---
-
 interface SimpleValueDiffProps {
   oldValue: unknown
   newValue: unknown
@@ -182,8 +167,6 @@ export function SimpleValueDiff({oldValue, newValue}: SimpleValueDiffProps) {
     </Card>
   )
 }
-
-// --- Array diff summary ---
 
 interface ArrayDiffSummaryProps {
   oldValue: unknown

@@ -1,11 +1,3 @@
-/**
- * The Translations pane — inspector, hooks and components.
- *
- * Nothing here re-exports `@starter/l10n`. Status tables, instance-field
- * readers and locale-run projections are node-floor primitives; take them from
- * the package that owns them.
- */
-
 export {createTranslationInspector} from './createTranslationPanePlugin'
 export {ErrorBoundary} from './ErrorBoundary'
 export {

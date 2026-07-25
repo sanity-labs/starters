@@ -1,6 +1,4 @@
 /**
- * Derived hook: Gap-closer document list for the Translations route.
- *
  * "12 articles need translation in Mexican Spanish" — the documents whose
  * status for one locale is missing, fallback-only, or stale, sorted by
  * actionability (published sources first). Documents already inside an open run
@@ -19,8 +17,6 @@ import {
   buildMetadataLookup,
   buildTranslationMap,
 } from './useTranslationAggregateData'
-
-// --- Types ---
 
 export type GapDocument = {
   documentId: string
@@ -54,7 +50,6 @@ export type GapDocumentsData = {
   }
 }
 
-// --- Source status priority for sorting ---
 const SOURCE_STATUS_ORDER: Record<GapDocument['sourceStatus'], number> = {
   draft: 2,
   inRelease: 1,
@@ -64,8 +59,6 @@ const SOURCE_STATUS_ORDER: Record<GapDocument['sourceStatus'], number> = {
 
 /** Statuses that represent a gap needing action, or work already under way on one. */
 const GAP_STATUSES = new Set<DashboardStatus>(['missing', 'stale', 'translating', 'usingFallback'])
-
-// --- Hook ---
 
 export function useGapDocuments(
   aggregateData: AggregateData,
@@ -137,8 +130,6 @@ export function useGapDocuments(
     }
   }, [aggregateData, docType, locale])
 }
-
-// --- Utilities ---
 
 /**
  * Infer source document publish status from its ID.

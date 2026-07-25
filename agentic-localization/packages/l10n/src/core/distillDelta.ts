@@ -6,9 +6,6 @@
  * this code; only the ones carrying real signal reach an AI call. So the gate is
  * pure, exhaustively specified, and runs BEFORE any spend — a reviewer who fixed
  * a comma must not cost anything.
- *
- * Engine-and-stdlib only, like the rest of `core/`: this is imported by a Sanity
- * Function.
  */
 
 import type {FieldChange} from './computeFieldChanges'
@@ -155,7 +152,6 @@ function isReordering(machine: string[], human: string[]): boolean {
   return [...machine].sort().join(' ') === [...human].sort().join(' ')
 }
 
-/** The text fields `computeFieldChanges` found a difference in. */
 function changedTextFields(change: FieldChange): boolean {
   if (!change.changed) return false
   return change.fieldType === 'string' || change.fieldType === 'portableText'

@@ -14,9 +14,6 @@
  * - **Propose, never decide.** Output is `drafts.l10n.proposal.*`. Prompt
  *   assembly reads only published, `approved`-status context, so two human acts
  *   stand between this code and a prompt.
- *
- * The whole loop is one directory plus one Function, deliberately: deleting it is
- * `rm -r src/distill functions/distill-review` and one blueprint resource.
  */
 
 import {createHash} from 'node:crypto'

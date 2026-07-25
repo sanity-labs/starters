@@ -13,7 +13,6 @@ import type {
 } from './model-eval-types'
 import {enUS} from './fixtures'
 
-// --- Sampling and pass thresholds -------------------------------------------
 // A single live-model draw is too noisy to gate on: byte-identical prompt
 // assembly has produced three different marginal failures on three consecutive
 // runs. Every case therefore draws N translations per arm and asserts on the
@@ -92,7 +91,6 @@ function meanDimensions(scores: JudgeDimensions[]): JudgeDimensions {
 }
 
 /**
- * Score a single translation using deterministic checks and an averaged judge.
  * Deterministic checks run per sample; their pass fraction is reported by the
  * caller rather than being collapsed into the judge score.
  */
@@ -102,10 +100,8 @@ export async function scoreTranslation(options: {
 }): Promise<TranslationScore> {
   const {translation, evalCase} = options
 
-  // Layer 1: deterministic checks on the translated field text
   const deterministic = scorePrompt(translation.fieldText, evalCase.translationExpectations)
 
-  // Layer 2: LLM judge — run multiple trials and average to reduce grader variance
   const judges = await Promise.all(
     Array.from({length: JUDGE_TRIALS_PER_SAMPLE}, () =>
       judgeTranslation({
@@ -127,12 +123,6 @@ export async function scoreTranslation(options: {
   }
 }
 
-/**
- * One draw of the paired comparison:
- * 1. Translate WITH context (glossaries + style guide) and WITHOUT it, in parallel
- * 2. Score both
- * 3. Record the quality delta for this draw
- */
 async function runComparisonSample(
   evalCase: ModelEvalCase,
   index: number,
@@ -172,7 +162,6 @@ async function runComparisonSample(
 }
 
 /**
- * Run the paired comparison SAMPLES_PER_CASE times and aggregate.
  * Samples run one after another: the Agent Actions API rate-limits bursts, and
  * six judge calls per sample is already the concurrency this suite can spend.
  */
@@ -197,8 +186,6 @@ export async function runSampledComparison(evalCase: ModelEvalCase): Promise<Sam
     ties: samples.filter((s) => Math.abs(s.qualityDelta) <= JUDGE_NOISE_FLOOR).length,
   }
 }
-
-// --- Reporting ---------------------------------------------------------------
 
 function signed(value: number): string {
   return value > 0 ? `+${value}` : String(value)

@@ -9,11 +9,7 @@
  * `@sanity/diff`'s four actions cannot express.
  *
  * Magnitude is derived from the diff's own segment char counts rather than a
- * positional scan. The scan it replaces mis-scored every insertion at the head
- * of a string: shifting the text by one character made every later character
- * compare unequal, so a two-character prefix read as a full rewrite.
- *
- * Zero React/Studio dependencies — safe to import in the Functions runtime.
+ * positional scan.
  */
 
 import type {Diff} from '@sanity/diff'
@@ -23,8 +19,6 @@ import {isDeepEmpty, resolveTypeName} from '@sanity/util/content'
 
 import {isRecord} from './isRecord'
 import {changedCharCount, diffTextSegments} from './textDiff'
-
-// --- Types ---
 
 export type FieldChangeMagnitude =
   | 'unchanged'
@@ -47,9 +41,7 @@ export type FieldType =
 export interface FieldChange {
   /** Field path (e.g., 'title', 'body', 'excerpt') */
   fieldName: string
-  /** Whether this field changed */
   changed: boolean
-  /** Magnitude of the change */
   magnitude: FieldChangeMagnitude
   /** Detected field type for Tier 3 inline diff routing */
   fieldType: FieldType
@@ -58,8 +50,6 @@ export interface FieldChange {
   /** Value from the current source document */
   newValue?: unknown
 }
-
-// --- Constants ---
 
 /** Magnitude thresholds, as a share of the characters on both sides of the field. */
 const MINOR_THRESHOLD = 0.2
@@ -74,8 +64,6 @@ function isSystemField(fieldName: string): boolean {
   return fieldName.startsWith('_') || fieldName === 'language'
 }
 
-// --- Pure functions ---
-
 /** Portable Text — blocks with children — rather than any other array. */
 function isPortableText(value: unknown): boolean {
   return (
@@ -85,8 +73,6 @@ function isPortableText(value: unknown): boolean {
 }
 
 /**
- * Detect the field type from a value.
- *
  * `resolveTypeName` is the reader the Studio's own form layer uses: a declared
  * `_type` wins, anything else falls back to its JS type. Uses the most
  * informative value — prefers non-null, prefers new.
@@ -148,8 +134,6 @@ function wholeSubtree(diff: Diff<null>): CharCounts {
 }
 
 /**
- * Walk a diff and count the characters it moved.
- *
  * A string's own segments are the ground truth; containers sum their children,
  * so an edit inside one span of one Portable Text block scores against the whole
  * field rather than against that span.
@@ -177,7 +161,6 @@ function diffCharCounts(diff: Diff<null>): CharCounts {
   }
 }
 
-/** Score a diff against the editorial vocabulary. */
 function magnitudeOf(diff: Diff<null>): FieldChangeMagnitude {
   const fromEmpty = isDeepEmpty(diff.fromValue)
   const toEmpty = isDeepEmpty(diff.toValue)
@@ -197,8 +180,6 @@ function magnitudeOf(diff: Diff<null>): FieldChangeMagnitude {
 }
 
 /**
- * Compute the magnitude of change between two field values.
- *
  * The vocabulary is the contract callers depend on; the derivation behind it is
  * not.
  */
@@ -219,9 +200,6 @@ const MAGNITUDE_ORDER: Record<FieldChangeMagnitude, number> = {
   unchanged: 5,
 }
 
-/**
- * Compute field-level changes between two document snapshots.
- */
 export function computeFieldChanges(
   historicalDoc: Record<string, unknown>,
   currentDoc: Record<string, unknown>,

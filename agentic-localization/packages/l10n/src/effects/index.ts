@@ -10,8 +10,6 @@
  * narrowing, GDR arithmetic and the at-least-once idempotency read are the parts
  * that are tedious and easy to get wrong, so they are exported deliberately
  * rather than kept private.
- *
- * React-free by construction — these run inside a Sanity Function.
  */
 
 import type {EffectHandler} from '@sanity/workflow-engine'
@@ -32,13 +30,9 @@ export const localizationEffectHandlers: Record<string, EffectHandler> = {
   [PUBLISH_RELEASE]: publishRelease,
 }
 
-// --- The handlers, individually, for composing a custom map ---
-
 export {analyzeSource} from './analyzeSource'
 export {publishRelease} from './publishRelease'
 export {translateLocale} from './translateLocale'
-
-// --- effectRuntime: the plumbing for writing your own handler ---
 
 export {
   AGENT_API_VERSION,

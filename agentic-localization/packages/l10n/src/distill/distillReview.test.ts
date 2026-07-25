@@ -26,8 +26,6 @@ const CONTENT_DATASET = 'production'
 
 const SOURCE_TEXT = 'The dataset is stored in the Content Lake and queried with GROQ.'
 
-// --- Fixtures ---------------------------------------------------------------
-
 function block(text: string) {
   return {
     _key: 'b1',
@@ -136,8 +134,6 @@ function childInstance(args: {
     ],
   } as unknown as WorkflowInstance
 }
-
-// --- The stand-in clients ---------------------------------------------------
 
 interface HarnessOptions {
   /** Literal document ids to bodies — the raw layer. */
@@ -272,8 +268,6 @@ function run(client: DistillClient, engine: DistillEngine) {
     now: () => NOW,
   })
 }
-
-// --- Scenarios --------------------------------------------------------------
 
 const RAN_AT = '2026-07-25T11:00:00.000Z'
 
@@ -455,8 +449,6 @@ const TERM_PROPOSAL = JSON.stringify({
   ],
 })
 
-// --- Claiming ---------------------------------------------------------------
-
 describe('the claim', () => {
   it('is taken before anything that can fail', async () => {
     const {client, engine, log} = documentTier({
@@ -564,8 +556,6 @@ describe('the claim', () => {
   })
 })
 
-// --- The gather paths, per tier ---------------------------------------------
-
 describe('the document tier', () => {
   it('diffs the machine draft against the approved sibling document', async () => {
     const {client, engine, prompts} = documentTier({
@@ -644,8 +634,6 @@ describe('a release-scoped run', () => {
     expect(result.locales).toEqual(['de-DE'])
   })
 })
-
-// --- Degrading -------------------------------------------------------------
 
 describe('degrading', () => {
   it('proposes nothing when the machine revision has aged out', async () => {
@@ -792,8 +780,6 @@ describe('degrading', () => {
   })
 })
 
-// --- The gate, from the outside -------------------------------------------
-
 describe('spending', () => {
   it('spends nothing on a punctuation fix', async () => {
     const {client, engine, prompts, writes} = documentTier({
@@ -889,8 +875,6 @@ describe('spending', () => {
     expect(test.prompts[0]).toContain('## fr-FR')
   })
 })
-
-// --- What gets written ---------------------------------------------------
 
 describe('the proposals written', () => {
   it('writes a draft that collapses onto itself on a repeat, bumping occurrences', async () => {

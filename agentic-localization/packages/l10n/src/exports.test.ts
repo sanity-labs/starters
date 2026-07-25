@@ -35,9 +35,6 @@ async function moduleIdsFor(entry: string): Promise<string[]> {
   const build = await rolldown({
     input: `${PACKAGE_ROOT}${entry}`,
     platform: 'node',
-    // Peers and deps resolve at the consumer, not here. Leaving them external
-    // keeps the graph to this package's own modules plus whatever it truly
-    // pulls in, which is exactly what the assertion is about.
     logLevel: 'silent',
   })
   try {

@@ -1,6 +1,4 @@
 /**
- * Deterministic ID helpers for translation metadata documents.
- *
  * translation.metadata docs are keyed by their source document's published ID,
  * eliminating race-condition duplicates from concurrent `client.create()` calls.
  *
@@ -13,11 +11,6 @@ import {DocumentId, getPublishedId} from '@sanity/id-utils'
 const METADATA_PREFIX = 'translation.metadata'
 
 /**
- * Compute the deterministic `_id` for a `translation.metadata` document.
- *
- * Given any form of a source document ID (published, draft, or version),
- * returns `translation.metadata.<publishedId>`.
- *
  * Only ever the id to CREATE at. `@sanity/document-internationalization` mints
  * its own with `uuid()`, so a document that already exists is found by the
  * reverse-reference half of `TRANSLATIONS_FOR_DOCUMENT_QUERY`, never derived.

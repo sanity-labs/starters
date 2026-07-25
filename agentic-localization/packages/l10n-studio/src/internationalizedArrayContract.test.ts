@@ -16,7 +16,6 @@ import type {InternationalizedArrayItem as PluginItem} from 'sanity-plugin-inter
 
 import {expect, it} from 'vitest'
 
-/** Resolves to `true` only when `A` and `B` are mutually assignable. */
 type Extends<A, B> = A extends B ? true : false
 
 // --- InternationalizedArrayItem ---

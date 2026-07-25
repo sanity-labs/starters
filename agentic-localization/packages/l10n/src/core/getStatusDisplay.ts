@@ -1,6 +1,4 @@
 /**
- * Pure function mapping translation status to visual display properties.
- *
  * This is the bridge between surfaces — both the SDK dashboard and the Studio
  * document pane render status from the same table, so a "stale" badge means the
  * same thing in both.
@@ -32,13 +30,9 @@ export type StatusIconName =
 export type StatusTone = 'caution' | 'critical' | 'default' | 'positive' | 'suggest'
 
 export interface StatusDisplay {
-  /** Name of the icon to render — bound to a component by the surface */
   icon: StatusIconName
-  /** Badge tone; a subset of `@sanity/ui`'s `BadgeTone` */
   tone: StatusTone
-  /** Short label for badges and compact views */
   label: string
-  /** Longer description for tooltips */
   tooltip: string
 }
 
@@ -91,8 +85,6 @@ const STATUS_DISPLAY_MAP: Record<TranslationStatus, StatusDisplay> = {
 }
 
 /**
- * Get the visual display properties for a translation status.
- *
  * @example
  * ```tsx
  * const display = getStatusDisplay('approved')
