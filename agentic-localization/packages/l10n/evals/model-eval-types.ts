@@ -1,4 +1,4 @@
-import type {EvalCase, ScoreResult} from './types'
+import type {EvalCase, ExpectedTerm, ScoreResult} from './types'
 
 /**
  * A model eval case tests actual translation quality by calling the
@@ -7,8 +7,8 @@ import type {EvalCase, ScoreResult} from './types'
 export interface ModelEvalCase extends EvalCase {
   /** Deterministic checks applied to the TRANSLATION output (not the assembled prompt) */
   translationExpectations: {
-    shouldContain?: string[]
-    shouldNotContain?: string[]
+    shouldContain?: ExpectedTerm[]
+    shouldNotContain?: ExpectedTerm[]
     shouldMatchPattern?: RegExp[]
     description: string
   }
@@ -37,6 +37,9 @@ export interface JudgeScore {
   reasoning: string
 }
 
+/** Judge scores without the prose — what gets averaged across samples */
+export type JudgeDimensions = Omit<JudgeScore, 'reasoning'>
+
 /** Combined score from both deterministic and judge layers */
 export interface TranslationScore {
   deterministic: ScoreResult
@@ -45,8 +48,10 @@ export interface TranslationScore {
   pass: boolean
 }
 
-/** Paired result: with-context vs without-context translations */
-export interface BaselineComparison {
+/** One draw: with-context vs without-context translations of the same source */
+export interface ComparisonSample {
+  /** 1-based, for logging */
+  index: number
   withContext: {
     translation: TranslationResult
     score: TranslationScore
@@ -55,6 +60,23 @@ export interface BaselineComparison {
     translation: TranslationResult
     score: TranslationScore
   }
-  /** judge.overall(withContext) - judge.overall(withoutContext) */
+  /** judge.overall(withContext) - judge.overall(withoutContext) for this draw */
   qualityDelta: number
+}
+
+/** Aggregate across N draws — this, not a single sample, is what cases assert on */
+export interface SampledComparison {
+  samples: ComparisonSample[]
+  /** Share of samples where every deterministic check on the with-context arm passed */
+  deterministicPassFraction: number
+  /** Per-dimension means across samples, per arm */
+  meanJudge: {
+    withContext: JudgeDimensions
+    withoutContext: JudgeDimensions
+  }
+  meanQualityDelta: number
+  /** Reported, not gated — direction of each sample beyond the grader noise floor */
+  wins: number
+  losses: number
+  ties: number
 }

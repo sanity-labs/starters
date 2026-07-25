@@ -1,11 +1,74 @@
 import type {JudgeScore, ModelEvalCase} from './model-eval-types'
 import {getClient} from './client'
 
-const WEIGHTS = {
-  fluency: 0.25,
-  termAccuracy: 0.3,
-  formalityMatch: 0.2,
-  preservation: 0.25,
+/**
+ * Grader configuration — pinned, and deliberately not the generator.
+ *
+ * Translations come from `agent.action.translate`; grading runs through
+ * `agent.action.prompt`, so a translation is never graded by the same call that
+ * produced it. Agent Actions exposes no model selector (there is no `model`
+ * field on the prompt request in @sanity/client v7, nor in the Agent Actions
+ * HTTP API), so the grader is pinned by the two knobs that do exist: the action
+ * it runs through, and temperature. Pin the model here if a selector ships.
+ */
+const GRADER_TEMPERATURE = 0
+
+/** Rubric scale. Stated to the grader verbatim and enforced when parsing. */
+const RUBRIC_MIN = 1
+const RUBRIC_MAX = 5
+
+/**
+ * The four graded dimensions, their weights in `overall`, and the anchors the
+ * grader is given. Single source of truth: the instruction is generated from
+ * this table, so prompt and weighting cannot drift apart.
+ */
+const RUBRIC = {
+  fluency: {
+    weight: 0.25,
+    criterion: 'how natural and grammatically correct the translation reads in the target language',
+    anchors: `${RUBRIC_MAX} = native quality, ${RUBRIC_MIN} = machine-translation-obvious`,
+  },
+  termAccuracy: {
+    weight: 0.3,
+    criterion: 'whether glossary terms use the specified approved translations',
+    anchors: `${RUBRIC_MAX} = all terms correct, ${RUBRIC_MIN} = most terms wrong or missing`,
+  },
+  formalityMatch: {
+    weight: 0.2,
+    criterion: 'whether the translation matches the requested formality level',
+    anchors: `${RUBRIC_MAX} = perfect match, ${RUBRIC_MIN} = completely wrong register`,
+  },
+  preservation: {
+    weight: 0.25,
+    criterion:
+      'whether Do-Not-Translate terms, brand names, and placeholders are preserved unchanged',
+    anchors: `${RUBRIC_MAX} = all preserved, ${RUBRIC_MIN} = most altered`,
+  },
+} as const
+
+type Dimension = keyof typeof RUBRIC
+
+const DIMENSIONS: Dimension[] = ['fluency', 'termAccuracy', 'formalityMatch', 'preservation']
+
+const RUBRIC_LINES = DIMENSIONS.map(
+  (dimension) =>
+    `- "${dimension}": integer ${RUBRIC_MIN}-${RUBRIC_MAX} — ${RUBRIC[dimension].criterion} (${RUBRIC[dimension].anchors})`,
+).join('\n')
+
+/**
+ * Read one graded dimension. Scores are single integers on the rubric scale —
+ * anything else is a grader malfunction and fails the run rather than being
+ * coerced. Only these numbers are parsed; the grader's prose is never scored.
+ */
+function readDimension(payload: Record<string, unknown>, dimension: Dimension): number {
+  const value = Number(payload[dimension])
+  if (!Number.isInteger(value) || value < RUBRIC_MIN || value > RUBRIC_MAX) {
+    throw new Error(
+      `Grader returned an out-of-rubric "${dimension}": ${JSON.stringify(payload[dimension])} ` +
+        `(expected integer ${RUBRIC_MIN}-${RUBRIC_MAX})`,
+    )
+  }
+  return value
 }
 
 export async function judgeTranslation(options: {
@@ -20,23 +83,22 @@ export async function judgeTranslation(options: {
 
   const instruction =
     'You are a professional translation quality assessor. ' +
-    'Score the translation on each dimension from 1-5. Be strict but fair. ' +
+    `Score the translation on each dimension from ${RUBRIC_MIN}-${RUBRIC_MAX}. Be strict but fair. ` +
     'Evaluate against the requirements below regardless of what tools the translator had.\n\n' +
     `## Source Text (${sourceLocale})\n${sourceText}\n\n` +
     `## Translation (${targetLocale})\n${translation}\n\n` +
     `## Requirements\n${evalCase.qualityCriteria}\n` +
     `Formality: ${evalCase.styleGuide?.formality ?? 'not specified'}\n` +
     `Tone: ${evalCase.styleGuide?.tone?.join(', ') ?? 'not specified'}\n\n` +
-    'Score this translation and respond with a JSON object containing exactly these fields:\n' +
-    '- "fluency": integer 1-5 — how natural and grammatically correct the translation reads in the target language (5 = native quality, 1 = machine-translation-obvious)\n' +
-    '- "termAccuracy": integer 1-5 — whether glossary terms were translated using the specified approved translations (5 = all terms correct, 1 = most terms wrong or missing)\n' +
-    '- "formalityMatch": integer 1-5 — whether the translation matches the requested formality level (5 = perfect match, 1 = completely wrong register)\n' +
-    '- "preservation": integer 1-5 — whether Do-Not-Translate terms, brand names, and placeholders are preserved unchanged (5 = all preserved, 1 = most altered)\n' +
-    '- "reasoning": string — brief explanation of the scores'
+    'Respond with a JSON object containing exactly these fields, in this order:\n' +
+    '- "reasoning": string — one sentence, at most 200 characters. Justification only; it is not scored.\n' +
+    `${RUBRIC_LINES}\n` +
+    'Every score must be a bare integer. Do not add fields, ranges, or units.'
 
   const response = await client.agent.action.prompt({
     instruction,
     format: 'json',
+    temperature: GRADER_TEMPERATURE,
   })
 
   // The SDK returns a parsed object when format is 'json', or a string otherwise
@@ -45,26 +107,18 @@ export async function judgeTranslation(options: {
       ? JSON.parse(response.replace(/^```json\s*|\s*```$/g, '').trim())
       : response
 
-  const fluency = Number(parsed.fluency)
-  const termAccuracy = Number(parsed.termAccuracy)
-  const formalityMatch = Number(parsed.formalityMatch)
-  const preservation = Number(parsed.preservation)
-  const reasoning = String(parsed.reasoning ?? '')
-
-  if (
-    [fluency, termAccuracy, formalityMatch, preservation].some((n) => isNaN(n) || n < 1 || n > 5)
-  ) {
-    throw new Error(`Invalid judge scores: ${JSON.stringify(parsed)}`)
+  const scores = {
+    fluency: readDimension(parsed, 'fluency'),
+    termAccuracy: readDimension(parsed, 'termAccuracy'),
+    formalityMatch: readDimension(parsed, 'formalityMatch'),
+    preservation: readDimension(parsed, 'preservation'),
   }
 
   const overall =
     Math.round(
-      (fluency * WEIGHTS.fluency +
-        termAccuracy * WEIGHTS.termAccuracy +
-        formalityMatch * WEIGHTS.formalityMatch +
-        preservation * WEIGHTS.preservation) *
+      DIMENSIONS.reduce((sum, dimension) => sum + scores[dimension] * RUBRIC[dimension].weight, 0) *
         100,
     ) / 100
 
-  return {fluency, termAccuracy, formalityMatch, preservation, overall, reasoning}
+  return {...scores, overall, reasoning: String(parsed.reasoning ?? '')}
 }

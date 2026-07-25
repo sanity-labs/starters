@@ -40,7 +40,12 @@ The `core/*` and `promptAssembly` exports are React-free — use them in Sanity 
 
 ```sh
 pnpm test   # Unit tests (schema, prompt assembly, locale utilities)
-pnpm eval   # Model evals via Agent Actions — requires sanity login, consumes AI credits
+pnpm eval   # Model evals via Agent Actions — requires credentials, consumes AI credits
 ```
+
+Evals need `SANITY_STUDIO_PROJECT_ID` / `SANITY_STUDIO_DATASET` (repo root `.env`) plus a
+`SANITY_AUTH_TOKEN` in `packages/l10n/.env` (gitignored — copy `.env.example`); a `sanity login`
+session token is used as a fallback. Each case draws three translations per arm and asserts on the
+aggregate, since a single live-model draw is too noisy to gate on. Set `EVAL_SAMPLES` to draw more.
 
 See the [root README](../../README.md) for full project documentation.

@@ -1,18 +1,28 @@
-import type {EvalCase, ScoreResult} from './types'
+import type {EvalCase, ExpectedTerm, ScoreResult} from './types'
+
+function matches(output: string, term: ExpectedTerm): boolean {
+  return Array.isArray(term)
+    ? term.some((surfaceForm) => output.includes(surfaceForm))
+    : output.includes(term)
+}
+
+function describe(term: ExpectedTerm): string {
+  return Array.isArray(term) ? term.join(' | ') : term
+}
 
 export function checkTermPresence(
   output: string,
-  shouldContain: string[],
+  shouldContain: ExpectedTerm[],
 ): {pass: boolean; missing: string[]} {
-  const missing = shouldContain.filter((term) => !output.includes(term))
+  const missing = shouldContain.filter((term) => !matches(output, term)).map(describe)
   return {pass: missing.length === 0, missing}
 }
 
 export function checkTermAbsence(
   output: string,
-  shouldNotContain: string[],
+  shouldNotContain: ExpectedTerm[],
 ): {pass: boolean; found: string[]} {
-  const found = shouldNotContain.filter((term) => output.includes(term))
+  const found = shouldNotContain.filter((term) => matches(output, term)).map(describe)
   return {pass: found.length === 0, found}
 }
 

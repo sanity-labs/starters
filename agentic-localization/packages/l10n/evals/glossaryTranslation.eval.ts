@@ -1,6 +1,14 @@
 import {describe, it, expect} from 'vitest'
 import {techGlossary, styleGuideForLocale, sourceTexts} from './fixtures'
-import {runBaselineComparison} from './model-scoring'
+import {
+  EVAL_CASE_TIMEOUT_MS,
+  MIN_DETERMINISTIC_PASS_FRACTION,
+  MIN_JUDGE_OVERALL,
+  MIN_MEAN_QUALITY_DELTA,
+  MIN_PRIMARY_DIMENSION_SCORE,
+  formatComparisonReport,
+  runSampledComparison,
+} from './model-scoring'
 import type {ModelEvalCase} from './model-eval-types'
 
 const cases: ModelEvalCase[] = [
@@ -26,8 +34,9 @@ const cases: ModelEvalCase[] = [
     },
     translationExpectations: {
       shouldContain: [
-        'jeu de données',
-        'action de document',
+        // French pluralises the approved lemma; both forms are the approved term
+        ['jeu de données', 'jeux de données'],
+        ['action de document', 'actions de document', 'actions de documents'],
         'Portable Text',
         'Perspectives',
         'Releases',
@@ -42,6 +51,8 @@ const cases: ModelEvalCase[] = [
     },
     qualityCriteria:
       'Must use approved glossary translations: "jeu de données" for dataset, "action de document" for document action, "champ" for field. ' +
+      'An approved term counts as used when it appears in its natural inflected form ' +
+      '("jeux de données", "actions de document"); do not penalise pluralisation or agreement. ' +
       'Must preserve Sanity product names exactly: "Portable Text" (not "Texte portable"), ' +
       '"Perspectives" (not "Points de vue"), "Releases" (not "Versions" or "Publications"), ' +
       '"Content Lake", "GROQ", "Studio". Use formal register per style guide.',
@@ -58,28 +69,18 @@ describe('Model eval: Glossary term compliance (French)', () => {
   it.each(cases)(
     '$id: $description',
     async (evalCase) => {
-      const comparison = await runBaselineComparison(evalCase)
+      const result = await runSampledComparison(evalCase)
+      console.log(formatComparisonReport(evalCase, result))
 
-      console.log(`\n--- ${evalCase.id} ---`)
-      console.log(`With context:    "${comparison.withContext.translation.fieldText}"`)
-      console.log(`Without context: "${comparison.withoutContext.translation.fieldText}"`)
-      console.log(
-        `Deterministic (with): ${JSON.stringify(comparison.withContext.score.deterministic)}`,
+      expect(result.deterministicPassFraction).toBeGreaterThanOrEqual(
+        MIN_DETERMINISTIC_PASS_FRACTION,
       )
-      console.log(
-        `Judge (with):    ${comparison.withContext.score.judge.overall}/5 — ${comparison.withContext.score.judge.reasoning}`,
+      expect(result.meanJudge.withContext.termAccuracy).toBeGreaterThanOrEqual(
+        MIN_PRIMARY_DIMENSION_SCORE,
       )
-      console.log(
-        `Judge (without): ${comparison.withoutContext.score.judge.overall}/5 — ${comparison.withoutContext.score.judge.reasoning}`,
-      )
-      console.log(
-        `Quality delta:   ${comparison.qualityDelta > 0 ? '+' : ''}${comparison.qualityDelta}`,
-      )
-
-      expect(comparison.withContext.score.pass).toBe(true)
-      expect(comparison.withContext.score.judge.termAccuracy).toBeGreaterThanOrEqual(4)
-      expect(comparison.qualityDelta).toBeGreaterThanOrEqual(0)
+      expect(result.meanJudge.withContext.overall).toBeGreaterThanOrEqual(MIN_JUDGE_OVERALL)
+      expect(result.meanQualityDelta).toBeGreaterThanOrEqual(MIN_MEAN_QUALITY_DELTA)
     },
-    120_000,
+    EVAL_CASE_TIMEOUT_MS,
   )
 })

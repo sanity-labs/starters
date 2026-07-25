@@ -1,4 +1,4 @@
-import {getClient} from './client'
+import {assertEvalCredentials, getClient} from './client'
 
 const SEED_PRODUCT = {
   _id: 'product-eval-source',
@@ -12,6 +12,9 @@ const SEED_PRODUCT = {
 }
 
 export async function setup() {
+  // Fail here, with the env vars named, rather than inside the first API call.
+  assertEvalCredentials()
+
   const client = getClient()
   await client.createIfNotExists(SEED_PRODUCT)
   console.log(`[eval:setup] Seeded ${SEED_PRODUCT._id}`)

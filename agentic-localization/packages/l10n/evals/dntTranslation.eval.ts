@@ -1,6 +1,14 @@
 import {describe, it, expect} from 'vitest'
 import {techGlossary, styleGuideForLocale, sourceTexts} from './fixtures'
-import {runBaselineComparison} from './model-scoring'
+import {
+  EVAL_CASE_TIMEOUT_MS,
+  MIN_DETERMINISTIC_PASS_FRACTION,
+  MIN_JUDGE_OVERALL,
+  MIN_MEAN_QUALITY_DELTA,
+  MIN_PRIMARY_DIMENSION_SCORE,
+  formatComparisonReport,
+  runSampledComparison,
+} from './model-scoring'
 import type {ModelEvalCase} from './model-eval-types'
 
 const cases: ModelEvalCase[] = [
@@ -54,28 +62,18 @@ describe('Model eval: DNT term preservation (Japanese)', () => {
   it.each(cases)(
     '$id: $description',
     async (evalCase) => {
-      const comparison = await runBaselineComparison(evalCase)
+      const result = await runSampledComparison(evalCase)
+      console.log(formatComparisonReport(evalCase, result))
 
-      console.log(`\n--- ${evalCase.id} ---`)
-      console.log(`With context:    "${comparison.withContext.translation.fieldText}"`)
-      console.log(`Without context: "${comparison.withoutContext.translation.fieldText}"`)
-      console.log(
-        `Deterministic (with): ${JSON.stringify(comparison.withContext.score.deterministic)}`,
+      expect(result.deterministicPassFraction).toBeGreaterThanOrEqual(
+        MIN_DETERMINISTIC_PASS_FRACTION,
       )
-      console.log(
-        `Judge (with):    ${comparison.withContext.score.judge.overall}/5 — ${comparison.withContext.score.judge.reasoning}`,
+      expect(result.meanJudge.withContext.preservation).toBeGreaterThanOrEqual(
+        MIN_PRIMARY_DIMENSION_SCORE,
       )
-      console.log(
-        `Judge (without): ${comparison.withoutContext.score.judge.overall}/5 — ${comparison.withoutContext.score.judge.reasoning}`,
-      )
-      console.log(
-        `Quality delta:   ${comparison.qualityDelta > 0 ? '+' : ''}${comparison.qualityDelta}`,
-      )
-
-      expect(comparison.withContext.score.pass).toBe(true)
-      expect(comparison.withContext.score.judge.preservation).toBeGreaterThanOrEqual(4)
-      expect(comparison.qualityDelta).toBeGreaterThanOrEqual(0)
+      expect(result.meanJudge.withContext.overall).toBeGreaterThanOrEqual(MIN_JUDGE_OVERALL)
+      expect(result.meanQualityDelta).toBeGreaterThanOrEqual(MIN_MEAN_QUALITY_DELTA)
     },
-    120_000,
+    EVAL_CASE_TIMEOUT_MS,
   )
 })

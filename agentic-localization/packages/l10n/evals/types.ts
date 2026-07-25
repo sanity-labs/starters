@@ -1,6 +1,17 @@
 import type {Glossary, StyleGuide} from '../src/promptAssembly'
 
 /**
+ * A required (or forbidden) term.
+ *
+ * A plain string is matched as a literal substring. An array is a set of
+ * accepted surface forms for the *same* term and matches if any one of them is
+ * present — inflected languages decline the approved glossary lemma, so
+ * "Datensätze" satisfies the approved term "Datensatz". Without this, a check
+ * passes or fails on whether the model happened to pick the singular.
+ */
+export type ExpectedTerm = string | string[]
+
+/**
  * An eval case defines a translation scenario and what the assembled prompt
  * should contain (with context) vs what it lacks (without context).
  *
@@ -17,8 +28,8 @@ export interface EvalCase {
   styleGuide?: StyleGuide
   /** What the assembled prompt SHOULD contain */
   expectations: {
-    shouldContain?: string[]
-    shouldNotContain?: string[]
+    shouldContain?: ExpectedTerm[]
+    shouldNotContain?: ExpectedTerm[]
     shouldMatchPattern?: RegExp[]
     description: string
   }
