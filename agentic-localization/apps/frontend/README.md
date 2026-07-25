@@ -20,6 +20,7 @@ echo 'SANITY_API_READ_TOKEN=your-token' >> .env.local
 
 ## How It Works
 
+- **Caching** — Cache Components (`cacheComponents: true`). Every page body is a `'use cache'` boundary; `<SanityLive />` expires the cache tags `sanityFetch` writes, so published edits appear without a redeploy
 - **Routes** — `[lang]/page.tsx` (article list), `[lang]/[slug]/page.tsx` (article detail), `[lang]/architecture/page.tsx` (architecture overview)
 - **Locale routing** — path prefix (`/en-US/`, `/de-DE/`) with `proxy.ts` redirecting unprefixed paths using the `NEXT_LOCALE` cookie
 - **Fallback content** — when a translation is missing, shows the source-language content with a banner indicating it's a fallback
@@ -39,10 +40,9 @@ src/
 │   ├── [slug]/page.tsx         Article detail with Portable Text
 │   └── architecture/page.tsx   Architecture documentation page
 ├── sanity/
-│   ├── client.ts               Sanity client setup
-│   ├── fetch.ts                Server-side fetch wrapper
+│   ├── live.ts                 Client + `defineLive` (sanityFetch, SanityLive)
 │   ├── queries.ts              GROQ queries for locales and articles
-│   └── types.ts                TypeScript types for query results
+│   └── types.ts                Query result types, wired into `sanityFetch`
 ├── components/
 │   ├── LocaleSwitcher.tsx      Locale dropdown navigation
 │   ├── ArticleCard.tsx         Article preview card

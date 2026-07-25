@@ -1,17 +1,27 @@
-import {sanityFetch} from '@/sanity/fetch'
+import {sanityFetch} from '@/sanity/live'
 import {ARTICLES_BY_LANGUAGE_QUERY} from '@/sanity/queries'
-import type {ArticleCard as ArticleCardType} from '@/sanity/types'
 import {ArticleCard} from '@/components/ArticleCard'
+import {SiteNav} from '@/components/SiteNav'
 
 export default async function HomePage({params}: {params: Promise<{lang: string}>}) {
   const {lang} = await params
+  return <ArticleList lang={lang} />
+}
 
-  const articles = await sanityFetch<ArticleCardType[]>(ARTICLES_BY_LANGUAGE_QUERY, {
-    language: lang,
+async function ArticleList({lang}: {lang: string}) {
+  'use cache'
+
+  const {data: articles} = await sanityFetch({
+    query: ARTICLES_BY_LANGUAGE_QUERY,
+    params: {language: lang},
+    perspective: 'published',
+    stega: false,
   })
 
   return (
-    <main>
+    <main className="animate-fade-in">
+      <SiteNav lang={lang} />
+
       <div className="mb-12">
         <h1 className="text-4xl font-bold tracking-tight">L10n Starter</h1>
         <p className="mt-3 text-lg text-[var(--color-text-secondary)] leading-relaxed">

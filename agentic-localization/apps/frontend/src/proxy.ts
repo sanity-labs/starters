@@ -16,5 +16,7 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next|favicon.ico|api).*)'],
+  // Anything with an extension is a file, not a page: sitemap.xml, robots.txt
+  // and favicon.ico must not be redirected under a locale prefix.
+  matcher: ['/((?!_next|api|.*\\.).*)'],
 }

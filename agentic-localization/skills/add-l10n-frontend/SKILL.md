@@ -21,11 +21,11 @@ plain Next app. Its only coupling to the Studio is by convention: the
 2. **Locales queried, not hardcoded.** `*[_type == "l10n.locale"]` — a new market
    appears when an editor adds a document, without a deploy.
 3. **Content filtered by `language`.** The document tier stores one document per
-   locale, all sharing a slug: `slug.current == $slug && language == $language`.
-   Field-tier types instead carry language-keyed arrays, which the frontend reads
-   by picking the matching `_key`.
-4. **An explicit fallback, surfaced.** A missing translation renders the source
-   language _and says so_. Silent fallback looks like a bug to the reader and
+   locale, **each with its own slug** — resolve a cross-locale link through
+   `translation.metadata`, never by reusing the current locale's slug. Field-tier
+   types instead carry language-keyed arrays, read by matching `_key`.
+4. **An explicit fallback, surfaced.** A missing translation renders the locale's
+   fallback _and says so_. Silent fallback looks like a bug to the reader and
    hides coverage gaps from the team.
 5. **Read-only.** No write token, no Studio imports, no mutations.
 
@@ -36,17 +36,23 @@ Already implemented. Modify these files rather than recreating them.
 | File                                                 | What it does                                                                                                               |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `apps/frontend/src/proxy.ts`                         | Next 16 proxy (the old `middleware.ts` convention): unprefixed path → 307 to `/{locale}`, reading the `NEXT_LOCALE` cookie |
-| `apps/frontend/src/sanity/fetch.ts`                  | `server-only` fetch wrapper; builds its own client, no `defineLive`                                                        |
-| `apps/frontend/src/sanity/queries.ts`                | `defineQuery` GROQ, locale-filtered, plus the fallback query and `DEFAULT_LANGUAGE`                                        |
-| `apps/frontend/src/sanity/types.ts`                  | Hand-written result types — the frontend is outside the typegen path                                                       |
-| `apps/frontend/src/sanity/client.ts`                 | A tagged client, currently unused by anything                                                                              |
-| `apps/frontend/src/app/[lang]/layout.tsx`            | `<html lang>`, nav, locale switcher; `generateStaticParams` from the locale query                                          |
+| `apps/frontend/src/sanity/live.ts`                   | The client and `defineLive({strict: true})` — `sanityFetch` and `<SanityLive />`, `server-only`                            |
+| `apps/frontend/src/sanity/queries.ts`                | `defineQuery` GROQ: the locale list, the article resolution query, the sitemap query, `DEFAULT_LANGUAGE`                   |
+| `apps/frontend/src/sanity/locales.ts`                | Fallback-chain walk (multi-hop, cycle-safe) and the sibling list for a document                                            |
+| `apps/frontend/src/sanity/types.ts`                  | Result types, wired into `sanityFetch` by augmenting `SanityQueries` — the frontend is outside the typegen path            |
+| `apps/frontend/src/app/[lang]/layout.tsx`            | `<html lang>`, `metadataBase`, `<SanityLive />`; `generateStaticParams` from the locale query                              |
 | `apps/frontend/src/app/[lang]/page.tsx`              | Article list for the locale                                                                                                |
-| `apps/frontend/src/app/[lang]/[slug]/page.tsx`       | Detail view, and the fallback decision                                                                                     |
-| `apps/frontend/src/components/LocaleSwitcher.tsx`    | Swaps the first path segment, persists `NEXT_LOCALE`, flags via `Intl.Locale`                                              |
-| `apps/frontend/src/components/FallbackBanner.tsx`    | The "this is the source language" notice                                                                                   |
+| `apps/frontend/src/app/[lang]/[slug]/page.tsx`       | Detail view: slug resolution, stale-URL redirect, the fallback decision, hreflang metadata                                 |
+| `apps/frontend/src/app/sitemap.ts`                   | Per-locale entries with `alternates.languages`                                                                             |
+| `apps/frontend/src/components/SiteNav.tsx`           | Nav rendered per page — only a page knows the current document's slug in the other locales                                 |
+| `apps/frontend/src/components/LocaleSwitcher.tsx`    | Links each locale to its own slug, persists `NEXT_LOCALE`, flags via `Intl.Locale`                                         |
+| `apps/frontend/src/components/FallbackBanner.tsx`    | The "this is not a translation" notice                                                                                     |
 | `apps/frontend/src/components/PortableText.tsx`      | Portable Text renderer                                                                                                     |
 | `apps/frontend/src/app/[lang]/architecture/page.tsx` | An in-app illustrated tour. Prose, not a source of truth — parts of it lag the code                                        |
+
+Every page body is a `'use cache'` boundary (`cacheComponents: true`), and
+`sanityFetch` calls `cacheTag`/`cacheLife` — so it only works inside one. Read
+`draftMode()` and `cookies()` outside the boundary and pass the result in.
 
 Two known rough edges worth fixing rather than copying: `DEFAULT_LANGUAGE` is
 hardcoded in both `queries.ts` and `proxy.ts` rather than derived from the locale
@@ -71,11 +77,14 @@ depends on. Then map four concerns onto your framework:
 Verify by behaviour, not by file count:
 
 1. `/` redirects to the default locale.
-2. Switching locale changes both URL and rendered content.
+2. Switching locale on a translated document lands on **that locale's slug**, not
+   a 404 built from the current locale's slug.
 3. A document translated into only some locales renders the fallback plus its
-   banner in the others, and 404s when the source is missing too.
+   banner in the others, and 404s when the chain runs out.
 4. Adding an `l10n.locale` document in the Studio makes a new locale reachable
    without a code change.
+5. Each page emits a per-locale canonical and `hreflang` alternates pointing at
+   each sibling's own URL, plus `x-default`.
 
 ## Companion skills
 

@@ -1,6 +1,7 @@
 import type {Metadata} from 'next'
 import Link from 'next/link'
 import {DEFAULT_LANGUAGE} from '@/sanity/queries'
+import {SiteNav} from '@/components/SiteNav'
 
 export const metadata: Metadata = {
   title: 'How It Works — L10n Starter',
@@ -107,9 +108,16 @@ function Badge({children}: {children: React.ReactNode}) {
 
 export default async function ArchitecturePage({params}: {params: Promise<{lang: string}>}) {
   const {lang} = await params
+  return <ArchitectureContent lang={lang} />
+}
+
+async function ArchitectureContent({lang}: {lang: string}) {
+  'use cache'
 
   return (
-    <div className="pb-20">
+    <div className="animate-fade-in pb-20">
+      <SiteNav lang={lang} />
+
       <Link
         href={`/${lang}`}
         className="group inline-flex items-center gap-1 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-[color] duration-[var(--transition-fast)] mb-10"
@@ -425,8 +433,9 @@ defineField({
         {`src/
 ├── proxy.ts                   # / → /{preferred locale} redirect
 └── app/
+    ├── sitemap.ts             # Per-locale entries + hreflang alternates
     └── [lang]/
-        ├── layout.tsx         # <html lang={lang}>, locale switcher
+        ├── layout.tsx         # <html lang={lang}>, Sanity Live
         ├── page.tsx           # Article list for this locale
         ├── architecture/
         │   └── page.tsx       # This page
@@ -454,26 +463,42 @@ defineField({
   | order(publishedAt desc) {
     _id, title, "slug": slug.current,
     excerpt, publishedAt, language
-  }
+  }`}
+      </CodeBlock>
 
-// Single article by slug + locale
-*[_type == "article"
-  && slug.current == $slug
-  && language == $language][0] {
-    _id, title, body, "author": author->{ name }
+      <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
+        A single article is different. Each locale has its <strong>own slug</strong>, so a URL
+        identifies a locale&apos;s rendition, not a document. Ordering the candidates by the
+        requested language — rather than filtering on it — lets one query answer both &ldquo;this
+        locale owns the slug&rdquo; and &ldquo;another one does, here are its siblings.&rdquo;
+      </p>
+
+      <CodeBlock title="Resolving one article and every sibling — queries.ts">
+        {`*[_type == "article" && slug.current == $slug]
+  | order(select(language == $language => 0, 1) asc)[0] {
+    _id, title, body, "author": author->{ name },
+    // Every locale this document exists in, via the join document
+    "translations": *[_type == "translation.metadata"
+      && references(^._id)][0]
+      .translations[defined(value->slug.current)]
+      .value->{ "language": language, "slug": slug.current },
+    "locales": *[_type == "l10n.locale"] | order(title asc) {
+      code, title, nativeName, "fallback": fallback->code
+    }
   }`}
       </CodeBlock>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
         The locale switcher dynamically populates from Sanity — no hardcoded locale list in the
-        frontend:
+        frontend — and links each locale to its own slug:
       </p>
 
       <CodeBlock title="Fetching available locales">
         {`*[_type == "l10n.locale"] | order(title asc) {
   code,       // "en-US", "de-DE", etc.
   title,      // "English (United States)"
-  nativeName  // "English"
+  nativeName, // "English"
+  "fallback": fallback->code
 }`}
       </CodeBlock>
 
@@ -487,21 +512,18 @@ defineField({
       <Card className="mb-6">
         <div className="space-y-3 text-sm">
           <p>
-            <strong>Step 1:</strong> Query for the article in the requested locale.
+            <strong>Step 1:</strong> Resolve the slug. If the requested locale owns it, render.
           </p>
           <p>
-            <strong>Step 2:</strong> If null and locale is not the default, re-query with{' '}
-            <code className="text-xs bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
-              language == &quot;en-US&quot;
-            </code>
-            .
+            <strong>Step 2:</strong> If the requested locale has this document under a{' '}
+            <em>different</em> slug, redirect to that URL — the link was stale, not broken.
           </p>
           <p>
-            <strong>Step 3:</strong> Render with a banner: &ldquo;This article is not yet available
-            in [locale]. Showing the English version.&rdquo;
+            <strong>Step 3:</strong> Otherwise walk the locale&apos;s fallback chain and render the
+            first sibling that exists, with a banner naming the locale it came from.
           </p>
           <p>
-            <strong>Step 4:</strong> If still null, show 404.
+            <strong>Step 4:</strong> If the chain runs out, show 404.
           </p>
         </div>
       </Card>
@@ -552,16 +574,9 @@ defineField({
       </Card>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
-        This starter keeps things simple: the frontend falls back directly to{' '}
-        <code className="text-sm bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
-          en-US
-        </code>{' '}
-        in a single step. For production, you could resolve the full chain by fetching the locale
-        document first, following its{' '}
-        <code className="text-sm bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
-          fallback
-        </code>{' '}
-        reference, and querying each locale in sequence until content is found.
+        The frontend walks that chain hop by hop, stops if the references form a cycle, and treats
+        the source locale as the last resort. Every locale document comes back with the article
+        query, so following the chain costs no extra round trip.
       </p>
 
       <SectionHeading id="translation">AI-powered translation</SectionHeading>
@@ -869,8 +884,7 @@ defineField({
         <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/40 px-4 py-2.5 text-center">
           <p className="text-xs text-[var(--color-text-secondary)]">
             <span className="font-semibold text-[var(--color-text-primary)]">LocaleSwitcher</span>{' '}
-            &mdash; reads locales from Sanity, swaps <span className="font-mono">/[lang]/</span>{' '}
-            path segment
+            &mdash; reads locales from Sanity, links each one to its own slug
           </p>
         </div>
       </div>

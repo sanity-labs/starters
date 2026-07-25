@@ -76,6 +76,14 @@ export default defineBlueprint({
       allowCredentials: true,
     }),
 
+    // Frontend dev server — Sanity Live opens a browser connection to the Live
+    // Content API, so the origin has to be allowed even for published content.
+    defineCorsOrigin({
+      name: 'frontend-dev',
+      origin: 'http://localhost:3000',
+      allowCredentials: true,
+    }),
+
     // ── Robot Token ──────────────────────────────────────────────────
     defineRobotToken({
       name: 'fn-robot',
