@@ -375,6 +375,13 @@ anyway. Anything that builds an engine by hand needs the same wiring.
 - pnpm 10.30 reads `overrides` from **`pnpm-workspace.yaml`**, not `package.json` —
   and overrides do **not** reach auto-installed peers. Declare such peers
   explicitly instead (that is why `@sanity/language-filter` is a direct dep).
+- **`sanity.types.ts` is generated AND gitignored, so a stale one hides a broken
+  typegen config.** After the `l10n` → `l10n-studio` split, `sanity.cli.ts`'s
+  typegen `path` still read `../packages/l10n/src/**`, which stopped scanning
+  `useTranslationTargets.ts` — but the checked-out artifact predated the split and
+  still carried its two query result types, so `pnpm -r typecheck` stayed green
+  and only a regeneration failed. The glob is now `../packages/l10n*/src/**`. Run
+  `pnpm typegen` before trusting a typecheck after any file move.
 - The starter has **no committed lockfile** (`*/pnpm-lock.yaml` is gitignored), so
   CI resolves fresh from catalog ranges every run. Version drift will surface in CI
   spontaneously.
@@ -610,6 +617,75 @@ lines across the whole change, net −3,073).
   translated bios stay — they are content;
   `buildFieldTranslationBriefs` is now `buildPersonBioBriefs` and returns only
   those.
+
+### PR 7 — the learning loop — DONE (as built)
+
+`docs/decisions/adr-002-learning-loop.md` is the decision; this is what shipped.
+An **observer of finished runs**, not a phase of one: the definitions did not
+change, and the loop's failure budget never touches a localization.
+
+- **One directory plus one Function.** `packages/l10n/src/distill/` (exported as
+  `@starter/l10n/distill`) and `functions/distill-review/`. Deleting the loop is
+  those two paths plus one blueprint resource — the deletable-in-three-steps
+  constraint, honoured.
+- **The gate is pure and runs before any spend** (`core/distillDelta.ts`,
+  33 specs): NFC normalize, collapse whitespace, drop punctuation/casing/
+  reordering-only spans, drop spans in fields the SOURCE moved since
+  `analyzedRev`, skip below 3 changed words, classify a locale style-only above a
+  0.8 changed-word ratio (added + removed over both sides' word counts, so a
+  wholesale rewrite reads as 1.0 whatever the length). A reviewer who fixed a
+  comma costs nothing.
+- **One `agent.action.prompt` for the whole run**, all locales together — the
+  interesting signal is cross-locale, and per-locale prompting would scale cost
+  with the fan-out. The response is disbelieved by default: a term must appear
+  verbatim in the source and its correction verbatim in what the human approved,
+  the locale must be in `l10n.locale`, and the kind must be one of two the model
+  is allowed to propose. `eval-case` is not one of them.
+- **Claim first, always.** `client.create` at
+  `l10n.distillation.<sha256(instanceId)[0,16]>` — the `start-localization`
+  sha-id precedent — is the first thing that touches this run; a 409 is a
+  redelivery and exits. The claim document IS the audit record (run, locales,
+  `aiSpent`, `proposals`, `skipReason`, `status`), and a throw after it is
+  recorded as `status: 'failed'` rather than vanishing. Swept by prefix and date
+  at the front of the same Function; no second deployment.
+- **`doNotTranslate` cannot be proposed and cannot be accepted.** Enforced at
+  entry (`validateRow`) and absent from every document builder, with tests on
+  both. Pinning a phrase in the source language is a brand decision and a diff
+  is not evidence of one.
+- **Safety findings from the grill, fixed with failing tests first.** A
+  `provisional` do-not-translate entry reached `protectedPhrases` — `isReviewed`
+  now gates every prompt path, `doNotTranslate` included (three tests were red).
+  `coalesce(status, "approved")` stays for hand-authored glossaries, and the
+  Accept action therefore writes `status: 'approved'` **explicitly**, asserted.
+  `translateLocale`'s glossary and style-guide reads now name
+  `perspective: 'published'` rather than inheriting the client's default; the
+  shared query stays perspective-neutral because `L10nProvider` needs it
+  draft-aware.
+- **Both tiers and both scopes gather.** Document tier: two whole documents,
+  machine side read at the child's `machineRev` on the DRAFT id it belongs to.
+  Field tier: both sides reduced to the locale under test with
+  `sourceProjection`, so the run cannot see its own English as an edit. Release
+  scope: the target is `versions.<release>.<id>`, read `raw`. Campaign runs are
+  distilled like any other — not excluded.
+- **Degrade, never guess.** A `machineRev` outside the retention window (404)
+  drops its locale and, if none survive, reports `history-unavailable`; a
+  non-404 is a real fault and propagates. Source drift with an unreadable
+  `analyzedRev` reports `source-drift` and proposes nothing.
+- **Free eval cases.** A locale the reviewer approved verbatim needs no AI at
+  all: it is harvested as coordinates (`locale, targetId, targetRev, sourceRev`),
+  one document per clean locale. Accepting one publishes it — the harvested
+  corpus is the published set; the other two kinds are appended to a target and
+  deleted.
+- **Proposal ids are content-addressed** — `sha256(kind|term-or-rule|locale|
+correctedForm)` — so two runs reaching the same conclusion write one draft whose
+  `occurrences` counts how often a human has made that correction. That count is
+  what the Studio's Proposals list sorts by.
+- **Specs**: `distillTrigger.test.ts` bench-proves that `APPROVED_STAGE` is a real
+  terminal stage with nothing left pending, that every subworkflow row resolves
+  with `stage: 'translated'`, that `buildLocaleRuns` carries `machineRev` and a
+  target through, and that a settled effect leaves `ranAt` and **no**
+  `durationMs`. Plus 33 gate specs, 30 proposal specs, 24 handler specs against
+  stand-in clients, and one e2e journey (J7) driving the real Function.
 
 ---
 

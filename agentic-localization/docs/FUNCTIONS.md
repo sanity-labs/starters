@@ -1,6 +1,6 @@
 # Sanity Functions
 
-Four [Functions](https://www.sanity.io/docs/functions) are the runtime of the
+Five [Functions](https://www.sanity.io/docs/functions) are the runtime of the
 Editorial Workflows engine — it has no daemon of its own. Triggers, filters,
 timeouts and env are declared in [`sanity.blueprint.ts`](../sanity.blueprint.ts),
 which is the source of truth; this page says what each one is _for_.
@@ -10,14 +10,16 @@ which is the source of truth; this page says what each one is _for_.
 | `drain-effects`          | write to a `sanity.workflow.instance` carrying pending effects (workflows dataset) | `drainEffects` then `tick`. The definitions keep at most one effect pending per instance, so an invocation is at most one AI call.                             |
 | `start-localization`     | publish of a source `article`                                                      | `startInstance` under a revision-derived id (start's idempotency key). A run already open is `tick`ed instead, which is what makes `sourceChanged` observable. |
 | `handle-deleted-subject` | delete of an `article`                                                             | `abortInstance` on every run watching the deleted document. A deleted source would otherwise park its run in review forever.                                   |
+| `distill-review`         | instance reaching `approved` (workflows dataset)                                   | `distillReview` — diff the machine draft against the approved text, gate before spending, write DRAFT `l10n.proposal` documents. At most one AI call per run.  |
 | `heartbeat`              | every 15 minutes (`defineScheduleFunction`, `@alpha`)                              | `sweepStaleClaims` → `drainEffects` → `tick` across in-flight instances. Best-effort: the pipeline runs without it.                                            |
 
-All four construct the same engine through
+All five construct the same engine through
 [`functions/engine.ts`](../functions/engine.ts). The effect handlers it registers
 are `@starter/l10n/effects`; the definitions they satisfy are
-`@starter/l10n/workflows`. See
+`@starter/l10n/workflows`; the learning loop is `@starter/l10n/distill`. See
 [WORKFLOW_ENGINE_MIGRATION.md](WORKFLOW_ENGINE_MIGRATION.md) for the engine
-behaviour behind these choices.
+behaviour behind these choices, and
+[adr-002](decisions/adr-002-learning-loop.md) for the loop.
 
 ```
 article (en-US) published            article deleted        every 15 min
@@ -27,9 +29,16 @@ article (en-US) published            article deleted        every 15 min
         │ startInstance / tick            abortInstance      sweep + drain + tick
         ▼
  workflow instance ──(pending effect)──▶ drain-effects ──▶ handler ──▶ instance
-                                              ▲                            │
-                                              └────────────────────────────┘
+        │                                     ▲                            │
+        │                                     └────────────────────────────┘
+        └──(currentStage == approved)──▶ distill-review ──▶ drafts.l10n.proposal.*
 ```
+
+`distill-review` is the only one triggered by the engine's own dataset rather than
+by content, so it is the only one that has to be told where content lives
+(`CONTENT_DATASET_NAME`). It reaches the content dataset with a plain sibling
+client; the others need `projectResourceClients` because the engine gates every
+ref they supply on the declared resource surface.
 
 ---
 

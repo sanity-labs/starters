@@ -1,6 +1,7 @@
 # ADR-002: The learning loop is a content-native observer with engine-captured revisions
 
-Date: 2026-07-25 · Status: accepted (machineRev shipped; observer implements after e2e)
+Date: 2026-07-25 · Status: accepted — built (`packages/l10n/src/distill/`,
+`functions/distill-review/`; see WORKFLOW_ENGINE_MIGRATION.md §5, PR 7)
 
 ## Decision
 
@@ -67,3 +68,25 @@ sourceRev`), materialized into fixtures by a script; approved runs with
   zero human edits are free deterministic eval cases.
 - The qualityDelta trend across the growing harvested corpus is the loop's
   health metric.
+
+## Resolved during implementation
+
+- **Accepting an eval case publishes it.** The other two kinds are appended to a
+  glossary or style-guide draft and the proposal is deleted, but an eval case has
+  no target — its value _is_ its coordinates. Publishing is what tells the
+  fixture script a harvested case from one awaiting review, and Reject still
+  deletes. The ADR left this unstated.
+- **One eval case per clean locale**, not one per run: the coordinates are
+  per-locale, so per-run has no shape to be written in.
+- **The changed-word ratio is over both sides' word counts.** Added + removed
+  over `machine + human` words, so a same-length wholesale swap is 1.0 and a
+  one-word fix in a sentence is a small fraction. Over the longer side alone, a
+  full swap scores 2.0 and every rewrite-plus-correction pair would be
+  misclassified as style-only.
+- **A non-404 History failure is not `history-unavailable`.** Swallowing every
+  error would report a bad token as "nothing to learn" — the silence that makes a
+  dead loop look healthy. Only 404 degrades.
+- **The Function needs one injectable dependency.** The loop makes an Agent
+  Actions call, so the e2e suite must own its content client;
+  `createDistillHandler(clientFor)` takes it and `handler` is the production
+  wiring. The deployed artifact has no test-only branch.
