@@ -110,6 +110,31 @@ test('a locale run can report progress while translating', async () => {
   expect(settled.fields.find((entry) => entry.name === 'translationProgress')?.value).toBe(100)
 })
 
+test('a locale run records the revision its machine output was written at', async () => {
+  const {bench, instanceId} = await reachTranslating()
+  const [child] = await bench.children({instanceId})
+
+  await bench.completePendingEffect({
+    instanceId: child._id,
+    effect: TRANSLATE_LOCALE,
+    status: 'done',
+    ops: [
+      {
+        type: 'field.set',
+        target: {scope: 'workflow', field: 'machineRev'},
+        value: {type: 'literal', value: 'rev-machine-de'},
+      },
+    ],
+  })
+
+  // The learning loop diffs machine output against the text the reviewer
+  // approved, so the revision has to outlive the effect on the child instance —
+  // readable from the same scope the engine's conditions see.
+  expect(await bench.queryInScope({instanceId: child._id, groq: '$fields.machineRev'})).toBe(
+    'rev-machine-de',
+  )
+})
+
 test('progress outside 0-100 is refused', async () => {
   const {bench, instanceId} = await reachTranslating()
   const [child] = await bench.children({instanceId})

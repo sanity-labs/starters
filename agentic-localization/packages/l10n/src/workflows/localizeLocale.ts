@@ -57,6 +57,9 @@ export const localizeLocale = defineWorkflow({
     }),
     // Written by the effect once the translated document exists.
     defineField({type: 'doc.ref', name: 'target', title: 'Translated document'}),
+    // Captured at translate-completion because that is the only moment machine
+    // output is unambiguous — the next writer is the reviewer.
+    defineField({type: 'string', name: 'machineRev', title: 'Machine draft revision'}),
     defineField({type: 'progress', name: 'translationProgress', title: 'Translation progress'}),
   ],
   stages: [

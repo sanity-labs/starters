@@ -53,6 +53,12 @@ const METADATA_TYPE = 'translation.metadata'
 type LocaleRow = {code: string; title: null | string}
 type TranslationRow = {language: null | string; ref: null | string}
 
+/** What a tier leaves behind: where the translation landed, and at which revision. */
+interface TranslationWrite {
+  machineRev: null | string
+  targetPublishedId: string
+}
+
 /** Everything both tiers need, resolved once before the branch. */
 interface TranslationJob {
   client: ContentClient
@@ -123,19 +129,24 @@ export const translateLocale: EffectHandler = async (params, ctx) => {
   }
 
   const fields = internationalizedFields(documentType)
-  const targetPublishedId =
+  const {machineRev, targetPublishedId} =
     fields.length > 0 ? await translateInPlace(job, fields) : await translateIntoSibling(job)
 
   await ctx.setProgress('translationProgress', 100)
 
-  return {ops: [targetOp(siblingGdr(source, targetPublishedId), documentType)]}
+  const ops: FieldOp[] = [targetOp(siblingGdr(source, targetPublishedId), documentType)]
+  // Absent only when the write was a no-op — a redelivery that found the
+  // version it had already created. There is no revision of its own to record.
+  if (machineRev) ops.push(machineRevOp(machineRev))
+  return {ops}
 }
 
 /**
  * The document tier: one document per locale, joined on `translation.metadata`.
- * Returns the published id of the translated document.
+ * Returns the published id of the translated document, and the revision the
+ * machine draft was written at.
  */
-async function translateIntoSibling(job: TranslationJob): Promise<string> {
+async function translateIntoSibling(job: TranslationJob): Promise<TranslationWrite> {
   const {client, ctx, documentType, locale, publishedSourceId, release} = job
 
   const metadata = await client.fetch<null | {translations: null | TranslationRow[]}>(
@@ -193,8 +204,9 @@ async function translateIntoSibling(job: TranslationJob): Promise<string> {
 
   const document = {...processed, _type: documentType, [LANGUAGE_FIELD_PATH]: locale}
 
+  let machineRev: null | string
   if (release) {
-    await createVersion(client, {
+    machineRev = await createVersion(client, {
       document: {
         ...document,
         _id: getVersionId(DocumentId(targetPublishedId), release.releaseName),
@@ -203,10 +215,12 @@ async function translateIntoSibling(job: TranslationJob): Promise<string> {
       log: ctx.log,
     })
   } else {
-    await client.createOrReplace(
+    // A mutation answers with the document it wrote, `_rev` and all.
+    const written = await client.createOrReplace(
       {...document, _id: getDraftId(DocumentId(targetPublishedId))},
       {tag: 'write-draft'},
     )
+    machineRev = written._rev
   }
 
   // A locale the join document had never heard of. Registering it is what makes
@@ -221,13 +235,14 @@ async function translateIntoSibling(job: TranslationJob): Promise<string> {
     })
   }
 
-  return targetPublishedId
+  return {machineRev, targetPublishedId}
 }
 
 /**
  * The field tier: every locale lives in the subject, so this child writes
  * entries into the subject's own draft (or release version) rather than a
- * document of its own. Returns the subject's published id.
+ * document of its own. Returns the subject's published id, and the revision its
+ * locale entries landed at.
  *
  * Sibling locale children run concurrently against that one document. They do
  * not conflict: each patch touches only its own locale's entries, and a Content
@@ -237,7 +252,7 @@ async function translateIntoSibling(job: TranslationJob): Promise<string> {
 async function translateInPlace(
   job: TranslationJob,
   fields: InternationalizedField[],
-): Promise<string> {
+): Promise<TranslationWrite> {
   const {client, ctx, locale, publishedSourceId, release, sourceDoc} = job
 
   // Only the fields that carry source content: an empty bio has nothing to
@@ -319,7 +334,16 @@ async function translateInPlace(
   }
   await tx.commit({autoGenerateArrayKeys: true, tag: 'write-locale-entries'})
 
-  return publishedSourceId
+  // A commit answers with its transaction, not with the document it patched, so
+  // the revision the entries landed at costs one read. `raw`: `targetId` is a
+  // literal draft or version id, which a resolving perspective never matches.
+  const machineRev = await client.fetch<null | string>(
+    `*[_id == $targetId][0]._rev`,
+    {targetId},
+    {perspective: 'raw', tag: 'read-machine-rev'},
+  )
+
+  return {machineRev, targetPublishedId: publishedSourceId}
 }
 
 /** The half of `buildTranslateParams` neither tier varies. */
@@ -451,6 +475,12 @@ function withRevisionNote(styleGuide: string | undefined, note: null | string): 
   return styleGuide ? `${styleGuide}\n\n${section}` : section
 }
 
+/**
+ * Returns the revision the version was written at, or null when nothing was
+ * written. The actions API answers with the id of the transaction it committed,
+ * which is the revision that transaction stamped on the document — the same
+ * identifier the History API reads a revision back by.
+ */
 async function createVersion(
   client: {action: (action: unknown, options?: {tag?: string}) => Promise<unknown>},
   args: {
@@ -458,9 +488,9 @@ async function createVersion(
     publishedId: string
     log: (message: string) => void
   },
-): Promise<void> {
+): Promise<null | string> {
   try {
-    await client.action(
+    const result = await client.action(
       {
         actionType: 'sanity.action.document.version.create',
         document: args.document,
@@ -468,12 +498,19 @@ async function createVersion(
       },
       {tag: 'write-to-release'},
     )
+    return transactionIdOf(result)
   } catch (err) {
     // A redelivered effect finds the version it already created. The engine
     // guarantees at-least-once, so this is an expected outcome, not a failure.
     if (!isConflict(err)) throw err
     args.log(`Version ${args.document._id} already exists`)
+    return null
   }
+}
+
+function transactionIdOf(result: unknown): null | string {
+  if (typeof result !== 'object' || result === null || !('transactionId' in result)) return null
+  return typeof result.transactionId === 'string' ? result.transactionId : null
 }
 
 function isConflict(err: unknown): boolean {
@@ -485,5 +522,14 @@ function targetOp(id: GdrUri, type: string): FieldOp {
     type: 'field.set',
     target: {scope: 'workflow', field: 'target'},
     value: {type: 'literal', value: {id, type}},
+  }
+}
+
+/** The revision the machine output was written at, for the learning loop to diff against. */
+function machineRevOp(rev: string): FieldOp {
+  return {
+    type: 'field.set',
+    target: {scope: 'workflow', field: 'machineRev'},
+    value: {type: 'literal', value: rev},
   }
 }

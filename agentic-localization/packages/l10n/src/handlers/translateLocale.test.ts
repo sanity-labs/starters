@@ -52,6 +52,11 @@ const STYLE_GUIDE: StyleGuide = {
 
 const TRANSLATED = {_id: 'drafts.article-1-de', _type: 'article', title: 'Der Acme Widget Start'}
 
+/** What each write path reports the machine output landed at. */
+const DRAFT_REV = 'rev-draft-de'
+const VERSION_REV = 'rev-version-de'
+const ENTRIES_REV = 'rev-entries-de'
+
 /**
  * Records the patch chain `tx.patch(id, (p) => …)` builds, so a test can assert
  * both what was written and in what order.
@@ -101,12 +106,13 @@ function harness(
   })
 
   const contentClient = {
-    action: vi.fn().mockResolvedValue({}),
+    action: vi.fn().mockResolvedValue({transactionId: VERSION_REV}),
     agent: {action: {prompt: vi.fn(), translate}},
     create: vi.fn(),
     createIfNotExists: vi.fn(),
-    createOrReplace: vi.fn().mockResolvedValue({}),
+    createOrReplace: vi.fn().mockResolvedValue({_rev: DRAFT_REV}),
     fetch: vi.fn().mockImplementation((query: string) => {
+      if (query.includes('._rev')) return Promise.resolve(ENTRIES_REV)
       if (query.includes('l10n.glossary')) return Promise.resolve([GLOSSARY])
       if (query.includes('l10n.styleGuide')) return Promise.resolve(STYLE_GUIDE)
       if (query.includes('l10n.locale')) {
@@ -252,7 +258,32 @@ describe('translate-locale', () => {
             value: {id: 'dataset:proj1:production:article-1-de', type: 'article'},
           },
         },
+        // The revision the draft was written at, taken from the write itself:
+        // the reviewer is the next writer, so this is the last moment the
+        // machine output is unambiguously the machine's.
+        {
+          type: 'field.set',
+          target: {scope: 'workflow', field: 'machineRev'},
+          value: {type: 'literal', value: DRAFT_REV},
+        },
       ],
+    })
+  })
+
+  it('records the revision the version write committed', async () => {
+    const {ctx} = harness()
+
+    const result = await translateLocale(
+      {source: SOURCE, locale: 'de-DE', release: RELEASE, revisionNote: null},
+      ctx,
+    )
+
+    // A version action answers with its transaction id, which is the revision
+    // that transaction stamped on the document it wrote.
+    expect(result?.ops).toContainEqual({
+      type: 'field.set',
+      target: {scope: 'workflow', field: 'machineRev'},
+      value: {type: 'literal', value: VERSION_REV},
     })
   })
 
@@ -289,9 +320,23 @@ describe('translate-locale', () => {
     const {contentClient, ctx} = harness()
     contentClient.action.mockRejectedValue(Object.assign(new Error('conflict'), {statusCode: 409}))
 
-    await expect(
-      translateLocale({source: SOURCE, locale: 'de-DE', release: RELEASE, revisionNote: null}, ctx),
-    ).resolves.toBeDefined()
+    const result = await translateLocale(
+      {source: SOURCE, locale: 'de-DE', release: RELEASE, revisionNote: null},
+      ctx,
+    )
+
+    // The effect still completes, but this delivery wrote nothing, so it has no
+    // revision of its own to record.
+    expect(result?.ops).toEqual([
+      {
+        type: 'field.set',
+        target: {scope: 'workflow', field: 'target'},
+        value: {
+          type: 'literal',
+          value: {id: 'dataset:proj1:production:article-1-de', type: 'article'},
+        },
+      },
+    ])
   })
 
   it('rethrows a version write that failed for any other reason', async () => {
@@ -591,8 +636,30 @@ describe('translate-locale, field tier', () => {
             value: {id: 'dataset:proj1:production:person-1', type: 'person'},
           },
         },
+        {
+          type: 'field.set',
+          target: {scope: 'workflow', field: 'machineRev'},
+          value: {type: 'literal', value: ENTRIES_REV},
+        },
       ],
     })
+  })
+
+  it('reads back the revision its locale entries landed at', async () => {
+    const {contentClient, ctx} = personHarness()
+
+    await translateLocale(
+      {source: PERSON_SOURCE, locale: 'de-DE', release: RELEASE, revisionNote: null},
+      ctx,
+    )
+
+    // The commit reports its transaction, not the document, so the revision
+    // costs a read — of the literal version id, hence the raw perspective.
+    expect(contentClient.fetch).toHaveBeenCalledWith(
+      '*[_id == $targetId][0]._rev',
+      {targetId: 'versions.summer.person-1'},
+      {perspective: 'raw', tag: 'read-machine-rev'},
+    )
   })
 
   it('never touches the translation.metadata join document', async () => {
