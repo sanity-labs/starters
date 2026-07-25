@@ -269,7 +269,7 @@ _either_ the workspace or the root.
 **Good** — the two-directory / two-suffix cascade in
 `agentic-localization/studio/sanity.cli.ts:3-11`, mirrored in
 `apps/frontend/next.config.ts` and the manual jiti parse in
-`sanity.blueprint.ts:9-24`; infrastructure declared in the blueprint rather than
+`sanity.blueprint.ts`; infrastructure declared in the blueprint rather than
 listed as README prose.
 
 **Slop signature** — a README with manual `sanity dataset create` steps the

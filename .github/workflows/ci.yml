@@ -46,9 +46,10 @@ jobs:
         run: pnpm --filter @starter/functions build
       - name: Check function bundle sizes
         run: |
-          # A ratchet over the current worst bundle (heartbeat, ~837 KB), not a
-          # target. Before the build step above, functions/dist did not exist in
-          # CI, so the loop matched nothing and this check never ran.
+          # A ratchet over the current worst bundle (drain-effects, ~851 KB —
+          # it registers the effect handlers), not a target. Before the build
+          # step above, functions/dist did not exist in CI, so the loop matched
+          # nothing and this check never ran.
           max_kb=896
           failed=0
           for dir in functions/dist/*/; do
