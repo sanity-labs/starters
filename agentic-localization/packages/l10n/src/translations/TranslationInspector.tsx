@@ -1,25 +1,26 @@
 /**
  * Translation Inspector — Document inspector wrapper.
  *
- * Routes between two rendering paths:
- * - Doc-level: documents in `internationalizedTypes` → existing TranslationContent
- * - Field-level: documents with `internationalizedArray*` fields → FieldTranslationContent
- * - Both: (future) tab switcher
+ * Routes between the two localization tiers:
+ * - document tier (`internationalizedTypes`, e.g. `article`) → `TranslationContent`
+ * - field tier (`internationalizedArray` fields, e.g. `person`) → `FieldTierContent`
  *
- * Doc-level path uses useDocumentLanguage to fetch the language field from form state.
- * Field-level path needs no language field — translations are inline arrays.
+ * Both render the same open `localize-document` run; they differ only in where a
+ * locale's translation lives. The document tier needs the subject's language
+ * field to tell a source from a translation, which the field tier has no use for
+ * — its locales are entries in the one document.
  */
 
 import {ErrorOutlineIcon} from '@sanity/icons'
 import {Box, Card, Flex, Spinner, Stack, Text} from '@sanity/ui'
 import type {DocumentInspectorProps} from 'sanity'
 
-import {ErrorBoundary} from './ErrorBoundary'
-import {TranslationContent} from './TranslationContent'
-import {FieldTranslationContent} from './FieldTranslationContent'
+import {isFieldTier} from '../core/fieldTier'
 import type {ResolvedTranslationsConfig} from '../core/types'
+import {ErrorBoundary} from './ErrorBoundary'
+import {FieldTierContent} from './FieldTierContent'
+import {TranslationContent} from './TranslationContent'
 import {useDocumentLanguage} from './useDocumentLanguage'
-import {useInternationalizedFields} from '../fieldActions/useInternationalizedFields'
 
 interface TranslationInspectorInternalProps extends DocumentInspectorProps {
   config: ResolvedTranslationsConfig
@@ -31,14 +32,12 @@ function TranslationInspectorInternal({
   onClose,
   config,
 }: TranslationInspectorInternalProps) {
-  const isDocLevel = config.internationalizedTypes.includes(documentType)
-  const i18nFields = useInternationalizedFields(documentType)
-  const hasFieldLevel = i18nFields.length > 0
-
-  // Field-level only — no language field needed
-  if (hasFieldLevel && !isDocLevel) {
+  // A type could in principle be both; the document tier owns it if so, because
+  // its language field is what identifies the source everything else hangs off.
+  if (config.internationalizedTypes.includes(documentType)) {
     return (
-      <FieldTranslationContent
+      <DocLevelInspector
+        config={config}
         documentId={documentId}
         documentType={documentType}
         onClose={onClose}
@@ -46,14 +45,13 @@ function TranslationInspectorInternal({
     )
   }
 
-  // Doc-level (with or without field-level — for now, doc-level takes priority)
-  if (isDocLevel) {
+  if (isFieldTier(documentType)) {
     return (
-      <DocLevelInspector
+      <FieldTierContent
+        defaultLanguage={config.defaultLanguage}
         documentId={documentId}
         documentType={documentType}
         onClose={onClose}
-        config={config}
       />
     )
   }

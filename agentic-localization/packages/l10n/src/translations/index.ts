@@ -17,6 +17,7 @@ export {ReviewActions, type ReviewActionsProps} from './ReviewActions'
 export {
   LOCALIZATION_WORKFLOW_DATASET,
   LOCALIZATION_WORKFLOW_TAG,
+  LOCALIZE_DOCUMENT_DEFINITION,
   useLocalizationEngine,
   useLocalizationInstance,
   type LocalizationInstanceLookup,
@@ -34,7 +35,7 @@ export {
 } from './instanceFields'
 export {
   buildLocaleRuns,
-  liveChildInstanceIds,
+  childInstanceIds,
   toChildRun,
   type ChildRun,
   type LocaleRun,
@@ -43,19 +44,4 @@ export {
 export {useReleases, type Release} from './useReleases'
 export {useOpenTranslationsInspector} from './useOpenTranslationsInspector'
 export {useLocales, type Language, type Locale} from '../L10nProvider'
-export {
-  useFieldTranslationData,
-  type FieldLocaleStatus,
-  type FieldTranslationSnapshot,
-} from './useFieldTranslationData'
-export {
-  useFieldTranslateActions,
-  type CellInFlightState,
-  type FieldTranslateActionsResult,
-} from './useFieldTranslateActions'
-export {FieldTranslationContent} from './FieldTranslationContent'
-export {useFieldWorkflowMetadata, type FieldWorkflowMetadata} from './useFieldWorkflowMetadata'
-export {deriveFieldCellStates, findNewlyStaleEntries} from './deriveFieldCellStates'
-export {useStaleSyncEffect} from './useStaleSyncEffect'
-export {StaleDiffPopover} from './StaleDiffPopover'
-export {createFieldTranslationPublishGate} from './useFieldTranslationPublishGate'
+export {createLocalizationScheduleGate} from './scheduleGate'

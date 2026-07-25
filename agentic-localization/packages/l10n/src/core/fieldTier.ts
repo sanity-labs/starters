@@ -46,6 +46,11 @@ export function internationalizedFields(documentType: string): Internationalized
   return FIELD_TIER[documentType] ?? []
 }
 
+/** Every document type that localizes in place. */
+export function fieldTierTypes(): string[] {
+  return Object.keys(FIELD_TIER)
+}
+
 /** Whether a document type localizes in place rather than one doc per locale. */
 export function isFieldTier(documentType: string): boolean {
   return internationalizedFields(documentType).length > 0

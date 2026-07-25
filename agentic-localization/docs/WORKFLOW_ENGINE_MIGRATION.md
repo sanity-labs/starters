@@ -16,12 +16,13 @@ inferred from docs. Where the docs and reality disagree, this file records reali
 | **PR 4** — effect handlers + runtime     | **Committed** (`c6f3713`)           |
 | **PR 5** — Studio and dashboard surfaces | **Committed** (`250bf89`…`fe55583`) |
 | PR 6a — field tier, engine + runtime     | In the working tree                 |
-| PR 6b — field tier, Studio surfaces      | Not started                         |
+| PR 6b — field tier, Studio surfaces      | In the working tree                 |
 
 Branch: `feature/use-workflows-for-localization`. Baseline before this work was
-169 tests; it is now **213** (`pnpm --filter @starter/l10n test`), with typecheck
-clean across `packages/l10n`, `studio`, and `apps/translations-dashboard`, and
-lint at 0 errors (6 pre-existing warnings in untouched files).
+169 tests; it is now **312** (`pnpm --filter @starter/l10n test`) — 6a's 322 less
+the specs for the machinery 6b deleted, plus 6b's own — with typecheck clean
+across `packages/l10n`, `studio`, and `apps/translations-dashboard`, and lint at
+**0 errors, 0 warnings** (all six pre-existing warnings lived in files 6b removed).
 
 Also relevant: `/Users/noah/.claude/plans/familiarize-yourself-with-this-eager-dragonfly.md`
 (the approved plan) and the project memories under
@@ -283,13 +284,32 @@ Every item here cost real time. None of it is obvious from the docs.
 - **`@sanity/workflow-studio-plugin`'s Start action has no perspective hook** —
   only `perspectiveField`, which seeds a `release.ref` from Studio's selected
   release. A `person` run started from the Studio's own picker therefore gets
-  the drafts default and the false positive returns. The field-tier UI unit owns
-  closing that (its own `startInstance` call, or a plugin mapping once one
-  exists).
+  the drafts default and the false positive returns — the case
+  `localizeDocument.fieldTier.test.ts` already bench-proves.
+- **And the picker cannot be hidden for one type.** `discoverWorkflowMappings`
+  derives a row for every schema type the definition's `subject` entry accepts
+  and then _merges_ `config.mappings` in by `docType::definition` key — an
+  override customizes a discovered row, it never removes one. The only other
+  lever, `startKindOf`, is per **definition**, so hiding `person` would hide
+  `article` too. PR 6b therefore states the limitation in the UI rather than
+  pretending it away: `LocalizationRun` rewords the `sourceChanged` banner when
+  a field-tier run's `instance.perspective` is not `published`.
 - Two stages of one definition may each declare a guard and both deploy; the
   names must differ. Exiting a stage deletes its guard document as the next
   stage's is created, so `translating → review` hands the publish hold over with
   no gap.
+
+### Document actions (learned in PR 6b)
+
+- **The Studio plugin already turns guards into disabled document actions.**
+  `withWorkflowLock` wraps every action whose `action` is in `LOCKABLE_ACTIONS`
+  — `publish`, `unpublish`, `delete` — evaluates the live instances' guards
+  through `documentActionDenials`, and disables with the guard's title. A
+  hand-rolled publish gate on top of that is duplicate machinery.
+- **`schedule` is not in that map.** It is the one way a source can leave
+  mid-run, and it is the only action `createLocalizationScheduleGate` wraps.
+  Sanity's core injects `schedule` _after_ plugins resolve, so the wrap has to
+  live in `sanity.config.ts` rather than in the l10n plugin.
 
 ### Agent Actions (verified live in PR 6a)
 
@@ -512,24 +532,67 @@ write target and two structural fixes differ.
 Verified: 322 unit/bench tests, eval green, typecheck/lint/format clean,
 `deploy --check` passes, Functions build. Nothing deployed.
 
-### PR 6b — field tier, Studio surfaces
+### PR 6b — field tier, Studio surfaces — DONE (as built)
 
-The UI half: `translations/*.tsx`, `plugin.ts`, `sanity.config.ts`, seeds. Also
-owns the two gaps 6a left open — a Studio-picker start does not carry the
-field-tier perspective (§3), and the deletion inventory's field-tier rows
-(`useFieldTranslateActions`, `deriveFieldCellStates`, `useStaleSyncEffect`,
-`createSemaphore`, `fieldTranslation.metadata`'s workflow half) come out with it.
+The field tier now has no UI of its own. It renders the same run the document
+tier does. **20 files and 3,280 lines** were deleted outright (3,783 deleted
+lines across the whole change, net −3,073).
+
+- **The field × locale matrix is gone.** `TranslationInspector` routes `person`
+  to `FieldTierContent`, which is `LocalizationRun` in the shared
+  `InspectorFrame` plus a coverage card derived with `coveredLocales` — no
+  second status vocabulary, no cell verbs. Per-locale rows, stages, progress,
+  compare and jump all come from the doc-tier components unchanged.
+- **One compare, two tiers.** `TranslationCompare` takes an optional `locale`;
+  `compareSides` (pure, six specs) decides what the two sides are. The document
+  tier diffs two documents. The field tier reduces both the published and the
+  pending copy of the _same_ document to that locale's values with
+  `sourceProjection`, so `computeFieldChanges` and the diff components need no
+  change. Jump-to-edit reads the entry's `_key` off the pending document —
+  the handler commits with `autoGenerateArrayKeys`, so the key is not the
+  locale and cannot be derived.
+- **The publish gate was deleted, not rewritten.** The Studio plugin already
+  disables `publish` from the run's own guard (§3, document actions). What was
+  missing is `schedule`: `createLocalizationScheduleGate` disables it while any
+  run is open, with the stage as the reason, and now covers `article` too —
+  the doc tier had the same hole.
+- **The AI Assist translate field action is gone** (`useTranslateFieldAction`,
+  `useInternationalizedFields`, `useTranslate`, `useTranslationContext`, −480).
+  It was the last path that assembled translation context without
+  `buildTranslateParams` and wrote without review. `assist()` stays registered
+  for everything else it does.
+- **Studio-picker perspective gap: stated, not hidden.** The picker cannot be
+  hidden for one type (§3), so `LocalizationRun` reads `instance.perspective`
+  and, for a field-tier run not reading `published`, replaces the
+  `sourceChanged` banner with one that says the run cannot tell its own writes
+  from a source edit. `sanity.config.ts` names both mappings explicitly and
+  gives `article` a `perspectiveField` so a picker start honours the release the
+  editor has selected; `person` deliberately gets none, because a release-scoped
+  field-tier run reads the very version its children write.
+- **Bug found and fixed in PR 5's code, not just carried forward.**
+  `liveChildInstanceIds` fed the child-instance subscription only rows without
+  `resolved`. But the engine stamps `resolved` precisely when a child goes
+  terminal, and that stamp is what lets the parent leave `translating` — so by
+  the time a reviewer opens the run in `review`, no child is fetched, no row has
+  a `target`, and neither tier renders a compare at all. It is now
+  `childInstanceIds` (every row), with the reason pinned by two specs.
+- Seeds: `fieldTranslation.metadata` is out of `briefs.ts`,
+  `generate-sample-data.ts` and `sample-data.ndjson` (4 documents). The
+  translated bios stay — they are content;
+  `buildFieldTranslationBriefs` is now `buildPersonBioBriefs` and returns only
+  those.
 
 ---
 
 ## 5a. The deletion inventory
 
 The point of the migration. Measured, not estimated — `wc -l` at the time of
-writing. **Status: PR 4 removed the Functions; PR 5 removed the doc tier
-(plus 8,842 LOC of unreachable dashboard code the inventory never counted).
-The field-tier rows (`useFieldTranslateActions`, `deriveFieldCellStates`,
-`useStaleSyncEffect`, `fieldTranslationMetadata`'s workflow half) are
-deferred to PR 6, where their engine replacement lands.**
+writing. **Status: complete.** PR 4 removed the Functions; PR 5 removed the doc
+tier (plus 8,842 LOC of unreachable dashboard code the inventory never counted);
+PR 6b removed every remaining row — `useFieldTranslateActions`,
+`deriveFieldCellStates`, `useStaleSyncEffect`, `createSemaphore` and the whole of
+`fieldTranslationMetadata`, not just its workflow half, since the content half
+had no reader left either.
 
 | File                                                              |        LOC | Superseded by                                  |
 | ----------------------------------------------------------------- | ---------: | ---------------------------------------------- |
@@ -587,10 +650,11 @@ onto it are removed.
 ## 7. Verification
 
 ```bash
-pnpm --filter @starter/l10n test     # 322 tests; the bench suite is the design gate
+pnpm --filter @starter/l10n test     # 312 tests; the bench suite is the design gate
 pnpm --filter l10n eval              # quality gate — needs credentials (PR 4 onward)
-pnpm -r typecheck                    # note: `pretypecheck` runs typegen
-pnpm lint                            # 0 errors expected; 6 pre-existing warnings
+pnpm typecheck                       # from the ROOT: `pretypecheck` runs typegen.
+                                     # `pnpm -r typecheck` skips it and checks stale types
+pnpm lint                            # 0 errors, 0 warnings
 npx oxfmt --check .
 pnpm exec sanity-workflows deploy --check   # from PR 3; `--dry-run` diffs deployed state
 ```

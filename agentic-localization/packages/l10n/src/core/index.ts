@@ -37,6 +37,7 @@ export {
   coveredLocales,
   entriesOf,
   entryFor,
+  fieldTierTypes,
   internationalizedFields,
   isFieldTier,
   sourceProjection,

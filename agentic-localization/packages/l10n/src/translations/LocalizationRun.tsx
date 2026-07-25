@@ -20,6 +20,7 @@ import type {ActivityEvaluation, WorkflowInstance} from '@sanity/workflow-engine
 import {useWorkflowInstances, useWorkflowSession} from '@sanity/workflow-studio'
 import {useMemo, useState} from 'react'
 
+import {isFieldTier} from '../core/fieldTier'
 import {useLocales} from '../L10nProvider'
 import type {EditTarget} from './editIntent'
 import {
@@ -30,7 +31,7 @@ import {
   readText,
   type Materiality,
 } from './instanceFields'
-import {buildLocaleRuns, liveChildInstanceIds, toChildRun, type LocaleRun} from './localeRuns'
+import {buildLocaleRuns, childInstanceIds, toChildRun, type LocaleRun} from './localeRuns'
 import {ReviewActions, REVIEW_ACTIVITY} from './ReviewActions'
 import {TranslationCompare} from './TranslationCompare'
 import {useLocalizationEngine} from './workflowEngine'
@@ -123,6 +124,7 @@ function LocaleRunRow({
   title,
   flag,
   documentType,
+  fieldTier,
   releaseName,
   onEditField,
 }: {
@@ -130,6 +132,8 @@ function LocaleRunRow({
   title: string
   flag: string | undefined
   documentType: string
+  /** The locale's translation lives in the subject rather than a document of its own. */
+  fieldTier: boolean
   releaseName: string | null
   onEditField: (target: EditTarget) => void
 }) {
@@ -170,29 +174,32 @@ function LocaleRunRow({
               padding={2}
               text={comparing ? 'Hide compare' : 'Compare with published'}
             />
-            <Button
-              fontSize={0}
-              icon={EditIcon}
-              mode="bleed"
-              onClick={() =>
-                onEditField({
-                  documentId: targetDocumentId,
-                  releaseName: releaseName ?? undefined,
-                })
-              }
-              padding={2}
-              text="Open translation"
-            />
+            {!fieldTier && (
+              <Button
+                fontSize={0}
+                icon={EditIcon}
+                mode="bleed"
+                onClick={() =>
+                  onEditField({
+                    documentId: targetDocumentId,
+                    releaseName: releaseName ?? undefined,
+                  })
+                }
+                padding={2}
+                text="Open translation"
+              />
+            )}
           </Flex>
         )}
         {comparing && targetDocumentId && (
           <TranslationCompare
             documentId={targetDocumentId}
             documentType={documentType}
-            onEditField={(fieldName) =>
+            locale={fieldTier ? run.locale : undefined}
+            onEditField={(fieldPath) =>
               onEditField({
                 documentId: targetDocumentId,
-                fieldName,
+                fieldName: fieldPath,
                 releaseName: releaseName ?? undefined,
               })
             }
@@ -204,12 +211,14 @@ function LocaleRunRow({
   )
 }
 
-function useLiveChildren(subworkflows: WorkflowInstance['subworkflows']) {
+function useChildren(subworkflows: WorkflowInstance['subworkflows']) {
   const engine = useLocalizationEngine()
   // The filter object has to keep a stable identity across repaints or the
   // instance list resubscribes on every evaluation; the id set is the only
-  // thing that should trigger one.
-  const ids = liveChildInstanceIds(subworkflows ?? []).join(',')
+  // thing that should trigger one. `includeCompleted` is what makes the rows
+  // still carry a `target` once every locale has finished — which is when a
+  // reviewer actually looks at them.
+  const ids = childInstanceIds(subworkflows ?? []).join(',')
   const filter = useMemo(() => ({ids: ids ? ids.split(',') : [], includeCompleted: true}), [ids])
   const {instances} = useWorkflowInstances({engine, filter})
   return instances ?? []
@@ -219,7 +228,7 @@ export function LocalizationRun({instanceId, documentType, onEditField}: Localiz
   const engine = useLocalizationEngine()
   const session = useWorkflowSession({engine, instanceId})
   const locales = useLocales()
-  const children = useLiveChildren(session.evaluation?.instance.subworkflows)
+  const children = useChildren(session.evaluation?.instance.subworkflows)
 
   if (session.invalid) {
     return (
@@ -250,8 +259,15 @@ export function LocalizationRun({instanceId, documentType, onEditField}: Localiz
   }
 
   const {evaluation} = session
-  const {fields, currentStage, subworkflows} = evaluation.instance
+  const {fields, currentStage, subworkflows, perspective} = evaluation.instance
   const stage = STAGE_DISPLAY[currentStage] ?? {tone: 'default' as const, label: currentStage}
+  const fieldTier = isFieldTier(documentType)
+  // A field-tier run writes its translations into the subject, so it can only
+  // tell a source edit from its own output when it reads the published layer.
+  // The Studio's own Start action has no perspective hook (see the migration
+  // notes), so a run started from the picker carries the drafts default and
+  // reports itself as drift. Say so rather than let the flag lie.
+  const driftUnreliable = fieldTier && perspective !== 'published'
   const materiality = readMateriality(fields)
   const explanation = readText(fields, 'explanation')
   const targetLocales = readLocaleRequests(fields, 'targetLocales')
@@ -288,8 +304,9 @@ export function LocalizationRun({instanceId, documentType, onEditField}: Localiz
 
       {readFlag(fields, 'sourceChanged') && (
         <Banner icon={SyncIcon} tone="caution">
-          Source changed since analysis — the translations no longer match the English they came
-          from. You decide whether that matters.
+          {driftUnreliable
+            ? 'The source revision moved while this run was open — but this run reads drafts, so its own translations moved it too. Check the source yourself; runs started from a publish read the published layer and can tell the difference.'
+            : 'Source changed since analysis — the translations no longer match the English they came from. You decide whether that matters.'}
         </Banner>
       )}
 
@@ -312,6 +329,7 @@ export function LocalizationRun({instanceId, documentType, onEditField}: Localiz
             return (
               <LocaleRunRow
                 documentType={documentType}
+                fieldTier={fieldTier}
                 flag={locale?.flag}
                 key={run.locale}
                 onEditField={onEditField}

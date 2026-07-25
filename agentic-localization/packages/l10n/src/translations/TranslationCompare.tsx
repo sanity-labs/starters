@@ -4,9 +4,12 @@
  *
  * The engine writes into a draft, or into a version when the run belongs to a
  * release, so "what changed" is the delta between the published document and
- * whichever of those is pending. Diff rendering reuses the pure diff
- * components; editing hands the reviewer the field in the real editor rather
- * than re-implementing one here.
+ * whichever of those is pending. Both localization tiers land here: `locale`
+ * marks a field-tier compare, where the translation lives in the subject's own
+ * internationalized arrays and `compareSides` reduces each side to that
+ * locale's values. Diff rendering reuses the pure diff components; editing
+ * hands the reviewer the field in the real editor rather than re-implementing
+ * one here.
  */
 
 import {EditIcon} from '@sanity/icons'
@@ -18,6 +21,7 @@ import {
   type FieldChange,
   type FieldChangeMagnitude,
 } from '../core/computeFieldChanges'
+import {compareSides} from './compareSides'
 import {ArrayDiffSummary, InlineDiff, SimpleValueDiff} from './InlineDiff'
 import {PortableTextDiff} from './PortableTextDiff'
 
@@ -34,13 +38,15 @@ const MAGNITUDE_TONE: Record<
 }
 
 export interface TranslationCompareProps {
-  /** The translated document for this locale. */
+  /** The document holding this locale's translation — a sibling, or the subject itself. */
   documentId: string
   documentType: string
+  /** Field tier only: the locale whose entries in `documentId` the run wrote. */
+  locale?: string
   /** Set when the run writes into a release rather than a draft. */
   releaseName?: string
-  /** Open this field in the document editor. */
-  onEditField?: (fieldName: string) => void
+  /** Open this field in the document editor, as a form path. */
+  onEditField?: (fieldPath: string) => void
 }
 
 function FieldDiff({change}: {change: FieldChange}) {
@@ -61,6 +67,7 @@ function FieldDiff({change}: {change: FieldChange}) {
 export function TranslationCompare({
   documentId,
   documentType,
+  locale,
   releaseName,
   onEditField,
 }: TranslationCompareProps) {
@@ -89,7 +96,13 @@ export function TranslationCompare({
     )
   }
 
-  const changes = computeFieldChanges(editState.published ?? {}, pending).filter(
+  const sides = compareSides({
+    documentType,
+    locale,
+    published: editState.published,
+    pending,
+  })
+  const changes = computeFieldChanges(sides.published, sides.pending).filter(
     (change) => change.changed,
   )
 
@@ -126,7 +139,7 @@ export function TranslationCompare({
                   fontSize={0}
                   icon={EditIcon}
                   mode="bleed"
-                  onClick={() => onEditField(change.fieldName)}
+                  onClick={() => onEditField(sides.editPaths[change.fieldName] ?? change.fieldName)}
                   padding={2}
                   text="Edit"
                 />

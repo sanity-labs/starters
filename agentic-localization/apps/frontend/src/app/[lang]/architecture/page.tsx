@@ -291,12 +291,12 @@ export default async function ArchitecturePage({params}: {params: Promise<{lang:
       </CodeBlock>
 
       <p className="text-[var(--color-text-secondary)] leading-relaxed mb-6">
-        Field-level translations get the same editorial workflow as document-level: each
-        field&times;locale cell tracks its own state (needs review, approved, stale) via a{' '}
+        Field-level translations run the same editorial workflow as document-level &mdash; the same{' '}
         <code className="text-sm bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
-          fieldTranslation.metadata
+          localize-document
         </code>{' '}
-        document. See the{' '}
+        run, one child per locale. Nothing about the workflow is stored on the content: the run
+        holds its own state, and the document holds only the translated entries. See the{' '}
         <a
           href="#editorial-workflow"
           className="text-[var(--color-accent)] underline underline-offset-2 hover:text-[var(--color-accent-hover)] transition-[color] duration-[var(--transition-fast)]"
@@ -722,12 +722,9 @@ defineField({
         <Card>
           <p className="text-sm font-medium mb-2">Field-level</p>
           <p className="text-sm text-[var(--color-text-secondary)]">
-            A separate{' '}
-            <code className="text-xs bg-[var(--color-accent-subtle)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
-              fieldTranslation.metadata
-            </code>{' '}
-            document (liveEdit, hidden) tracks per-field&times;per-locale state with a deterministic
-            ID derived from the parent document and field path.
+            No join document at all. Every locale is an entry in the document&apos;s own
+            internationalized arrays, so coverage is derived from the content: a locale counts once
+            every localized field carries a value for it.
           </p>
         </Card>
       </div>
@@ -781,7 +778,7 @@ defineField({
           </p>
         </div>
 
-        {/* Field-level: internationalized arrays with fieldTranslation.metadata */}
+        {/* Field-level: internationalized arrays, no join document */}
         <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white/40 px-4 py-3 mb-4">
           <div className="flex items-center justify-center gap-3 text-sm">
             <span className="font-mono text-xs text-[var(--color-text-secondary)]">
@@ -789,7 +786,7 @@ defineField({
             </span>
           </div>
           <p className="text-[11px] text-[var(--color-text-muted)] text-center mt-1">
-            internationalized array + fieldTranslation.metadata
+            internationalized array; run state on the workflow instance
           </p>
         </div>
 

@@ -7,26 +7,27 @@ import {EarthGlobeIcon} from '@sanity/icons'
 import {workflowDefaultDocumentNode, workflowStudioPlugin} from '@sanity/workflow-studio-plugin'
 import {
   createL10n,
-  createFieldTranslationPublishGate,
+  createLocalizationScheduleGate,
   LOCALIZATION_WORKFLOW_DATASET,
   LOCALIZATION_WORKFLOW_TAG,
-  useTranslateFieldAction,
+  LOCALIZE_DOCUMENT_DEFINITION,
   withLocaleFilter,
 } from '@starter/l10n'
+import {fieldTierTypes} from '@starter/l10n/core'
 import {schemaTypes} from './schemaTypes'
 
-const l10nTypes = [
-  'l10n.locale',
-  'l10n.glossary',
-  'l10n.styleGuide',
-  'translation.metadata',
-  'fieldTranslation.metadata',
-]
+const l10nTypes = ['l10n.locale', 'l10n.glossary', 'l10n.styleGuide', 'translation.metadata']
+
+/** Types localized one document per locale. */
+const documentTierTypes = ['article']
+
+/** Every type `localize-document` runs against, both tiers. */
+const localizationSubjectTypes = [...documentTierTypes, ...fieldTierTypes()]
 
 const projectId = import.meta.env?.SANITY_STUDIO_PROJECT_ID ?? process.env.SANITY_STUDIO_PROJECT_ID!
 const dataset = import.meta.env?.SANITY_STUDIO_DATASET ?? process.env.SANITY_STUDIO_DATASET!
 
-const l10n = createL10n({localizedSchemaTypes: ['article'], defaultLanguage: 'en-US'})
+const l10n = createL10n({localizedSchemaTypes: documentTierTypes, defaultLanguage: 'en-US'})
 
 const titleAsc = [{field: 'title', direction: 'asc'} as const]
 const nameAsc = [{field: 'name', direction: 'asc'} as const]
@@ -82,18 +83,15 @@ export default defineConfig({
 
   document: {
     newDocumentOptions: (prev) =>
-      prev.filter(
-        (option) =>
-          option.templateId !== 'translation.metadata' &&
-          option.templateId !== 'fieldTranslation.metadata',
-      ),
+      prev.filter((option) => option.templateId !== 'translation.metadata'),
     actions: (prev, context) => {
-      // Gate the schedule action for non-localized types that have field-level
-      // translations (e.g. person). The core injects this action after plugins
-      // run, so it must be wrapped here at the config root.
-      if (['article'].includes(context.schemaType)) return prev
+      // The workflow plugin locks `publish`, `unpublish` and `delete` from the
+      // run's own guard; `schedule` is outside its lock map, so it is wrapped
+      // here. At the config root because the core injects `schedule` after
+      // plugins run.
+      if (!localizationSubjectTypes.includes(context.schemaType)) return prev
       return prev.map((action) =>
-        action.action === 'schedule' ? createFieldTranslationPublishGate(action) : action,
+        action.action === 'schedule' ? createLocalizationScheduleGate(action) : action,
       )
     },
   },
@@ -111,14 +109,39 @@ export default defineConfig({
     workflowStudioPlugin({
       tag: LOCALIZATION_WORKFLOW_TAG,
       workflowDataset: LOCALIZATION_WORKFLOW_DATASET,
+      // The plugin discovers `(docType, definition)` bindings from the deployed
+      // definitions' subject types, so both rows exist without being named. They
+      // are named anyway to label them and to mark where each tier's start
+      // behavior is configured.
+      //
+      // `article` seeds the release the editor has selected, so a run started
+      // from the picker writes versions into it rather than drafts. `person`
+      // deliberately does not: its locale children patch the subject itself, so
+      // a run scoped to a release would read the same version it writes and
+      // report its own output as source drift. The perspective that avoids
+      // that (`published`, see `startPerspectiveFor`) has no hook here — the
+      // Start action only offers `perspectiveField` — so a field-tier run is
+      // only fully correct when the publish Function or the dashboard starts
+      // it. The inspector says so when it sees a run reading drafts.
+      mappings: [
+        {
+          docType: 'article',
+          definition: LOCALIZE_DOCUMENT_DEFINITION,
+          label: 'Localize this article',
+          perspectiveField: {name: 'release'},
+        },
+        {
+          docType: 'person',
+          definition: LOCALIZE_DOCUMENT_DEFINITION,
+          label: 'Localize this profile',
+        },
+      ],
     }),
     l10n.plugin,
-    assist({
-      fieldActions: {
-        title: 'Translate',
-        useFieldActions: useTranslateFieldAction,
-      },
-    }),
+    // AI Assist stays for the generation and instruction affordances it gives
+    // every field. Its translate field action is gone: it assembled context its
+    // own way, bypassing `buildTranslateParams` and the review the run owns.
+    assist(),
   ],
 
   schema: {

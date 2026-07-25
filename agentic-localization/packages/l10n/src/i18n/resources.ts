@@ -43,18 +43,6 @@ export default {
   'inspector.title.stale': 'Translations need attention — source content has changed',
   'inspector.title.needs-review': 'Translations pending review',
 
-  // --- Publish / schedule gate ---
-  'publish-gate.pending-review': '{{count}} translation(s) pending review',
-  'publish-gate.stale': '{{count}} stale translation(s)',
-
-  // --- Stale diff popover ---
-  'stale-diff.title': 'Source content changed',
-  'stale-diff.description':
-    'The source text for {{fieldPath}} has changed since this translation was created.',
-  'stale-diff.fallback': 'Source value was modified',
-  'stale-diff.dismiss': 'Dismiss',
-  'stale-diff.retranslate': 'Re-translate',
-
   // --- Inline diff ---
   'diff.sr-summary': '{{removed}} word(s) removed, {{added}} word(s) added',
   'diff.show-full': '… [show full diff]',
@@ -63,36 +51,10 @@ export default {
   'diff.no-changes': 'No text content changes detected',
   'diff.more-changes': '+ {{count}} more block change(s)',
 
-  // --- Field translation inspector ---
-  'field-translations.title': 'Field Translations',
-  'field-translations.no-fields': 'No translatable fields found in this document type.',
-  'field-translations.no-locales': 'No locales configured. Add locale documents to get started.',
-  'field-translations.progress': '{{approved}} of {{total}} approved',
-  'field-translations.badge.approved': '{{count}} approved',
-  'field-translations.badge.review': '{{count}} review',
-  'field-translations.badge.stale': '{{count}} stale',
-  'field-translations.badge.missing': '{{count}} missing',
-  'field-translations.header.field': 'Field',
-  'field-translations.cell.translating': 'Translating…',
-  'field-translations.cell.failed': 'Translation failed',
-  'field-translations.cell.source': 'Source language',
-  'field-translations.cell.click-approve': '{{tooltip}} — click to approve',
-  'field-translations.cell.click-review': '{{tooltip}} — click to review',
-  'field-translations.cell.click-translate': 'Click to translate',
-  'field-translations.cell.no-source':
-    'No source content — add content in the source language first',
-  'field-translations.cell.translate-field': 'Translate all empty for this field',
-  'field-translations.action.translate-missing': 'Translate {{count}} missing',
-  'field-translations.action.translate-locale': 'Translate {{count}} fields to {{locale}}',
-  'field-translations.action.approve': 'Approve {{count}} translations',
-  'field-translations.legend.approved': 'approved',
-  'field-translations.legend.review': 'review',
-  'field-translations.legend.stale': 'stale',
-  'field-translations.legend.missing': 'missing',
-
-  // --- Document-level translation inspector ---
+  // --- Translation inspector (both tiers) ---
   'translations.title': 'Translations',
   'translations.progress': '{{completed}} of {{total}} translated',
+  'translations.covered': 'Translated',
   'translations.select-all': 'Click to select all {{label}}',
   'translations.doc-state.published': 'Published',
   'translations.doc-state.in-release': 'In release',

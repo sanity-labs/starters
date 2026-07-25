@@ -102,11 +102,17 @@ export function buildLocaleRuns({
   })
 }
 
-/** Live children only — the ones whose stage still has to be read from their own instance. */
-export function liveChildInstanceIds(subworkflows: readonly SubworkflowEntry[]): string[] {
-  return [
-    ...new Set(
-      subworkflows.filter((row) => !row.resolved).map((row) => parseGdr(row.ref.id).documentId),
-    ),
-  ]
+/**
+ * Every child instance a row points at, resolved or not.
+ *
+ * Deliberately not "live children only". The engine stops watching a child the
+ * moment it stamps `resolved`, and that stamp is exactly what lets the parent
+ * leave `translating` — so by the time a reviewer opens the run, every row is
+ * resolved. `resolved` caches the child's stage but none of its fields, so a
+ * row filtered out here has no `target` and the reviewer gets no compare on the
+ * one stage that exists for comparing. Reading a terminal instance is cheap and
+ * safe: terminal state is immutable.
+ */
+export function childInstanceIds(subworkflows: readonly SubworkflowEntry[]): string[] {
+  return [...new Set(subworkflows.map((row) => parseGdr(row.ref.id).documentId))]
 }

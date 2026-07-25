@@ -25,7 +25,7 @@ import {
   tagBriefs,
   articleBriefs,
   buildTranslationBriefs,
-  buildFieldTranslationBriefs,
+  buildPersonBioBriefs,
 } from './seed/briefs.ts'
 import {glossaryDocument, styleGuideDocuments} from './seed/metadata.ts'
 
@@ -153,7 +153,7 @@ async function* generateDocuments() {
 
   // Build translated briefs from dataset locales
   const {translatedBriefs, translationMetadata} = buildTranslationBriefs(targetLocales)
-  const {bioGenerationBriefs, fieldTranslationMetadata} = buildFieldTranslationBriefs(targetLocales)
+  const bioGenerationBriefs = buildPersonBioBriefs(targetLocales)
 
   // 1. Translation metadata — static
   yield glossaryDocument
@@ -240,25 +240,6 @@ async function* generateDocuments() {
           })
           personDoc.bio = existingBio
 
-          // Update sourceSnapshot in the metadata
-          const enBioEntry = existingBio.find(
-            (e: Record<string, unknown>) => e.language === 'en-US',
-          )
-          if (enBioEntry) {
-            const meta = fieldTranslationMetadata.find(
-              (m) => m._id === `fieldTranslation.metadata.${brief.personId}`,
-            )
-            if (meta) {
-              const states = meta.workflowStates as Array<Record<string, unknown>>
-              const stateEntry = states.find(
-                (s) => s.field === 'bio' && s.language === brief.locale.code,
-              )
-              if (stateEntry) {
-                stateEntry.sourceSnapshot = JSON.stringify(enBioEntry.value)
-              }
-            }
-          }
-
           process.stderr.write(`  ✓ ${brief.personName} [${brief.locale.code}]\n`)
         }
       } catch (err: unknown) {
@@ -271,12 +252,6 @@ async function* generateDocuments() {
 
   // Yield all person documents (with translated bios appended)
   for (const doc of personDocs.values()) yield doc
-
-  // 4b. Field translation metadata — links person bios to workflow states
-  for (const meta of fieldTranslationMetadata) yield meta
-  if (fieldTranslationMetadata.length > 0) {
-    process.stderr.write(`✓ ${fieldTranslationMetadata.length} field translation metadata\n`)
-  }
 
   // 5. en-US source articles — AI generates title, excerpt, body
   const sourceArticles = await generateArticles(articleBriefs as Brief[], 'en-US articles')

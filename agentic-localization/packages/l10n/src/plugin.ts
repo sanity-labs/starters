@@ -1,4 +1,4 @@
-import {definePlugin, type DocumentActionComponent, type SchemaTypeDefinition} from 'sanity'
+import {definePlugin, type SchemaTypeDefinition} from 'sanity'
 import {documentInternationalization, type Language} from '@sanity/document-internationalization'
 import {internationalizedArray} from 'sanity-plugin-internationalized-array'
 
@@ -7,7 +7,6 @@ import {glossaryEntry} from './schemas/glossaryEntry'
 import {translationLocale} from './schemas/translationLocale'
 import {translationGlossary} from './schemas/translationGlossary'
 import {translationStyleGuide} from './schemas/translationStyleGuide'
-import {fieldTranslationMetadata} from './schemas/fieldTranslationMetadata'
 import {l10nUsEnglishLocaleBundle} from './i18n'
 import {SUPPORTED_LANGUAGES_QUERY} from './queries'
 import {languageFieldName} from './types'
@@ -16,7 +15,6 @@ import {LocaleNavbar} from './components/LocaleNavbar'
 import {L10nProvider} from './L10nProvider'
 import {LocaleBadge} from './components/LocaleBadge'
 import {createTranslationInspector} from './translations/createTranslationPanePlugin'
-import {createFieldTranslationPublishGate} from './translations/useFieldTranslationPublishGate'
 
 interface L10nOptions {
   localizedSchemaTypes: readonly string[]
@@ -51,7 +49,6 @@ export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L1
           translationLocale,
           translationGlossary,
           translationStyleGuide,
-          fieldTranslationMetadata,
         ],
         templates: (prev) => [
           ...prev,
@@ -68,18 +65,13 @@ export function createL10n({localizedSchemaTypes, defaultLanguage = 'en-US'}: L1
       },
       document: {
         inspectors: (prev) => [translationInspector, ...prev],
-        // Wrap the publish action with a confirmation gate when there are
-        // unreviewed or stale field translations.
-        actions: (prev: DocumentActionComponent[], context) => {
-          // Document-level types carry their translations in sibling documents,
-          // so only the remaining (field-tier) types need the gate. The gate
-          // hook itself is lightweight (single listenQuery), so the overhead on
-          // types without internationalized array fields is negligible.
-          if (localizedSchemaTypes.includes(context.schemaType)) return prev
-          return prev.map((action) =>
-            action.action === 'publish' ? createFieldTranslationPublishGate(action) : action,
-          )
-        },
+        // No publish gate here. `localize-document` guards its subject against
+        // `publish` in both `translating` and `review`, and
+        // `@sanity/workflow-studio-plugin` already disables the action from that
+        // guard. `schedule` is the one action its lock map does not cover — see
+        // `createLocalizationScheduleGate`, which the Studio config wraps,
+        // because the core injects `schedule` after plugins run.
+
         // Replace the plain locale badge from @sanity/document-internationalization
         // with our flag-enhanced version. The i18n plugin wraps LanguageBadge in an
         // anonymous arrow, so we identify it by exclusion: keep only named badges

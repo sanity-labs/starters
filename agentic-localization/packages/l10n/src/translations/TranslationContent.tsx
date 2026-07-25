@@ -8,8 +8,8 @@
  *   on the source side only.
  */
 
-import {CloseIcon, DatabaseIcon, TranslateIcon} from '@sanity/icons'
-import {Box, Button, Card, Flex, Spinner, Stack, Text, Tooltip} from '@sanity/ui'
+import {TranslateIcon} from '@sanity/icons'
+import {Box, Button, Card, Flex, Spinner, Stack, Text} from '@sanity/ui'
 import {useCallback} from 'react'
 import {
   DocumentStatusIndicator,
@@ -25,6 +25,7 @@ import type {ResolvedTranslationsConfig} from '../core/types'
 import {l10nLocaleNamespace} from '../i18n'
 import {buildEditIntent, type EditTarget} from './editIntent'
 import {ErrorBoundary} from './ErrorBoundary'
+import {InspectorFrame} from './InspectorFrame'
 import {LocalizationRun} from './LocalizationRun'
 import {TranslationCompare} from './TranslationCompare'
 import {useBaseDocumentId, useTranslationTargets} from './useTranslationTargets'
@@ -57,82 +58,6 @@ function LoadingState() {
   return (
     <Flex align="center" justify="center" style={{height: '100%', minHeight: 200}}>
       <Spinner muted />
-    </Flex>
-  )
-}
-
-function InspectorFrame({
-  metadataId,
-  onClose,
-  onOpenMetadata,
-  children,
-}: {
-  metadataId: string | null
-  onClose?: () => void
-  onOpenMetadata: (documentId: string) => void
-  children: React.ReactNode
-}) {
-  const {t} = useTranslation(l10nLocaleNamespace)
-  return (
-    <Flex direction="column" height="fill" overflow="hidden">
-      <Flex
-        align="center"
-        flex="none"
-        gap={2}
-        paddingLeft={4}
-        paddingRight={2}
-        paddingTop={1}
-        style={{position: 'relative', zIndex: 1}}
-      >
-        <Text size={1}>
-          <TranslateIcon />
-        </Text>
-        <Text size={1} weight="medium">
-          {t('translations.title')}
-        </Text>
-        <Box flex={1} />
-        {metadataId && (
-          <Tooltip
-            animate
-            content={
-              <Box padding={2}>
-                <Text size={1}>{t('translations.view-metadata')}</Text>
-              </Box>
-            }
-            placement="bottom"
-            portal
-          >
-            <Button
-              aria-label={t('translations.view-metadata')}
-              icon={DatabaseIcon}
-              mode="bleed"
-              onClick={() => onOpenMetadata(metadataId)}
-            />
-          </Tooltip>
-        )}
-        {onClose && (
-          <Tooltip
-            animate
-            content={
-              <Box padding={2}>
-                <Text size={1}>{t('close')}</Text>
-              </Box>
-            }
-            placement="bottom"
-            portal
-          >
-            <Button
-              aria-label={t('close-inspector')}
-              icon={CloseIcon}
-              mode="bleed"
-              onClick={onClose}
-            />
-          </Tooltip>
-        )}
-      </Flex>
-      <Box flex={1} overflow="auto" padding={3}>
-        {children}
-      </Box>
     </Flex>
   )
 }

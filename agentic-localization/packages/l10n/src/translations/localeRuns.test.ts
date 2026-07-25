@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest'
 import type {SubworkflowEntry} from '@sanity/workflow-engine'
 
-import {buildLocaleRuns, liveChildInstanceIds, toChildRun} from './localeRuns'
+import {buildLocaleRuns, childInstanceIds, toChildRun} from './localeRuns'
 
 function row(overrides: Partial<SubworkflowEntry> & {rowKey: string}): SubworkflowEntry {
   return {
@@ -107,6 +107,31 @@ describe('buildLocaleRuns', () => {
     })
   })
 
+  it('keeps a resolved child’s target, so a finished locale can still be compared', () => {
+    const [run] = buildLocaleRuns({
+      targetLocales: [{locale: 'de-DE'}],
+      subworkflows: [
+        row({rowKey: 'de-DE', resolved: {at: '2026-07-24T10:05:00.000Z', stage: 'translated'}}),
+      ],
+      children: [
+        toChildRun({
+          _id: 'child-de-DE',
+          currentStage: 'translated',
+          fields: [
+            {
+              _key: 'b',
+              _type: 'doc.ref',
+              name: 'target',
+              value: {id: 'dataset:p1:production:person-elena-vasquez', type: 'person'},
+            },
+          ],
+        }),
+      ],
+    })
+    expect(run.stage).toBe('translated')
+    expect(run.targetDocumentId).toBe('person-elena-vasquez')
+  })
+
   it('surfaces a locale that only exists as a spawned row', () => {
     const runs = buildLocaleRuns({
       targetLocales: [],
@@ -117,14 +142,25 @@ describe('buildLocaleRuns', () => {
   })
 })
 
-describe('liveChildInstanceIds', () => {
-  it('returns only unresolved rows, deduplicated', () => {
+describe('childInstanceIds', () => {
+  it('deduplicates the rows a retry accumulated for one locale', () => {
     expect(
-      liveChildInstanceIds([
+      childInstanceIds([
         row({rowKey: 'de-DE'}),
         row({rowKey: 'de-DE', spawnedAt: '2026-07-24T11:00:00.000Z'}),
-        row({rowKey: 'fr-FR', resolved: {at: '2026-07-24T10:05:00.000Z', stage: 'translated'}}),
       ]),
     ).toEqual(['child-de-DE'])
+  })
+
+  // Every row is resolved by the time the parent reaches `review`, and
+  // `resolved` caches the child's stage but not its `target`. Dropping resolved
+  // rows here means no compare on the one stage that exists for comparing.
+  it('includes resolved rows, whose target the compare needs', () => {
+    expect(
+      childInstanceIds([
+        row({rowKey: 'de-DE', resolved: {at: '2026-07-24T10:05:00.000Z', stage: 'translated'}}),
+        row({rowKey: 'fr-FR', resolved: {at: '2026-07-24T10:05:00.000Z', stage: 'translated'}}),
+      ]),
+    ).toEqual(['child-de-DE', 'child-fr-FR'])
   })
 })

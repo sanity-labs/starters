@@ -17,9 +17,6 @@ export {createTranslationInspector} from './translations'
 export {getStatusDisplay, type StatusDisplay} from './translations/getStatusDisplay'
 export {
   resolveConfig,
-  fieldWorkflowStatesToMap,
-  type FieldCellState,
-  type FieldWorkflowStateEntry,
   type LocalizedObject,
   type ResolvedTranslationsConfig,
   type StaleAnalysisResult,
@@ -45,6 +42,7 @@ export {ReviewActions, type ReviewActionsProps} from './translations/ReviewActio
 export {
   LOCALIZATION_WORKFLOW_DATASET,
   LOCALIZATION_WORKFLOW_TAG,
+  LOCALIZE_DOCUMENT_DEFINITION,
   useLocalizationEngine,
   useLocalizationInstance,
   type LocalizationInstanceLookup,
@@ -62,7 +60,7 @@ export {
 } from './translations/instanceFields'
 export {
   buildLocaleRuns,
-  liveChildInstanceIds,
+  childInstanceIds,
   toChildRun,
   type ChildRun,
   type LocaleRun,
@@ -83,30 +81,5 @@ export {useLocaleFilter} from './useLocaleFilter'
 export {globalLocaleFilter$} from './localeFilterState'
 export {buildFieldSummary, type TextExtracts} from './core/buildFieldSummary'
 export {ANALYSIS_PROMPT_INSTRUCTION} from './core/staleAnalysisPrompt'
-export {useTranslateFieldAction} from './fieldActions/useTranslateFieldAction'
-export {
-  useInternationalizedFields,
-  type InternationalizedFieldDescriptor,
-} from './fieldActions/useInternationalizedFields'
 export {useLocales, type Language, type Locale} from './L10nProvider'
-export {
-  useFieldTranslationData,
-  type FieldLocaleStatus,
-  type FieldTranslationSnapshot,
-} from './translations/useFieldTranslationData'
-export {
-  useFieldTranslateActions,
-  type CellInFlightState,
-  type FieldTranslateActionsResult,
-} from './translations/useFieldTranslateActions'
-export {FieldTranslationContent} from './translations/FieldTranslationContent'
-export {getFieldTranslationMetadataId} from './core/fieldMetadataIds'
-export {
-  useFieldWorkflowMetadata,
-  type FieldWorkflowMetadata,
-} from './translations/useFieldWorkflowMetadata'
-export {deriveFieldCellStates, findNewlyStaleEntries} from './translations/deriveFieldCellStates'
-export {useStaleSyncEffect} from './translations/useStaleSyncEffect'
-export {StaleDiffPopover} from './translations/StaleDiffPopover'
-export {createFieldTranslationPublishGate} from './translations/useFieldTranslationPublishGate'
-export {useTranslate, type TranslateFn, type TranslateParams} from './useTranslate'
+export {createLocalizationScheduleGate} from './translations/scheduleGate'

@@ -11,7 +11,7 @@
 import {ArrowLeftIcon, WarningOutlineIcon} from '@sanity/icons'
 import {Badge, Box, Button, Card, Flex, Heading, Spinner, Stack, Text, TextInput} from '@sanity/ui'
 import {WorkflowDiagram} from '@sanity/workflow-diagram'
-import {liveChildInstanceIds} from '@starter/l10n'
+import {childInstanceIds} from '@starter/l10n'
 import {useWorkflowInstances, useWorkflowSession} from '@sanity/workflow-sdk'
 import {parseGdr} from '@sanity/workflow-engine'
 import {useMemo, useState, useTransition} from 'react'
@@ -174,11 +174,11 @@ function RunDetail({instanceId}: {instanceId: string}) {
     () => evaluation?.instance.subworkflows ?? [],
     [evaluation?.instance.subworkflows],
   )
-  const liveIds = useMemo(() => liveChildInstanceIds(subworkflows), [subworkflows])
-  const {instances: liveChildren} = useWorkflowInstances({engine, filter: {ids: liveIds}})
+  const childIds = useMemo(() => childInstanceIds(subworkflows), [subworkflows])
+  const {instances: children} = useWorkflowInstances({engine, filter: {ids: childIds}})
 
   const rows = useMemo((): ChildRow[] => {
-    const liveStage = new Map((liveChildren ?? []).map((child) => [child._id, child.currentStage]))
+    const liveStage = new Map((children ?? []).map((child) => [child._id, child.currentStage]))
     // Rows accumulate across stage visits; the newest row per key is the current attempt.
     const newest = new Map<string, (typeof subworkflows)[number]>()
     for (const row of subworkflows) {
@@ -195,7 +195,7 @@ function RunDetail({instanceId}: {instanceId: string}) {
         stage: row.resolved?.stage ?? liveStage.get(childId) ?? 'running',
       }
     })
-  }, [subworkflows, liveChildren])
+  }, [subworkflows, children])
 
   if (invalid) {
     return (

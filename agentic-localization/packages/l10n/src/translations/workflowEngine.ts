@@ -18,6 +18,9 @@ export {
   WORKFLOW_TAG as LOCALIZATION_WORKFLOW_TAG,
 } from '../workflows/config'
 
+/** The deployed definition name, so Studio config cannot drift from the definition. */
+export const LOCALIZE_DOCUMENT_DEFINITION = localizeDocument.name
+
 export function useLocalizationEngine(): Engine {
   const {projectId} = useWorkspace()
   return useWorkflowEngine({
