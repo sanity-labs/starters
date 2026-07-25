@@ -8,14 +8,14 @@ inferred from docs. Where the docs and reality disagree, this file records reali
 
 ## 0. Where things stand
 
-| PR                                    | State                     |
-| ------------------------------------- | ------------------------- |
-| **PR 1** — Studio v5 → v6             | **Committed** (`0d24679`) |
-| **PR 2** — definitions + bench specs  | **Committed** (`b9f000b`) |
-| **PR 3** — workflows dataset + deploy | **Committed** (`d3784c5`) |
-| **PR 4** — effect handlers + runtime  | **Committed** (`c6f3713`) |
-| PR 5 — Studio and dashboard surfaces  | Not started               |
-| PR 6 — field-level tier               | Not started               |
+| PR                                       | State                               |
+| ---------------------------------------- | ----------------------------------- |
+| **PR 1** — Studio v5 → v6                | **Committed** (`0d24679`)           |
+| **PR 2** — definitions + bench specs     | **Committed** (`b9f000b`)           |
+| **PR 3** — workflows dataset + deploy    | **Committed** (`d3784c5`)           |
+| **PR 4** — effect handlers + runtime     | **Committed** (`c6f3713`)           |
+| **PR 5** — Studio and dashboard surfaces | **Committed** (`250bf89`…`fe55583`) |
+| PR 6 — field-level tier                  | Not started                         |
 
 Branch: `feature/use-workflows-for-localization`. Baseline before this work was
 169 tests; it is now **213** (`pnpm --filter @starter/l10n test`), with typecheck
@@ -116,7 +116,8 @@ hooks?})`.
   package split, refocus `skills/sanity-l10n` and `skills/add-l10n-frontend` on
   how the pattern works, its requirements, and how an agent adds its elements
   to a greenfield or brownfield project. Much of the current skill content
-  documents machinery PRs 4–5 delete.
+  documents machinery PRs 4–5 delete. The reworked skills ship **with skill
+  evals** (trigger, routing, guidance) living alongside them in the repo.
 - **Distill comments, docs and the README** to just what a human or agent needs
   to operate and incorporate the pattern (user, 2026-07-24). A standing
   constraint on new writing from PR 4 onward, plus a final pass.
@@ -245,6 +246,12 @@ Every item here cost real time. None of it is obvious from the docs.
 - The eval suite is **single-sample and live-model**: consecutive runs fail
   different marginal cases with byte-identical prompt-assembly code. Treat a
   red eval as "diff the eval path first"; robustness work is tracked.
+- **Release perspective in Studio navigation is a sticky router search
+  param** (`STICKY_PARAMS`), not an intent param — navigate via
+  `resolveIntentLink('edit', params, [['perspective', releaseId]])`, the same
+  shape core's copy-document-url uses. And it takes the release **name**
+  (`summer`), not the title ("Summer Campaign") — `useEditState`'s version
+  param likewise. Feeding a title silently reads a nonexistent version.
 
 ### Test bench
 
@@ -384,39 +391,43 @@ Verified: 275 unit/bench tests, typecheck/lint/format clean, definitions v2
 and three Functions deployed live. Eval: unstable at single-sample precision
 (§3) — the seam is instead pinned by the handler's argument test.
 
-### PR 5 — Studio and dashboard surfaces
+### PR 5 — Studio and dashboard surfaces — DONE (as built)
 
-- Add `@sanity/workflow-studio-plugin` (+ the matching `@sanity/workflow-*` set, all
-  0.23.0) for the strip, Workflows view and badges.
-- Rebuild the custom inspector on `useWorkflowSession`, **keeping side-by-side
-  compare and per-field editing** — that is named product copy, and evaluation
-  insights explain conditions over workflow fields, not content diffs.
-  `PortableTextDiff`, `InlineDiff`, `StaleDiffPopover` survive; only their state
-  source changes.
-- Surface `sourceChanged` and `hasFailedLocales` in the review UI, and list the
-  per-locale child runs with their stages. This is where partial failure becomes
-  visible.
-- `request-changes` needs a locale picker; it sends `[{locale, reason}]` and the
-  list is required. Default all boxes checked so "redo everything" stays one click.
-- Dashboard moves to `useWorkflowInstances` / `useDocumentWorkflows`; adopt
-  `WorkflowDiagram` from `@sanity/workflow-diagram` (key it by instance id).
-- **Campaign duplicate-run pre-check** (user's decision): before starting a
-  campaign, call `instancesForDocument` for each selected document and tell the
-  operator "3 of these are already being localized", letting them skip or take
-  over. Do not add an engine-level start requirement — it would fail the whole
-  batch because one document is busy.
-- Then delete: the six duplicated translate pipelines and their limiters,
-  `useStaleAIAnalysis`, `core/staleAnalysisCache`, `inFlightReducer`,
-  `cellReducer`, `useBatchProcessState`, `deriveFieldCellStates` +
-  `useStaleSyncEffect`, and `workflowStates[]` / `staleAnalysis` from the two
-  metadata schemas. `translation.metadata` itself stays — it is the i18n plugin's
-  join document and genuine content state.
+Landed as four commits: prep/dead code (`250bf89`), Studio + schema
+(`db36448`), dashboard (`dee5115`), skills truth-pass (`fe55583`).
 
-While in this code: `plugin.ts:89` identifies badges _by exclusion_
-(`badge.name !== ''`) and `sanity.config.ts` matches
-`action.displayName === 'SchedulePublishAction'`. Both still work in v6 (verified)
-but both are guesses about internals with no type or test to catch a break. This is
-the natural moment to replace them.
+- Inspector rebuilt on `useWorkflowSession`/`useDocumentWorkflows`
+  (`translations/LocalizationRun.tsx`, `ReviewActions.tsx`,
+  `TranslationCompare.tsx`). Compare targets the engine-written draft or
+  release version vs published; jump-to-edit carries the release perspective
+  as a sticky router search param. Per-locale rows merge `targetLocales` with
+  `subworkflows` (newest visit per `rowKey`; success lives in
+  `resolved.stage`). `sourceChanged`/`hasFailedLocales` surface, never block.
+  `request-changes` locale picker defaults all-checked.
+- Dashboard status derives from run stage in one tested pure function
+  (`lib/localizationRun.ts`); batch = engine runs (drafts → N
+  `localize-document`; release → one `localize-campaign` with minted
+  release); duplicate-run pre-check with skip/take-over; `/runs/:instanceId`
+  renders `WorkflowDiagram` + live child stages.
+- Deleted beyond the §5a plan: **8,842 LOC of unreachable dashboard code**
+  (75 files orphaned by an earlier reroute — five of the "six duplicated
+  pipelines" were already dead). The live dashboard translate path had never
+  sent glossaries or style guides; the engine path is what makes the quality
+  claim true at runtime.
+- **User rulings mid-PR**: no pre-translation locale picking in the Studio
+  (analysis picks, review corrects — re-ratifies no-start-inputs); jump must
+  cover release versions, not just drafts; multi-select batch buttons and
+  the status-segment progress bar stay deleted (their verbs were the dead
+  pipelines).
+- **Field tier deferred to PR 6** (deviation from the original §5a split):
+  `useFieldTranslateActions`, `deriveFieldCellStates`, `useStaleSyncEffect`,
+  `createSemaphore`, and the `fieldTranslation.metadata` workflow half keep
+  working until their engine replacement exists.
+- Demo cost: fresh imports show no canned doc-tier statuses — run state is
+  real now. A seed step that starts real runs is the honest fix if wanted.
+- The two internals-guesses are resolved: the schedule gate matches the
+  public `action.action === 'schedule'` discriminant; the badge-by-exclusion
+  filter is pinned by a unit test (`plugin.test.ts`).
 
 ### PR 6 — field-level tier
 
@@ -434,7 +445,11 @@ chaining that is worth reading first.
 ## 5a. The deletion inventory
 
 The point of the migration. Measured, not estimated — `wc -l` at the time of
-writing. Nothing here is deleted yet; PR 4 removes the Functions, PR 5 the rest.
+writing. **Status: PR 4 removed the Functions; PR 5 removed the doc tier
+(plus 8,842 LOC of unreachable dashboard code the inventory never counted).
+The field-tier rows (`useFieldTranslateActions`, `deriveFieldCellStates`,
+`useStaleSyncEffect`, `fieldTranslationMetadata`'s workflow half) are
+deferred to PR 6, where their engine replacement lands.**
 
 | File                                                              |        LOC | Superseded by                                  |
 | ----------------------------------------------------------------- | ---------: | ---------------------------------------------- |
