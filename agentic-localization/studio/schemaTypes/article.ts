@@ -1,6 +1,6 @@
 import {defineType, defineField, defineArrayMember} from 'sanity'
 import {DocumentTextIcon} from '@sanity/icons'
-import {isUniqueOtherThanLanguage} from '../lib/isUniqueOtherThanLanguage'
+import {isUniqueOtherThanLanguage} from '@starter/l10n-studio/schemas'
 
 export const article = defineType({
   name: 'article',

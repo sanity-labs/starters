@@ -1,6 +1,6 @@
 import {defineType, defineField} from 'sanity'
 import {BookIcon} from '@sanity/icons'
-import {isUniqueOtherThanLanguage} from '../lib/isUniqueOtherThanLanguage'
+import {isUniqueOtherThanLanguage} from '@starter/l10n-studio/schemas'
 
 export const editorialTopic = defineType({
   name: 'editorialTopic',
