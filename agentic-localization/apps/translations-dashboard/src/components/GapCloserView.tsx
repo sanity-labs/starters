@@ -25,6 +25,7 @@ import {useNavigate} from 'react-router-dom'
 import type {GapDocument, GapDocumentsData} from '../hooks/useGapDocuments'
 import type {CampaignTarget} from '../hooks/useStartLocalization'
 
+import {STATUS_ICONS} from '../lib/statusIcons'
 import ReleaseSelector from './ReleaseSelector'
 
 // --- Types ---
@@ -102,7 +103,9 @@ function buildColumns(
             <Flex justify="flex-end">
               <Button
                 fontSize={2}
-                icon={doc.workflowStatus === 'translating' ? SpinningIcon : display.icon}
+                icon={
+                  doc.workflowStatus === 'translating' ? SpinningIcon : STATUS_ICONS[display.icon]
+                }
                 mode="ghost"
                 onClick={() => onOpenRun(doc.instanceId ?? '')}
                 padding={3}

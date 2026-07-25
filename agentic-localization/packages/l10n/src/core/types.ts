@@ -1,12 +1,14 @@
 /**
  * Shared types for the Translations plugin.
  *
- * Consumed by both Surface 1 (SDK Dashboard) and Surface 2 (Document Pane).
- * Lives in `packages/shared/` so neither surface owns the definition.
+ * Consumed by every surface — the dashboard, the Studio pane and the effect
+ * handlers — so it sits on the node floor and takes its types from
+ * `@sanity/types` rather than `sanity`.
  */
 
-import type {KeyedObject} from 'sanity'
-import type {LANGUAGE_FIELD_NAME} from 'sanity-plugin-internationalized-array'
+import type {KeyedObject, Reference} from '@sanity/types'
+
+import type {languageFieldName} from './typeNames'
 
 /**
  * Configuration for the translations system.
@@ -73,9 +75,37 @@ export type TranslationStatus = TranslationWorkflowStatus | TranslationInFlightS
 
 /**
  * A keyed array item indexed by locale.
- * Extends `KeyedObject` (`_key`) with the plugin's language field name (`language`).
+ * Extends `KeyedObject` (`_key`) with the language field name (`language`) that
+ * `sanity-plugin-internationalized-array` writes and our schemas declare.
  */
-export type LocalizedObject = KeyedObject & {[K in typeof LANGUAGE_FIELD_NAME]: string}
+export type LocalizedObject = KeyedObject & {[K in typeof languageFieldName]: string}
+
+/**
+ * A member of an `internationalizedArray` field, as
+ * `sanity-plugin-internationalized-array` writes it.
+ *
+ * Declared here rather than imported from the plugin: the plugin is Studio-only
+ * and drags React and `sanity` with it, while an effect handler has to read and
+ * write these shapes from inside a Function. `@starter/l10n-studio` holds a
+ * bidirectional assignability test against the plugin's own declaration, so a
+ * drift between the two fails a build rather than a run.
+ */
+export interface InternationalizedArrayItem<T = unknown> {
+  _key: string
+  /** Always `internationalizedArray<Type>Value`. */
+  _type: `internationalizedArray${string}Value`
+  language: string
+  value?: T
+}
+
+/**
+ * One row of a `translation.metadata` document — the locale-to-document join
+ * `@sanity/document-internationalization` maintains. Same reasoning as above.
+ */
+export interface TranslationReference extends InternationalizedArrayItem<Reference> {
+  _type: 'internationalizedArrayReferenceValue'
+  value: Reference
+}
 
 // ---------------------------------------------------------------------------
 // AI Stale Change Analysis types

@@ -18,6 +18,6 @@
     "@sanity/workflow-engine": "catalog:",
     "@starter/l10n": "workspace:*",
     "@starter/tsconfig": "workspace:*",
-    "rolldown": "1.0.0-rc.6"
+    "rolldown": "catalog:"
   }
 }

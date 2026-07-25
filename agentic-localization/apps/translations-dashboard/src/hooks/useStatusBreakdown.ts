@@ -5,7 +5,7 @@
  * whole taxonomy ("nothing is stale — good") rather than a shifting card count.
  */
 
-import type {BadgeTone} from '@sanity/ui'
+import type {StatusTone} from '@starter/l10n'
 
 import {getStatusDisplay} from '@starter/l10n'
 import {useMemo} from 'react'
@@ -27,8 +27,8 @@ export type StatusBreakdownEntry = {
   label: string
   percentage: number
   status: DashboardStatus
-  /** @sanity/ui Badge tone — typed from getStatusDisplay() return */
-  tone: BadgeTone
+  /** Badge tone — typed from getStatusDisplay()'s return, a subset of `BadgeTone` */
+  tone: StatusTone
 }
 
 // --- Hook ---

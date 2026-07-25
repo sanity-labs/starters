@@ -11,7 +11,7 @@ import {createHash} from 'node:crypto'
 import {documentEventHandler} from '@sanity/functions'
 import {DocumentId, getPublishedId} from '@sanity/id-utils'
 import {gdrUri, StartNotAllowedError} from '@sanity/workflow-engine'
-import {startPerspectiveFor} from '@starter/l10n/core'
+import {startPerspectiveFor} from '@starter/l10n'
 import {localizeDocument} from '@starter/l10n/workflows'
 
 import {localizationEngine, requireEnv, workflowsClient} from '../engine'
@@ -34,7 +34,8 @@ export const handler = documentEventHandler<PublishEventData>(async ({context, e
   const client = workflowsClient(context.clientOptions, NAME).withConfig({
     dataset: requireEnv('WORKFLOWS_DATASET_NAME'),
   })
-  const engine = localizationEngine(client, NAME)
+  // Starts and ticks only — never drains, so no handler map. See `localizationEngine`.
+  const engine = localizationEngine(client, NAME, {})
 
   const subject = gdrUri({
     scheme: 'dataset',

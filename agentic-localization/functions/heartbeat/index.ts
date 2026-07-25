@@ -37,7 +37,8 @@ export const handler = scheduledEventHandler(async ({context}) => {
     },
     NAME,
   )
-  const engine = localizationEngine(client, NAME)
+  // Sweep + tick only — never drains, so no handlers (see engine.ts).
+  const engine = localizationEngine(client, NAME, {})
 
   // `engine.query` binds `$tag` and scopes the read to the workflow resource.
   const instanceIds = await engine.query<string[]>({groq: IN_FLIGHT_INSTANCES})

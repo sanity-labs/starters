@@ -8,6 +8,7 @@
  */
 
 import {documentEventHandler} from '@sanity/functions'
+import {localizationEffectHandlers} from '@starter/l10n/effects'
 
 import {localizationEngine, workflowsClient} from '../engine'
 
@@ -24,7 +25,11 @@ export const handler = documentEventHandler<InstanceEventData>(async ({context, 
 
   // The event source IS the workflows dataset, so `clientOptions` already
   // points where the engine needs to write.
-  const engine = localizationEngine(workflowsClient(context.clientOptions, NAME), NAME)
+  const engine = localizationEngine(
+    workflowsClient(context.clientOptions, NAME),
+    NAME,
+    localizationEffectHandlers,
+  )
 
   const {drained, failed, lost, skipped} = await engine.drainEffects({instanceId})
   console.log(

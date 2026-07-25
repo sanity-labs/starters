@@ -30,6 +30,7 @@
     "@sanity/workflow-studio": "catalog:",
     "@sanity/workflow-studio-plugin": "catalog:",
     "@starter/l10n": "workspace:*",
+    "@starter/l10n-studio": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",
     "sanity": "catalog:",

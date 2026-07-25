@@ -25,7 +25,8 @@ export const handler = documentEventHandler<DeleteEventData>(async ({context, ev
   const client = workflowsClient(context.clientOptions, NAME).withConfig({
     dataset: requireEnv('WORKFLOWS_DATASET_NAME'),
   })
-  const engine = localizationEngine(client, NAME)
+  // Aborts only — never drains, so no handler map. See `localizationEngine`.
+  const engine = localizationEngine(client, NAME, {})
 
   const subject = gdrUri({
     scheme: 'dataset',

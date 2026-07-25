@@ -85,7 +85,7 @@ export default defineBlueprint({
 
     // ── Runtime Functions ────────────────────────────────────────────
     // The engine has no runtime of its own: these four are it. Effect handlers
-    // live in `@starter/l10n/handlers`; the definitions they satisfy in
+    // live in `@starter/l10n/effects`; the definitions they satisfy in
     // `@starter/l10n/workflows`.
 
     // Dispatches an instance's pending effects, then advances it. The filter

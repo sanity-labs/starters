@@ -15,8 +15,8 @@ export default defineConfig({
   envDir: '../..',
   test: {
     name: '@starter/l10n:eval',
-    include: ['evals/*.eval.ts'],
-    globalSetup: ['evals/setup.ts'],
+    include: ['src/prompts/evals/*.eval.ts'],
+    globalSetup: ['src/prompts/evals/setup.ts'],
     // Sampling multiplies live Agent Action calls, and running the case files in
     // parallel on top of that trips the API rate limit. One case at a time.
     fileParallelism: false,

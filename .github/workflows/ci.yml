@@ -42,9 +42,14 @@ jobs:
         env:
           SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
           SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET }}
+      - name: Build functions
+        run: pnpm --filter @starter/functions build
       - name: Check function bundle sizes
         run: |
-          max_kb=512
+          # A ratchet over the current worst bundle (heartbeat, ~837 KB), not a
+          # target. Before the build step above, functions/dist did not exist in
+          # CI, so the loop matched nothing and this check never ran.
+          max_kb=896
           failed=0
           for dir in functions/dist/*/; do
             bundle="$dir/index.js"

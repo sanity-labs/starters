@@ -3,70 +3,23 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
       "source": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./types": {
-      "source": "./src/types.ts",
-      "default": "./src/types.ts"
-    },
-    "./utils": {
-      "source": "./src/utils.ts",
-      "default": "./src/utils.ts"
-    },
-    "./promptAssembly": {
-      "source": "./src/promptAssembly.ts",
-      "default": "./src/promptAssembly.ts"
-    },
-    "./queries": {
-      "source": "./src/queries.ts",
-      "default": "./src/queries.ts"
+    "./prompts": {
+      "source": "./src/prompts/index.ts",
+      "default": "./src/prompts/index.ts"
     },
     "./workflows": {
       "source": "./src/workflows/index.ts",
       "default": "./src/workflows/index.ts"
     },
-    "./handlers": {
-      "source": "./src/handlers/index.ts",
-      "default": "./src/handlers/index.ts"
-    },
-    "./translate": {
-      "source": "./src/translate/index.ts",
-      "default": "./src/translate/index.ts"
-    },
-    "./core": {
-      "source": "./src/core/index.ts",
-      "default": "./src/core/index.ts"
-    },
-    "./core/ids": {
-      "source": "./src/core/ids.ts",
-      "default": "./src/core/ids.ts"
-    },
-    "./core/types": {
-      "source": "./src/core/types.ts",
-      "default": "./src/core/types.ts"
-    },
-    "./core/computeFieldChanges": {
-      "source": "./src/core/computeFieldChanges.ts",
-      "default": "./src/core/computeFieldChanges.ts"
-    },
-    "./core/extractBlockText": {
-      "source": "./src/core/extractBlockText.ts",
-      "default": "./src/core/extractBlockText.ts"
-    },
-    "./core/buildFieldSummary": {
-      "source": "./src/core/buildFieldSummary.ts",
-      "default": "./src/core/buildFieldSummary.ts"
-    },
-    "./core/staleAnalysisPrompt": {
-      "source": "./src/core/staleAnalysisPrompt.ts",
-      "default": "./src/core/staleAnalysisPrompt.ts"
-    },
-    "./core/sanitizeTranslationValue": {
-      "source": "./src/core/sanitizeTranslationValue.ts",
-      "default": "./src/core/sanitizeTranslationValue.ts"
+    "./effects": {
+      "source": "./src/effects/index.ts",
+      "default": "./src/effects/index.ts"
     }
   },
   "scripts": {
@@ -76,55 +29,33 @@
   },
   "dependencies": {
     "@portabletext/markdown": "^1.1.3",
-    "@sanity/document-internationalization": "catalog:",
-    "@sanity/language-filter": "catalog:",
-    "@sanity/util": "^6.6.0",
-    "@sanity/workflow-engine": "catalog:",
-    "@sanity/workflow-react": "catalog:",
-    "@sanity/workflow-sdk": "catalog:",
-    "@sanity/workflow-studio": "catalog:",
-    "diff": "^8.0.3",
-    "lucide-react": "catalog:",
-    "react-error-boundary": "^6.1.1",
-    "sanity-plugin-internationalized-array": "catalog:"
-  },
-  "devDependencies": {
     "@portabletext/toolkit": "^5.0.1",
     "@portabletext/types": "^4.0.1",
+    "@sanity/id-utils": "^1.0.0",
+    "@sanity/util": "^6.6.0",
+    "@sanity/workflow-engine": "catalog:",
+    "diff": "^8.0.3"
+  },
+  "devDependencies": {
     "@sanity/client": "catalog:",
     "@sanity/codegen": "^5.10.1",
-    "@sanity/icons": "catalog:",
-    "@sanity/id-utils": "^1.0.0",
     "@sanity/types": "^6.6.0",
-    "@sanity/ui": "catalog:",
     "@sanity/workflow-engine-test": "catalog:",
     "@starter/sanity-types": "workspace:*",
     "@starter/tsconfig": "workspace:*",
-    "@types/diff": "^7.0.0",
     "@types/node": "^22.0.0",
-    "@types/react": "catalog:",
     "configstore": "^8.0.0",
     "groq": "catalog:",
-    "react": "catalog:",
-    "react-rx": "^4.2.2",
-    "rxjs": "^7.8.2",
-    "sanity": "catalog:",
-    "styled-components": "catalog:",
+    "rolldown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
   "peerDependencies": {
-    "@portabletext/toolkit": "^5.0.0",
     "@sanity/client": "^7.0.0",
-    "@sanity/icons": "^3.0.0",
-    "@sanity/id-utils": "^1.0.0",
     "@sanity/types": "^6.0.0",
-    "@sanity/ui": "^3.0.0",
-    "groq": "^6.0.0",
-    "react": "^19.0.0",
-    "react-rx": "^4.0.0",
-    "rxjs": "^7.0.0",
-    "sanity": "^6.0.0",
-    "styled-components": "^6.0.0"
-  }
+    "groq": "^6.0.0"
+  },
+  "//devDependencies": [
+    "rolldown is the bundler `src/exports.test.ts` drives to assert the entry graphs stay React-free; it is pinned via the catalog alongside @starter/functions."
+  ]
 }

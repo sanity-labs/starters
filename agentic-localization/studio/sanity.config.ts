@@ -5,15 +5,14 @@ import {assist} from '@sanity/assist'
 import {visionTool} from '@sanity/vision'
 import {EarthGlobeIcon} from '@sanity/icons'
 import {workflowDefaultDocumentNode, workflowStudioPlugin} from '@sanity/workflow-studio-plugin'
+import {fieldTierTypes} from '@starter/l10n'
 import {
   createL10n,
   createLocalizationScheduleGate,
-  LOCALIZATION_WORKFLOW_DATASET,
-  LOCALIZATION_WORKFLOW_TAG,
   LOCALIZE_DOCUMENT_DEFINITION,
   withLocaleFilter,
-} from '@starter/l10n'
-import {fieldTierTypes} from '@starter/l10n/core'
+} from '@starter/l10n-studio'
+import {WORKFLOW_TAG, WORKFLOWS_DATASET} from '@starter/l10n/workflows'
 import {schemaTypes} from './schemaTypes'
 
 const l10nTypes = ['l10n.locale', 'l10n.glossary', 'l10n.styleGuide', 'translation.metadata']
@@ -107,8 +106,8 @@ export default defineConfig({
     // Engine state lives in its own dataset. The tag and dataset must match the
     // deployment in `sanity.workflow.ts` — a mismatch reads an empty partition.
     workflowStudioPlugin({
-      tag: LOCALIZATION_WORKFLOW_TAG,
-      workflowDataset: LOCALIZATION_WORKFLOW_DATASET,
+      tag: WORKFLOW_TAG,
+      workflowDataset: WORKFLOWS_DATASET,
       // The plugin discovers `(docType, definition)` bindings from the deployed
       // definitions' subject types, so both rows exist without being named. They
       // are named anyway to label them and to mark where each tier's start

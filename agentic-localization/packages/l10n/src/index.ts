@@ -1,52 +1,94 @@
-export {createL10n} from './plugin'
-export {withLocaleFilter} from './structure'
+/**
+ * `@starter/l10n` — the core primitives every localization surface shares.
+ *
+ * The node floor: no `react`, no `sanity`, no `@sanity/ui`. A Sanity Function,
+ * the CLI, a frontend and the Studio plugin all import from here at the same
+ * cost, which is the whole reason the package is split this way.
+ *
+ * Siblings: `./prompts` (prompt assembly + queries), `./workflows` (the
+ * definitions), `./effects` (the handlers that satisfy them). Studio UI lives in
+ * `@starter/l10n-studio`.
+ */
+
+// --- Schema type names ---
+
 export {
-  localeTypeName,
-  glossaryTypeName,
-  styleGuideTypeName,
   glossaryEntryTypeName,
-  localeTranslationTypeName,
+  glossaryTypeName,
   languageFieldName,
-} from './types'
-export {resolveLocaleDefaults, isValidLocale, getFlagFromCode} from './utils'
-export {GLOSSARIES_QUERY, STYLE_GUIDE_FOR_LOCALE_QUERY, SUPPORTED_LANGUAGES_QUERY} from './queries'
+  localeTranslationTypeName,
+  localeTypeName,
+  styleGuideTypeName,
+} from './core/typeNames'
 
-// --- Re-exports from translations pane (UI) ---
+// --- Configuration and status vocabulary ---
 
-export {createTranslationInspector} from './translations'
-export {getStatusDisplay, type StatusDisplay} from './translations/getStatusDisplay'
 export {
   resolveConfig,
+  type InternationalizedArrayItem,
   type LocalizedObject,
   type ResolvedTranslationsConfig,
   type StaleAnalysisResult,
   type StaleAnalysisSuggestion,
   type SuggestionReasonCode,
   type TranslationInFlightStatus,
+  type TranslationReference,
   type TranslationsConfig,
   type TranslationStatus,
   type TranslationWorkflowStatus,
 } from './core/types'
+
+/** Status → icon name, tone and label. The surface binds the icon component. */
 export {
-  useTranslationTargets,
-  useBaseDocumentId,
-  type TranslationTargets,
-} from './translations/useTranslationTargets'
-export {InlineDiff} from './translations/InlineDiff'
+  getStatusDisplay,
+  type StatusDisplay,
+  type StatusIconName,
+  type StatusTone,
+} from './core/getStatusDisplay'
+
+// --- Locale utilities (Intl-powered, no data source) ---
+
+export {
+  getFlagFromCode,
+  isValidLocale,
+  prepareGlossary,
+  prepareGlossaryEntry,
+  regionToFlag,
+  resolveLocaleDefaults,
+  uniqueLocaleValidator,
+} from './core/utils'
+
+// --- The field-level localization tier ---
+
+export {
+  coveredLocales,
+  entriesOf,
+  entryFor,
+  fieldTierTypes,
+  internationalizedFields,
+  isFieldTier,
+  sourceProjection,
+  startPerspectiveFor,
+  type InternationalizedField,
+} from './core/fieldTier'
+
+// --- Change detection and summarization ---
+
+export {
+  computeFieldChanges,
+  computeMagnitude,
+  detectFieldType,
+  type FieldChange,
+  type FieldChangeMagnitude,
+  type FieldType,
+} from './core/computeFieldChanges'
+export {buildDiffAwareExtract, buildFieldSummary, type TextExtracts} from './core/buildFieldSummary'
+export {ANALYSIS_PROMPT_INSTRUCTION} from './core/staleAnalysisPrompt'
 export {extractBlockText} from './core/extractBlockText'
-export {PortableTextDiff} from './translations/PortableTextDiff'
-export {TranslationCompare, type TranslationCompareProps} from './translations/TranslationCompare'
-export {LocalizationRun, type LocalizationRunProps} from './translations/LocalizationRun'
-export {buildEditIntent, type EditIntent, type EditTarget} from './translations/editIntent'
-export {ReviewActions, type ReviewActionsProps} from './translations/ReviewActions'
-export {
-  LOCALIZATION_WORKFLOW_DATASET,
-  LOCALIZATION_WORKFLOW_TAG,
-  LOCALIZE_DOCUMENT_DEFINITION,
-  useLocalizationEngine,
-  useLocalizationInstance,
-  type LocalizationInstanceLookup,
-} from './translations/workflowEngine'
+export {compareSides, type CompareSides, type CompareSidesArgs} from './core/compareSides'
+
+// --- Reading workflow instance state ---
+
 export {
   readDocumentId,
   readFlag,
@@ -55,9 +97,10 @@ export {
   readProgress,
   readReleaseName,
   readText,
+  type InstanceFields,
   type LocaleRequest,
   type Materiality,
-} from './translations/instanceFields'
+} from './core/instanceFields'
 export {
   buildLocaleRuns,
   childInstanceIds,
@@ -65,21 +108,9 @@ export {
   type ChildRun,
   type LocaleRun,
   type LocaleRunStage,
-} from './translations/localeRuns'
-export {
-  computeMagnitude,
-  computeFieldChanges,
-  detectFieldType,
-  type FieldChange,
-  type FieldChangeMagnitude,
-  type FieldType,
-} from './core/computeFieldChanges'
-export {useReleases, type Release} from './translations/useReleases'
-export {ErrorBoundary} from './translations/ErrorBoundary'
-export {useOpenTranslationsInspector} from './translations/useOpenTranslationsInspector'
-export {useLocaleFilter} from './useLocaleFilter'
-export {globalLocaleFilter$} from './localeFilterState'
-export {buildFieldSummary, type TextExtracts} from './core/buildFieldSummary'
-export {ANALYSIS_PROMPT_INSTRUCTION} from './core/staleAnalysisPrompt'
-export {useLocales, type Language, type Locale} from './L10nProvider'
-export {createLocalizationScheduleGate} from './translations/scheduleGate'
+} from './core/localeRuns'
+
+// --- Deterministic ids and value hygiene ---
+
+export {getTranslationMetadataId} from './core/ids'
+export {sanitizeTranslationValue} from './core/sanitizeTranslationValue'

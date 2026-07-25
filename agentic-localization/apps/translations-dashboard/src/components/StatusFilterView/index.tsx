@@ -18,6 +18,7 @@ import type {StatusFilteredDocument} from '../../hooks/useStatusFilteredDocument
 import type {DashboardStatus} from '../../lib/localizationRun'
 import type {CampaignTarget} from '../../hooks/useStartLocalization'
 
+import {STATUS_ICONS} from '../../lib/statusIcons'
 import {BatchActionBar, CelebrationState, StatusSummaryCards} from './BatchActionBar'
 import {buildColumns} from './columns'
 
@@ -64,7 +65,7 @@ function StatusFilterView({
   totalSlots,
 }: StatusFilterViewProps) {
   const display = getStatusDisplay(status)
-  const Icon = display.icon
+  const Icon = STATUS_ICONS[display.icon]
 
   const [target, setTarget] = useState<CampaignTarget>({kind: 'drafts'})
 

@@ -18,6 +18,8 @@ import {useNavigate} from 'react-router-dom'
 import type {StatusBreakdownEntry} from '../hooks/useStatusBreakdown'
 import type {DashboardStatus} from '../lib/localizationRun'
 
+import {STATUS_ICONS} from '../lib/statusIcons'
+
 // --- Constants ---
 
 /** Low-volume threshold: suppress percentages below this count */
@@ -89,7 +91,7 @@ function StatusCard({
   status,
 }: StatusCardProps) {
   const display = getStatusDisplay(status)
-  const Icon = display.icon
+  const Icon = STATUS_ICONS[display.icon]
   const isZero = count === 0
 
   const tooltipText = celebrate

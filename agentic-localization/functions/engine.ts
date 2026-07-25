@@ -4,11 +4,10 @@
  */
 
 import type {ClientConfig, SanityClient} from '@sanity/client'
-import type {DeclaredExecutionContext, Engine} from '@sanity/workflow-engine'
+import type {DeclaredExecutionContext, EffectHandler, Engine} from '@sanity/workflow-engine'
 
 import {createClient} from '@sanity/client'
 import {createEngine, EXECUTION_KINDS} from '@sanity/workflow-engine'
-import {localizationEffectHandlers} from '@starter/l10n/handlers'
 
 const API_VERSION = '2025-05-16'
 
@@ -42,12 +41,23 @@ export function workflowsClient(config: ClientConfig, name: string): SanityClien
   })
 }
 
-export function localizationEngine(client: SanityClient, name: string): Engine {
+/**
+ * `effectHandlers` is a parameter, not a constant, because only the drainer
+ * needs one. `tick` and `abortInstance` never reach a handler — proven in
+ * `packages/l10n/src/workflows/effectDispatch.test.ts` — so the Functions that
+ * only call those pass `{}` and keep `@starter/l10n/effects`, the Agent Actions
+ * code paths and the whole prompt-assembly graph out of their bundles.
+ */
+export function localizationEngine(
+  client: SanityClient,
+  name: string,
+  effectHandlers: Record<string, EffectHandler>,
+): Engine {
   return createEngine({
     client,
     tag: requireEnv('WORKFLOW_TAG'),
     workflowResource: {type: 'dataset', id: requireEnv('WORKFLOWS_DATASET_ID')},
-    effectHandlers: localizationEffectHandlers,
+    effectHandlers,
     effectLeaseMs: EFFECT_LEASE_MS,
     // A definition can outlive the handler that satisfied it; skipping leaves
     // the effect claimable rather than failing the run.

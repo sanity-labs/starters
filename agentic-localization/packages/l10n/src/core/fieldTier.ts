@@ -13,7 +13,8 @@
  */
 
 import type {WorkflowPerspective} from '@sanity/workflow-engine'
-import type {InternationalizedArrayItem} from 'sanity-plugin-internationalized-array'
+
+import type {InternationalizedArrayItem} from './types'
 
 import {get} from '@sanity/util/paths'
 

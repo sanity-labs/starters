@@ -1,0 +1,56 @@
+{
+  "name": "@starter/l10n-studio",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./schemas": {
+      "source": "./src/schemas/index.ts",
+      "default": "./src/schemas/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sanity/client": "catalog:",
+    "@sanity/document-internationalization": "catalog:",
+    "@sanity/icons": "catalog:",
+    "@sanity/id-utils": "^1.0.0",
+    "@sanity/language-filter": "catalog:",
+    "@sanity/types": "^6.6.0",
+    "@sanity/ui": "catalog:",
+    "@sanity/workflow-engine": "catalog:",
+    "@sanity/workflow-react": "catalog:",
+    "@sanity/workflow-sdk": "catalog:",
+    "@sanity/workflow-studio": "catalog:",
+    "@starter/l10n": "workspace:*",
+    "diff": "^8.0.3",
+    "groq": "catalog:",
+    "react": "catalog:",
+    "react-error-boundary": "^6.1.1",
+    "react-rx": "^4.2.2",
+    "rxjs": "^7.8.2",
+    "sanity": "catalog:",
+    "sanity-plugin-internationalized-array": "catalog:",
+    "styled-components": "catalog:"
+  },
+  "devDependencies": {
+    "@starter/sanity-types": "workspace:*",
+    "@starter/tsconfig": "workspace:*",
+    "@types/diff": "^7.0.0",
+    "@types/react": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "//dependencies": [
+    "@sanity/workflow-react and @sanity/workflow-sdk are not imported here: they are exact-version peer pins of @sanity/workflow-studio, which is. Every @sanity/workflow-* package peers on the others at an exact version and breaking changes ship in minors — see docs/WORKFLOW_ENGINE_MIGRATION.md §3 Versions. Pin exactly and upgrade the set together.",
+    "@sanity/language-filter is likewise not imported here: it is the peer pin of sanity-plugin-internationalized-array."
+  ]
+}

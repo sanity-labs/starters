@@ -1,12 +1,10 @@
 /**
- * @starter/l10n/translate
- *
  * Post-translation document shaping — slug generation, field cleanup and image
- * crop/hotspot restoration. Shared by the translations dashboard and the
- * `translate-locale` effect handler so a translated document comes out the same
- * shape whichever surface produced it.
+ * crop/hotspot restoration, so a translated document comes out the same shape
+ * whichever surface produced it.
  *
- * React-free, like `./core`: no `sanity`, no `@sanity/ui`, no plugins.
+ * Internal: no export entry points here. The only consumer is the
+ * `translate-locale` handler. Promote it to an entry if a second one appears.
  */
 
 export {generateLocalizedSlug} from './generateLocalizedSlug'
