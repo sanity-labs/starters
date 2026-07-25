@@ -27,7 +27,7 @@ Without structured context, AI translates "Releases" as "Veröffentlichungen" in
 pnpm create sanity@latest --template sanity-labs/starters/agentic-localization --package-manager pnpm
 ```
 
-This prompts you to select (or create) a Sanity project and dataset, then writes your `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` to `.env`. All workspaces in the monorepo read from this single file — prefix mappings at the bottom resolve the values to each workspace's expected env var names.
+This prompts you to select (or create) a Sanity project and dataset, then writes `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` into an env file per workspace. `pnpm bootstrap` folds them into the root `.env` and deletes `studio/.env` — from then on the root file is the one you edit. Workspaces that need other variable names translate them in code: `apps/frontend/next.config.ts` (the `env` block) and `apps/translations-dashboard/sanity.cli.ts` (`vite.define`).
 
 > **Cloning manually?** Copy `.env.example` to `.env` and fill in your project ID and dataset from [sanity.io/manage](https://www.sanity.io/manage).
 
@@ -82,7 +82,7 @@ pnpm dev
 
 Opens the Studio at [localhost:3333](http://localhost:3333), the translations dashboard at [localhost:3334](http://localhost:3334), and the Next.js frontend at [localhost:3000](http://localhost:3000).
 
-> **Frontend env:** The frontend inherits `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` from the root `.env` automatically. For server-side data fetching with a private dataset, add a `SANITY_API_READ_TOKEN` (create one at [sanity.io/manage](https://www.sanity.io/manage) → API → Tokens).
+> **Frontend env:** The frontend inherits `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` from the root `.env` automatically. For server-side data fetching with a private dataset, add a `SANITY_API_READ_TOKEN` to `apps/frontend/.env.local`, where `sanity init` puts it (create one at [sanity.io/manage](https://www.sanity.io/manage) → API → Tokens).
 
 ## How it works
 

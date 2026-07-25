@@ -5,7 +5,7 @@ Real-time translations management dashboard built with the [Sanity App SDK](http
 ## Quick Start
 
 ```bash
-# From the monorepo root — env vars are read from the root .env.local
+# From the monorepo root — env vars are read from the root .env
 pnpm install
 pnpm bootstrap
 pnpm dev
@@ -87,5 +87,5 @@ pnpm --filter @starter/translations-dashboard exec sanity deploy
 To make "Open in Studio" links point to your production Studio:
 
 ```sh
-echo 'SANITY_STUDIO_URL=https://your-studio.sanity.studio' >> .env.local
+echo 'SANITY_STUDIO_URL=https://your-studio.sanity.studio' >> .env
 ```

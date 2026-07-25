@@ -12,10 +12,10 @@ pnpm dev
 
 The frontend opens at [localhost:3000](http://localhost:3000).
 
-For server-side data fetching with a private dataset, add a read token to the root `.env.local`:
+Project ID and dataset come from the root `.env`. For server-side data fetching with a private dataset, add a read token to this workspace's `.env.local` — where `sanity init` puts it:
 
 ```sh
-echo 'SANITY_API_READ_TOKEN=your-token' >> .env.local
+echo 'SANITY_API_READ_TOKEN=your-token' >> apps/frontend/.env.local
 ```
 
 ## How It Works

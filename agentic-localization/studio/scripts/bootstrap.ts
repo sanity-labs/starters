@@ -17,7 +17,7 @@
  */
 
 import {execFileSync} from 'node:child_process'
-import {copyFileSync, existsSync, readFileSync, writeFileSync} from 'node:fs'
+import {copyFileSync, existsSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
 import {resolve} from 'node:path'
 import {parseEnv} from 'node:util'
 import {getCliClient} from 'sanity/cli'
@@ -41,8 +41,11 @@ function heading(label: string) {
 }
 
 // ── 1. Consolidate env ───────────────────────────────────────────────────────
-// `sanity init --template` writes studio/.env. Ensure root .env stays in sync
-// so every workspace (dashboard, frontend, blueprint) reads the same values.
+// `sanity init --template` writes studio/.env. Merge it into the root .env and
+// delete it, so every workspace (dashboard, frontend, blueprint) reads one file.
+// Two files is a split brain: `sanity.cli.ts` loads studio/.env at highest
+// precedence while its Vite `envDir` points at the root, so an edit to one is
+// invisible to half the stack.
 
 heading('Consolidate env')
 
@@ -80,7 +83,8 @@ if (existsSync(studioEnv)) {
     }
   }
   writeFileSync(rootEnv, content)
-  console.log('Merged studio/.env values into .env')
+  rmSync(studioEnv, {force: true})
+  console.log('Merged studio/.env values into .env and removed studio/.env')
 } else {
   console.log('No studio/.env found — using existing root .env')
 }
@@ -99,27 +103,14 @@ const project = await client.request<{organizationId?: string}>({
 })
 
 if (project.organizationId) {
-  let patched = 0
-
-  for (const envFile of [studioEnv, rootEnv]) {
-    try {
-      const content = readFileSync(envFile, 'utf8')
-      const updated = content.replace(
-        /^#\s*SANITY_STUDIO_ORGANIZATION_ID=.*$/m,
-        `SANITY_STUDIO_ORGANIZATION_ID=${project.organizationId}`,
-      )
-      if (updated !== content) {
-        writeFileSync(envFile, updated)
-        patched++
-      }
-    } catch {
-      // File may not exist yet
-    }
-  }
-
-  console.log(
-    `Resolved organization ID: ${project.organizationId} (patched ${patched} env file${patched === 1 ? '' : 's'})`,
+  const content = readFileSync(rootEnv, 'utf8')
+  const updated = content.replace(
+    /^#\s*SANITY_STUDIO_ORGANIZATION_ID=.*$/m,
+    `SANITY_STUDIO_ORGANIZATION_ID=${project.organizationId}`,
   )
+  if (updated !== content) writeFileSync(rootEnv, updated)
+
+  console.log(`Resolved organization ID: ${project.organizationId}`)
 } else {
   console.log('No organization found for project — skipping')
 }
