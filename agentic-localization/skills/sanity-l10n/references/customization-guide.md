@@ -39,8 +39,8 @@ as generic terms without explicit guidance.
 - "Workspace" — same
 - "API" — universally understood acronym
 
-Read `packages/l10n/evals/fixtures.ts` for the example entries and
-`packages/l10n/evals/` for how deltas are measured.
+Read `packages/l10n/src/prompts/evals/fixtures.ts` for the example entries and
+`packages/l10n/src/prompts/evals/` for how deltas are measured.
 
 ### Adapting to Your Domain
 
@@ -94,7 +94,7 @@ reference field. The query `STYLE_GUIDE_FOR_LOCALE_QUERY` fetches the guide
 matching the target locale code. Create one style guide per locale that needs
 specific treatment.
 
-Read `packages/l10n/evals/fixtures.ts` for example style guides (DE formal +
+Read `packages/l10n/src/prompts/evals/fixtures.ts` for example style guides (DE formal +
 precise, FR formal + elegant, JA formal + concise).
 
 ## Adding Localized Content Types
@@ -149,7 +149,7 @@ Only types listed here get:
 `functions/` holds the engine's runtime — `drain-effects`,
 `start-localization`, `handle-deleted-subject` and an opt-in `heartbeat`. Their
 triggers, timeouts and env are declared as resources in `sanity.blueprint.ts`;
-what they execute lives in `packages/l10n/src/handlers/`.
+what they execute lives in `packages/l10n/src/effects/`.
 
 Engine coordinates (the `workflows` dataset and the `production` tag) come from
 `packages/l10n/src/workflows/config.ts`. Change them there and the blueprint,
@@ -231,7 +231,7 @@ The l10n package has two vitest configs:
 ### Writing a New Eval Case
 
 An `EvalCase` defines a translation scenario. Read
-`packages/l10n/evals/types.ts` for the type and existing eval files for
+`packages/l10n/src/prompts/evals/types.ts` for the type and existing eval files for
 examples.
 
 ```ts

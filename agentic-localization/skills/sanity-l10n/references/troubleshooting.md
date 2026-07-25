@@ -18,7 +18,7 @@ The schema ID is `_.schemas.default` (derived from the workspace name in
 `getCliClient` from `sanity/cli` does NOT resolve auth tokens outside the CLI
 process. Its `__internal__getToken` defaults to `() => undefined`.
 
-For evals and scripts, use the helper at `packages/l10n/evals/authToken.ts`:
+For evals and scripts, use the helper at `packages/l10n/src/prompts/evals/authToken.ts`:
 
 1. Checks `SANITY_AUTH_TOKEN` env var
 2. Falls back to `ConfigStore('sanity')` (reads from `~/.config/sanity/`)

@@ -19,7 +19,7 @@ Canonical sources:
 - `packages/l10n/src/core/fieldTier.ts` — the tier's vocabulary: field
   registry, coverage (a locale counts only when every field carries it),
   source-locale projection, start perspective.
-- `packages/l10n/src/handlers/translateLocale.ts` — the in-place write
+- `packages/l10n/src/effects/translateLocale.ts` — the in-place write
   branch: one patch per container and per field, `unset` by language then
   `append`, idempotent under redelivery.
 - `packages/l10n/src/workflows/localizeDocument.fieldTier.test.ts` — why

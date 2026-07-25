@@ -41,7 +41,7 @@ Read `references/architecture.md` for the full project map. Key entry points:
 - `packages/l10n/src/workflows/` — Editorial Workflows definitions
   (`localize-campaign` → `localize-document` → `localize-locale`) plus their
   in-memory bench specs. React-free; composable into Functions and the CLI.
-- `packages/l10n/src/handlers/` — the effect handlers those definitions declare.
+- `packages/l10n/src/effects/` — the effect handlers those definitions declare.
 - `functions/` — the engine's runtime. Migration state is in
   `docs/WORKFLOW_ENGINE_MIGRATION.md`.
 - `studio/` — Studio workspace with article, person, topic, tag types.
@@ -77,7 +77,7 @@ glossary entries are brand names that look like common English words — generic
 terms like "Dashboard" add little value because models translate them correctly
 without help.
 
-- Read `packages/l10n/evals/fixtures.ts` to see the example glossary entries
+- Read `packages/l10n/src/prompts/evals/fixtures.ts` to see the example glossary entries
 - Read `packages/l10n/src/schemas/glossaryEntry.ts` for the 7-field anatomy
 - Load `references/customization-guide.md` for detailed guidance
 - Do NOT remove fields from glossary entries — each drives branching logic in
@@ -98,7 +98,7 @@ Style guides are per-locale: formality level, tone adjectives, and free-form
 instructions in Portable Text.
 
 - Read `packages/l10n/src/schemas/translationStyleGuide.ts` for the schema
-- Read `packages/l10n/evals/fixtures.ts` for example style guides (DE, FR, JA)
+- Read `packages/l10n/src/prompts/evals/fixtures.ts` for example style guides (DE, FR, JA)
 - Load `references/customization-guide.md` for best practices
 - Style guides are fetched by locale code via `STYLE_GUIDE_FOR_LOCALE_QUERY`
 
@@ -158,7 +158,7 @@ Load `references/troubleshooting.md` for common issues:
 
 Load `references/field-level-patterns.md`. Canonical sources:
 `packages/l10n/src/core/fieldTier.ts` (registry, coverage, source projection,
-start perspective), `packages/l10n/src/handlers/translateLocale.ts` (the
+start perspective), `packages/l10n/src/effects/translateLocale.ts` (the
 in-place write branch) and `packages/l10n/src/translations/FieldTierContent.tsx`
 (the inspector surface).
 
@@ -210,7 +210,7 @@ Example: `studio/schemaTypes/person.ts` uses `internationalizedArrayText` for
   doNotTranslate, partOfSpeech, definition, context, translations) drive
   branching logic in `buildGlossarySection()`.
 - **Do NOT use `getCliClient` outside CLI** — it won't resolve auth tokens.
-  Pass `token` explicitly. See `packages/l10n/evals/authToken.ts`.
+  Pass `token` explicitly. See `packages/l10n/src/prompts/evals/authToken.ts`.
 - **Do NOT skip `sanity schema deploy`** — Agent Actions requires deployed
   schema. Schema ID is `_.schemas.default`.
 - **Do NOT use `useFormValue` in the inspector** — it renders outside form

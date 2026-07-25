@@ -14,7 +14,7 @@ which is the source of truth; this page says what each one is _for_.
 
 All four construct the same engine through
 [`functions/engine.ts`](../functions/engine.ts). The effect handlers it registers
-are `@starter/l10n/handlers`; the definitions they satisfy are
+are `@starter/l10n/effects`; the definitions they satisfy are
 `@starter/l10n/workflows`. See
 [WORKFLOW_ENGINE_MIGRATION.md](WORKFLOW_ENGINE_MIGRATION.md) for the engine
 behaviour behind these choices.

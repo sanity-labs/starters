@@ -15,8 +15,10 @@ inferred from docs. Where the docs and reality disagree, this file records reali
 | **PR 3** — workflows dataset + deploy    | **Committed** (`d3784c5`)           |
 | **PR 4** — effect handlers + runtime     | **Committed** (`c6f3713`)           |
 | **PR 5** — Studio and dashboard surfaces | **Committed** (`250bf89`…`fe55583`) |
-| PR 6a — field tier, engine + runtime     | In the working tree                 |
-| PR 6b — field tier, Studio surfaces      | In the working tree                 |
+| **PR 6a** — field tier, engine + runtime | **Committed** (`11f5716`)           |
+| **PR 6b** — field tier, Studio surfaces  | **Committed** (`125da0d`)           |
+| **machineRev** — loop capture (ADR-002)  | **Committed** (`7b26a7f`)           |
+| **Package split** (ADR-001)              | **Committed** (this commit)         |
 
 Branch: `feature/use-workflows-for-localization`. Baseline before this work was
 169 tests; it is now **312** (`pnpm --filter @starter/l10n test`) — 6a's 322 less
@@ -89,19 +91,13 @@ Three consequences worth acting on:
   being replaced by ~530 lines of declarative definitions plus ~490 lines of specs.
   A PR that adds the engine without removing the machinery it supersedes has done
   half the job.
-- **`packages/l10n` should become several packages.** It is currently one package
-  with fifteen sub-path exports — the sub-paths exist precisely to keep React out
-  of serverless consumers, which is the problem a domain split solves properly.
-  The organizing principle (user, 2026-07-24): **logical modules of core logic,
-  behaviors, and components** — pure core logic (engine/stdlib only), behaviors
-  (workflow definitions, prompt assembly, queries — React-free), components
-  (Studio UI, the only layer allowed React/`@sanity/ui`), plus schemas. Do this
-  _after_ the deletions in PR 5, so the split moves only code that survives.
-  The split starts with a full-codebase audit — usage, duplication, dead code,
-  composite refactorings — not a mechanical file-move. Yardstick: the starter
-  hypothesis (context markedly improves translations; agents and humans
-  together move quicker with quality) and that someone can pull choice
-  elements into their own project.
+- **The package shape is DECIDED and BUILT** — see
+  `docs/decisions/adr-001-package-shape.md`. Two packages on the React line
+  (`@starter/l10n` node floor with layer entries `.`/`./prompts`/`./workflows`/
+  `./effects`; `@starter/l10n-studio` for everything React/Studio), settled by
+  an adversarial debate, a verifying judge, and two owner rulings. The starter
+  is a **reference**: each entry is an extension surface for building custom
+  translation workflows on the layers.
 - **e2e coverage does not exist yet.** Today there are unit tests and live-model
   evals. The bench suite proves the definitions but nothing exercises a deployed
   run end to end. Add once PR 4 makes a run actually executable. Strategy
@@ -438,7 +434,7 @@ reports a no-op.
 
 ### PR 4 — effect handlers + runtime Functions — DONE (as built)
 
-- Handlers live in `packages/l10n/src/handlers/` (`@starter/l10n/handlers`),
+- Handlers live in `packages/l10n/src/effects/` (`@starter/l10n/handlers`),
   React-free, keyed by the constants in `workflows/effects.ts`.
   `translate-locale` calls `buildTranslateParams()` at
   `handlers/translateLocale.ts:102` — the same call shape as the eval, with a
