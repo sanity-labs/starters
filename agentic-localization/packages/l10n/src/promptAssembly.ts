@@ -220,6 +220,14 @@ export function buildTranslateParams(options: {
   operation?: 'create' | 'edit' | 'createOrReplace' | 'createIfNotExists'
   targetDocumentId?: string
   languageFieldPath?: string
+  /**
+   * Field-tier translation: the source document is also the target, so the
+   * call carries no `targetDocument` at all (the API's documented default).
+   * Everything else — glossaries, style guide, protected phrases — is
+   * assembled identically, which is the point of routing both tiers through
+   * this one function.
+   */
+  inPlace?: boolean
 }): TranslateDocument {
   const toLanguage: Language = {
     id: options.targetLocale.code,
@@ -238,25 +246,29 @@ export function buildTranslateParams(options: {
 
   const protectedPhrases = extractProtectedPhrases(options.glossaries)
 
-  const operation = options.operation ?? 'create'
-  const targetDocument: TransformTargetDocument =
-    operation === 'create'
-      ? {operation, ...(options.targetDocumentId && {_id: options.targetDocumentId})}
-      : {operation, _id: options.targetDocumentId!}
-
   const params: TranslateDocument = {
     schemaId: options.schemaId,
     documentId: options.documentId,
     toLanguage,
     styleGuide: styleGuideStr,
     protectedPhrases,
-    targetDocument,
+    ...(options.inPlace ? {} : {targetDocument: buildTargetDocument(options)}),
   }
 
   if (fromLanguage) params.fromLanguage = fromLanguage
   if (options.languageFieldPath) params.languageFieldPath = options.languageFieldPath
 
   return params
+}
+
+function buildTargetDocument(options: {
+  operation?: 'create' | 'edit' | 'createOrReplace' | 'createIfNotExists'
+  targetDocumentId?: string
+}): TransformTargetDocument {
+  const operation = options.operation ?? 'create'
+  return operation === 'create'
+    ? {operation, ...(options.targetDocumentId && {_id: options.targetDocumentId})}
+    : {operation, _id: options.targetDocumentId!}
 }
 
 // Main assembler

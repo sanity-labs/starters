@@ -32,6 +32,18 @@ export {
   type FieldType,
 } from './computeFieldChanges'
 
+// The field-level localization tier
+export {
+  coveredLocales,
+  entriesOf,
+  entryFor,
+  internationalizedFields,
+  isFieldTier,
+  sourceProjection,
+  startPerspectiveFor,
+  type InternationalizedField,
+} from './fieldTier'
+
 // Portable Text extraction
 export {extractBlockText} from './extractBlockText'
 

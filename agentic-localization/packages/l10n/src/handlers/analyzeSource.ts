@@ -14,17 +14,19 @@
 import type {EffectHandler, FieldOp} from '@sanity/workflow-engine'
 import type {StaleAnalysisResult, StaleAnalysisSuggestion} from '../core/types'
 
-import {DocumentId, getDraftId, getPublishedId} from '@sanity/id-utils'
+import {DocumentId, getPublishedId} from '@sanity/id-utils'
 import {extractDocumentId} from '@sanity/workflow-engine'
 import {diffWords} from 'diff'
 
 import type {FieldChange} from '../core/computeFieldChanges'
+import type {InternationalizedField} from '../core/fieldTier'
 import type {TextExtracts} from '../core/buildFieldSummary'
 import type {ContentClient, EffectContext} from './effectRuntime'
 
 import {buildFieldSummary} from '../core/buildFieldSummary'
 import {computeFieldChanges} from '../core/computeFieldChanges'
 import {extractBlockText} from '../core/extractBlockText'
+import {coveredLocales, internationalizedFields, sourceProjection} from '../core/fieldTier'
 import {getTranslationMetadataId} from '../core/ids'
 import {ANALYSIS_PROMPT_INSTRUCTION} from '../core/staleAnalysisPrompt'
 import {LOCALE_CODES_QUERY, TRANSLATIONS_FOR_DOCUMENT_QUERY} from '../queries'
@@ -34,6 +36,7 @@ import {
   contentClientFor,
   datasetOf,
   effectAlreadyDone,
+  readSubjectDocument,
   requireGdr,
 } from './effectRuntime'
 
@@ -58,12 +61,13 @@ export const analyzeSource: EffectHandler = async (params, ctx) => {
   const subjectId = DocumentId(extractDocumentId(subject))
   const publishedId = getPublishedId(subjectId)
 
-  const currentDoc = await client.fetch<null | Record<string, unknown>>(
-    `*[_id == $id || _id == $draftId] | order(_id asc)[0]`,
-    {id: publishedId, draftId: getDraftId(subjectId)},
-    {tag: 'get-source-doc'},
-  )
+  const currentDoc = await readSubjectDocument(client, ctx, publishedId)
   if (!currentDoc) throw new Error(`Source document ${publishedId} not found`)
+
+  // The field tier keeps every locale inside the subject, so both halves of the
+  // analysis change: coverage comes from the arrays rather than a join
+  // document, and the diff runs over the source-locale values alone.
+  const fields = internationalizedFields(typeOf(currentDoc))
 
   const analyzedRev = typeof currentDoc._rev === 'string' ? currentDoc._rev : null
 
@@ -78,11 +82,18 @@ export const analyzeSource: EffectHandler = async (params, ctx) => {
     : null
 
   const localeCodes = await client.fetch<string[]>(LOCALE_CODES_QUERY, {}, {tag: 'get-locales'})
-  const translated = new Set(await existingTranslationLocales(client, publishedId))
+  const translated = new Set(
+    fields.length > 0
+      ? coveredLocales(currentDoc, fields)
+      : await existingTranslationLocales(client, publishedId),
+  )
   const candidates = localeCodes.filter((code) => code !== SOURCE_LANGUAGE)
   const missing = candidates.filter((code) => !translated.has(code))
 
-  const fieldChanges = historicalDoc ? computeFieldChanges(historicalDoc, currentDoc) : []
+  const compare = comparableProjection(fields)
+  const fieldChanges = historicalDoc
+    ? computeFieldChanges(compare(historicalDoc), compare(currentDoc))
+    : []
   const changedFields = fieldChanges.filter((change) => change.changed)
 
   // Nothing to diff — a first publish, or an edit that moved no field. A locale
@@ -136,6 +147,22 @@ export const analyzeSource: EffectHandler = async (params, ctx) => {
       targetLocales,
     }),
   }
+}
+
+/**
+ * What two revisions of the subject are compared as.
+ *
+ * The document tier diffs the whole document. The field tier cannot: its
+ * translations live in the subject, so publishing an approved run would read
+ * as a material source edit and start the same run again on the next publish,
+ * forever. Reducing each revision to its source-locale values makes a
+ * translation-only change diff as no change at all.
+ */
+function comparableProjection(
+  fields: InternationalizedField[],
+): (document: Record<string, unknown>) => Record<string, unknown> {
+  if (fields.length === 0) return (document) => document
+  return (document) => sourceProjection(document, fields, SOURCE_LANGUAGE)
 }
 
 /**
@@ -314,4 +341,8 @@ function isMateriality(value: unknown): value is Materiality {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function typeOf(document: Record<string, unknown>): string {
+  return typeof document._type === 'string' ? document._type : ''
 }

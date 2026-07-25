@@ -75,8 +75,17 @@ function patchRecorder() {
   return {builder, calls}
 }
 
-function harness(options: {settledEffectKeys?: string[]; translations?: unknown[] | null} = {}) {
-  const translate = vi.fn().mockResolvedValue(TRANSLATED)
+function harness(
+  options: {
+    settledEffectKeys?: string[]
+    sourceDoc?: Record<string, unknown>
+    perspective?: unknown
+    translated?: unknown
+    translations?: unknown[] | null
+  } = {},
+) {
+  const sourceDoc = options.sourceDoc ?? SOURCE_DOC
+  const translate = vi.fn().mockResolvedValue(options.translated ?? TRANSLATED)
   const {builder, calls: patchCalls} = patchRecorder()
 
   const tx = {
@@ -111,8 +120,7 @@ function harness(options: {settledEffectKeys?: string[]; translations?: unknown[
           options.translations === undefined ? null : {translations: options.translations},
         )
       }
-      if (query.includes('$draftId')) return Promise.resolve(SOURCE_DOC)
-      return Promise.resolve(SOURCE_DOC)
+      return Promise.resolve(sourceDoc)
     }),
     getDocument: vi.fn(),
     patch: vi.fn(),
@@ -125,7 +133,10 @@ function harness(options: {settledEffectKeys?: string[]; translations?: unknown[
   const workflowClient = {
     action: vi.fn(),
     create: vi.fn(),
-    fetch: vi.fn().mockResolvedValue(options.settledEffectKeys ?? []),
+    fetch: vi.fn().mockImplementation((query: string) => {
+      if (query.includes('perspective')) return Promise.resolve(options.perspective ?? null)
+      return Promise.resolve(options.settledEffectKeys ?? [])
+    }),
     getDocument: vi.fn(),
     patch: vi.fn(),
     transaction: vi.fn(),
@@ -141,7 +152,7 @@ function harness(options: {settledEffectKeys?: string[]; translations?: unknown[
     setProgress: vi.fn().mockResolvedValue(undefined),
   }
 
-  return {contentClient, ctx, patchCalls, translate, tx, workflowClient}
+  return {contentClient, ctx, patchCalls, sourceDoc, translate, tx, workflowClient}
 }
 
 function builtParams() {
@@ -385,5 +396,338 @@ describe('translate-locale', () => {
     await translateLocale({source: SOURCE, locale: 'de-DE', release: null, revisionNote: null}, ctx)
 
     expect(ctx.setProgress.mock.calls.map(([, value]) => value)).toEqual([10, 25, 70, 100])
+  })
+})
+
+describe('translate-locale, field tier', () => {
+  const PERSON_SOURCE = 'dataset:proj1:production:person-1'
+
+  function bioEntry(language: string, value: string, key: string) {
+    return {_key: key, _type: 'internationalizedArrayTextValue', language, value}
+  }
+
+  const PERSON_DOC = {
+    _id: 'person-1',
+    _originalId: 'person-1',
+    _rev: 'rev-2',
+    _type: 'person',
+    name: 'Ada Lovelace',
+    bio: [bioEntry('en-US', 'Ada writes about Acme.', 'bio-en')],
+    seo: {
+      _type: 'seo',
+      metaTitle: [
+        {
+          _key: 'mt-en',
+          _type: 'internationalizedArrayStringValue',
+          language: 'en-US',
+          value: 'Ada',
+        },
+      ],
+      metaDescription: [bioEntry('en-US', 'About Ada.', 'md-en')],
+    },
+  }
+
+  /** What `noWrite` hands back: the source entries, translated where they lie. */
+  const PERSON_TRANSLATED = {
+    ...PERSON_DOC,
+    bio: [bioEntry('en-US', 'Ada schreibt über Acme.', 'bio-en')],
+    seo: {
+      _type: 'seo',
+      metaTitle: [
+        {
+          _key: 'mt-en',
+          _type: 'internationalizedArrayStringValue',
+          language: 'en-US',
+          value: 'Ada',
+        },
+      ],
+      metaDescription: [bioEntry('en-US', 'Über Ada.', 'md-en')],
+    },
+  }
+
+  function personHarness(overrides: Parameters<typeof harness>[0] = {}) {
+    return harness({
+      sourceDoc: PERSON_DOC,
+      perspective: 'published',
+      translated: PERSON_TRANSLATED,
+      ...overrides,
+    })
+  }
+
+  it('translates every internationalized field in one call, in place', async () => {
+    const {ctx, translate} = personHarness()
+
+    await translateLocale(
+      {source: PERSON_SOURCE, locale: 'de-DE', release: null, revisionNote: null},
+      ctx,
+    )
+
+    expect(translate).toHaveBeenCalledTimes(1)
+    const [request] = translate.mock.calls[0]
+    // The source entries are the targets: the agent translates them where they
+    // lie and `noWrite` keeps the document untouched.
+    expect(request.target).toEqual([
+      {path: ['bio', {_key: 'bio-en'}, 'value']},
+      {path: ['seo', 'metaTitle', {_key: 'mt-en'}, 'value']},
+      {path: ['seo', 'metaDescription', {_key: 'md-en'}, 'value']},
+    ])
+    expect(request.noWrite).toBe(true)
+    // Source and target are the same document, and there is no language field
+    // to name — either would be rejected by the API.
+    expect(request).not.toHaveProperty('targetDocument')
+    expect(request).not.toHaveProperty('languageFieldPath')
+  })
+
+  it('assembles its context through the same seam as the document tier', async () => {
+    const {ctx} = personHarness()
+
+    await translateLocale(
+      {source: PERSON_SOURCE, locale: 'de-DE', release: null, revisionNote: null},
+      ctx,
+    )
+
+    expect(buildTranslateParams).toHaveBeenCalledWith({
+      schemaId: '_.schemas.default',
+      documentId: 'person-1',
+      glossaries: [GLOSSARY],
+      targetLocale: {code: 'de-DE', title: 'German'},
+      sourceLocale: {code: 'en-US', title: 'English'},
+      styleGuide: STYLE_GUIDE,
+      inPlace: true,
+    })
+    const built = builtParams()
+    expect(built.targetDocument).toBeUndefined()
+    expect(built.protectedPhrases).toEqual([])
+    expect(built.styleGuide).toContain('Acme')
+  })
+
+  it('patches one keyed entry per field into the subject’s own draft', async () => {
+    const {contentClient, ctx, patchCalls, tx} = personHarness()
+
+    await translateLocale(
+      {source: PERSON_SOURCE, locale: 'de-DE', release: null, revisionNote: null},
+      ctx,
+    )
+
+    // The draft has to exist before it can be patched, and the read artifacts
+    // of a perspective fetch are not content.
+    expect(contentClient.createIfNotExists).toHaveBeenCalledWith(
+      expect.objectContaining({_id: 'drafts.person-1', _type: 'person', name: 'Ada Lovelace'}),
+      {tag: 'write-draft'},
+    )
+    const [created] = contentClient.createIfNotExists.mock.calls[0]
+    expect(created).not.toHaveProperty('_rev')
+    expect(created).not.toHaveProperty('_originalId')
+
+    expect(tx.patch.mock.calls.map((call) => call[0])).toEqual([
+      'drafts.person-1',
+      'drafts.person-1',
+      'drafts.person-1',
+      'drafts.person-1',
+    ])
+    expect(patchCalls).toEqual([
+      // `seo` first: a patch does not create a missing parent object.
+      ['setIfMissing', {seo: {_type: 'seo'}}],
+
+      ['setIfMissing', {bio: []}],
+      ['unset', ['bio[language=="de-DE"]']],
+      [
+        'append',
+        {
+          path: 'bio',
+          items: [
+            {
+              _type: 'internationalizedArrayTextValue',
+              language: 'de-DE',
+              value: 'Ada schreibt über Acme.',
+            },
+          ],
+        },
+      ],
+
+      ['setIfMissing', {'seo.metaTitle': []}],
+      ['unset', ['seo.metaTitle[language=="de-DE"]']],
+      [
+        'append',
+        {
+          path: 'seo.metaTitle',
+          items: [{_type: 'internationalizedArrayStringValue', language: 'de-DE', value: 'Ada'}],
+        },
+      ],
+
+      ['setIfMissing', {'seo.metaDescription': []}],
+      ['unset', ['seo.metaDescription[language=="de-DE"]']],
+      [
+        'append',
+        {
+          path: 'seo.metaDescription',
+          items: [
+            {_type: 'internationalizedArrayTextValue', language: 'de-DE', value: 'Über Ada.'},
+          ],
+        },
+      ],
+    ])
+    expect(tx.commit).toHaveBeenCalledWith({
+      autoGenerateArrayKeys: true,
+      tag: 'write-locale-entries',
+    })
+  })
+
+  it('declares the subject itself as the translated document', async () => {
+    const {ctx} = personHarness()
+
+    const result = await translateLocale(
+      {source: PERSON_SOURCE, locale: 'de-DE', release: null, revisionNote: null},
+      ctx,
+    )
+
+    expect(result).toEqual({
+      ops: [
+        {
+          type: 'field.set',
+          target: {scope: 'workflow', field: 'target'},
+          value: {
+            type: 'literal',
+            value: {id: 'dataset:proj1:production:person-1', type: 'person'},
+          },
+        },
+      ],
+    })
+  })
+
+  it('never touches the translation.metadata join document', async () => {
+    const {tx, ctx} = personHarness()
+
+    await translateLocale(
+      {source: PERSON_SOURCE, locale: 'de-DE', release: null, revisionNote: null},
+      ctx,
+    )
+
+    // Coverage for the field tier is derived from the arrays themselves.
+    expect(tx.createIfNotExists).not.toHaveBeenCalled()
+  })
+
+  it('writes into the release version when a campaign bound one', async () => {
+    const {contentClient, ctx, tx} = personHarness()
+
+    await translateLocale(
+      {source: PERSON_SOURCE, locale: 'de-DE', release: RELEASE, revisionNote: null},
+      ctx,
+    )
+
+    expect(contentClient.createIfNotExists).not.toHaveBeenCalled()
+    expect(contentClient.action).toHaveBeenCalledWith(
+      {
+        actionType: 'sanity.action.document.version.create',
+        document: expect.objectContaining({_id: 'versions.summer.person-1', _type: 'person'}),
+        publishedId: 'person-1',
+      },
+      {tag: 'write-to-release'},
+    )
+    expect(tx.patch.mock.calls.map((call) => call[0])).toEqual(
+      Array<string>(4).fill('versions.summer.person-1'),
+    )
+  })
+
+  it('tolerates a sibling locale that created the version first', async () => {
+    const {contentClient, ctx, tx} = personHarness()
+    contentClient.action.mockRejectedValue(Object.assign(new Error('conflict'), {statusCode: 409}))
+
+    await translateLocale(
+      {source: PERSON_SOURCE, locale: 'de-DE', release: RELEASE, revisionNote: null},
+      ctx,
+    )
+
+    expect(tx.commit).toHaveBeenCalledTimes(1)
+  })
+
+  it('replaces its own entry rather than adding a second on redelivery', async () => {
+    // The entry this run already wrote is present when it comes round again.
+    const withGerman = {
+      ...PERSON_DOC,
+      bio: [...PERSON_DOC.bio, bioEntry('de-DE', 'Alt', 'bio-de')],
+    }
+    const {ctx, patchCalls} = personHarness({sourceDoc: withGerman})
+
+    await translateLocale(
+      {source: PERSON_SOURCE, locale: 'de-DE', release: null, revisionNote: null},
+      ctx,
+    )
+
+    // Unset by language, not by key: the replacement lands whatever key the
+    // previous delivery minted.
+    expect(patchCalls).toContainEqual(['unset', ['bio[language=="de-DE"]']])
+    expect(patchCalls.filter(([op]) => op === 'append')).toHaveLength(3)
+  })
+
+  it('skips a field with no source content rather than failing the locale', async () => {
+    const {ctx, patchCalls, translate} = personHarness({
+      sourceDoc: {...PERSON_DOC, seo: {_type: 'seo', metaTitle: [], metaDescription: []}},
+    })
+
+    await translateLocale(
+      {source: PERSON_SOURCE, locale: 'de-DE', release: null, revisionNote: null},
+      ctx,
+    )
+
+    expect(translate.mock.calls[0][0].target).toEqual([{path: ['bio', {_key: 'bio-en'}, 'value']}])
+    expect(patchCalls.map(([op]) => op)).toEqual(['setIfMissing', 'unset', 'append'])
+  })
+
+  it('fails the locale when the source carries nothing to translate', async () => {
+    const {ctx} = personHarness({sourceDoc: {_id: 'person-1', _type: 'person', name: 'Ada'}})
+
+    await expect(
+      translateLocale(
+        {source: PERSON_SOURCE, locale: 'de-DE', release: null, revisionNote: null},
+        ctx,
+      ),
+    ).rejects.toThrow('no en-US content')
+  })
+
+  it('fails the locale when the agent returns no value for a field', async () => {
+    const {ctx} = personHarness({
+      translated: {...PERSON_TRANSLATED, bio: [bioEntry('en-US', '', 'bio-en')]},
+    })
+
+    await expect(
+      translateLocale(
+        {source: PERSON_SOURCE, locale: 'de-DE', release: null, revisionNote: null},
+        ctx,
+      ),
+    ).rejects.toThrow('Translation returned no de-DE value for "bio"')
+  })
+
+  it('reads the subject under the perspective the run was started with', async () => {
+    const {contentClient, ctx} = personHarness()
+
+    await translateLocale(
+      {source: PERSON_SOURCE, locale: 'de-DE', release: null, revisionNote: null},
+      ctx,
+    )
+
+    expect(contentClient.fetch).toHaveBeenCalledWith(
+      '*[_id == $id][0]',
+      {id: 'person-1'},
+      {perspective: 'published', tag: 'get-source-doc'},
+    )
+  })
+
+  it('points the agent at the layer the entry keys came from', async () => {
+    // A campaign-spawned run keeps the engine's drafts default, so the
+    // perspective read resolves the draft — and its keys only exist there.
+    const {ctx} = personHarness({
+      perspective: null,
+      sourceDoc: {...PERSON_DOC, _originalId: 'drafts.person-1'},
+    })
+
+    await translateLocale(
+      {source: PERSON_SOURCE, locale: 'de-DE', release: RELEASE, revisionNote: null},
+      ctx,
+    )
+
+    expect(buildTranslateParams).toHaveBeenCalledWith(
+      expect.objectContaining({documentId: 'drafts.person-1'}),
+    )
   })
 })

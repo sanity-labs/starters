@@ -40,7 +40,9 @@ function harness(
     analysis?: string
     analyzedRev?: null | string
     currentDoc?: null | Record<string, unknown>
+    historicalDoc?: Record<string, unknown>
     localeCodes?: string[]
+    perspective?: unknown
     settledEffectKeys?: string[]
     transactions?: string
     translations?: {language: string; ref: string}[]
@@ -75,7 +77,7 @@ function harness(
       if (opts.url?.includes('/transactions/')) {
         return Promise.resolve(options.transactions ?? TRANSACTIONS)
       }
-      return Promise.resolve({documents: [HISTORICAL_DOC]})
+      return Promise.resolve({documents: [options.historicalDoc ?? HISTORICAL_DOC]})
     }),
     transaction: vi.fn(),
     withConfig: vi.fn(),
@@ -86,6 +88,7 @@ function harness(
     create: vi.fn(),
     fetch: vi.fn().mockImplementation((query: string) => {
       if (query.includes('effectHistory')) return Promise.resolve(options.settledEffectKeys ?? [])
+      if (query.includes('perspective')) return Promise.resolve(options.perspective ?? null)
       return Promise.resolve(options.analyzedRev ?? null)
     }),
     getDocument: vi.fn(),
@@ -270,6 +273,170 @@ describe('analyze-source', () => {
     const {ctx} = harness()
 
     await expect(analyzeSource({subject: 'article-1'}, ctx)).rejects.toThrow(/must be a GDR URI/)
+  })
+
+  it('reads the subject under the perspective the run was started with', async () => {
+    const {contentClient, ctx} = harness({perspective: 'published'})
+
+    await analyzeSource({subject: SUBJECT}, ctx)
+
+    // The `source-changed` trigger compares `analyzedRev` with the revision the
+    // engine hydrates, so this read has to be the same layer the engine reads.
+    expect(contentClient.fetch).toHaveBeenCalledWith(
+      '*[_id == $id][0]',
+      {id: 'article-1'},
+      {perspective: 'published', tag: 'get-source-doc'},
+    )
+  })
+
+  it('falls back to the engine’s drafts default when the run has no perspective', async () => {
+    const {contentClient, ctx} = harness()
+
+    await analyzeSource({subject: SUBJECT}, ctx)
+
+    expect(contentClient.fetch).toHaveBeenCalledWith(
+      '*[_id == $id][0]',
+      {id: 'article-1'},
+      {perspective: 'drafts', tag: 'get-source-doc'},
+    )
+  })
+})
+
+describe('analyze-source, field tier', () => {
+  const PERSON_SUBJECT = 'dataset:proj1:production:person-1'
+
+  function entry(language: string, value: string) {
+    return {_key: `${language}-k`, _type: 'internationalizedArrayTextValue', language, value}
+  }
+
+  function person(bio: unknown[], seo: Record<string, unknown> = {}) {
+    return {
+      _id: 'person-1',
+      _rev: 'rev-2',
+      _type: 'person',
+      name: 'Ada Lovelace',
+      bio,
+      seo: {
+        _type: 'seo',
+        metaTitle: [entry('en-US', 'Ada')],
+        metaDescription: [entry('en-US', 'About Ada')],
+        ...seo,
+      },
+    }
+  }
+
+  const ENGLISH_ONLY = person([entry('en-US', 'Ada writes about Acme.')])
+
+  function personHarness(options: Parameters<typeof harness>[0] = {}) {
+    return harness({
+      currentDoc: ENGLISH_ONLY,
+      historicalDoc: ENGLISH_ONLY,
+      perspective: 'published',
+      transactions: ['{"id":"rev-2","documentIDs":["person-1"]}', '{"id":"rev-1"}'].join('\n'),
+      ...options,
+    })
+  }
+
+  function targetLocales(result: unknown) {
+    if (typeof result !== 'object' || result === null || !('ops' in result)) return undefined
+    const ops = result.ops
+    if (!Array.isArray(ops)) return undefined
+    return ops.find((op) => op?.target?.field === 'targetLocales')?.value?.value
+  }
+
+  it('derives coverage from the arrays, not the join document', async () => {
+    const {contentClient, ctx} = personHarness()
+
+    const result = await analyzeSource({subject: PERSON_SUBJECT}, ctx)
+
+    // Nothing is translated yet, so every configured locale needs a run — even
+    // though the join document happens to name de-DE for the article fixture.
+    expect(targetLocales(result)).toEqual([
+      {locale: 'de-DE', reason: 'missing translation'},
+      {locale: 'fr-FR', reason: 'missing translation'},
+    ])
+    expect(contentClient.fetch).not.toHaveBeenCalledWith(
+      expect.stringContaining('translation.metadata'),
+      expect.anything(),
+      expect.anything(),
+    )
+  })
+
+  it('counts a locale as covered only when every field carries it', async () => {
+    const half = person(
+      [entry('en-US', 'Ada writes about Acme.'), entry('de-DE', 'Ada schreibt.')],
+      {metaTitle: [entry('en-US', 'Ada'), entry('de-DE', 'Ada')]},
+    )
+    const {ctx} = personHarness({currentDoc: half, historicalDoc: half})
+
+    const result = await analyzeSource({subject: PERSON_SUBJECT}, ctx)
+
+    // de-DE has a bio and a meta title but no meta description.
+    expect(targetLocales(result)).toContainEqual({locale: 'de-DE', reason: 'missing translation'})
+  })
+
+  it('does not re-run a locale that every field already covers', async () => {
+    const full = person(
+      [entry('en-US', 'Ada writes about Acme.'), entry('de-DE', 'Ada schreibt.')],
+      {
+        metaTitle: [entry('en-US', 'Ada'), entry('de-DE', 'Ada')],
+        metaDescription: [entry('en-US', 'About Ada'), entry('de-DE', 'Über Ada')],
+      },
+    )
+    const {ctx} = personHarness({currentDoc: full, historicalDoc: full})
+
+    const result = await analyzeSource({subject: PERSON_SUBJECT}, ctx)
+
+    expect(targetLocales(result)).toEqual([{locale: 'fr-FR', reason: 'missing translation'}])
+  })
+
+  it('reads an added translation as no change at all', async () => {
+    // The self-diff loop: publishing an approved run adds de-DE entries to the
+    // subject. Diffing whole documents would call that material and start the
+    // whole run again on the next publish.
+    const withGerman = person(
+      [entry('en-US', 'Ada writes about Acme.'), entry('de-DE', 'Ada schreibt.')],
+      {
+        metaTitle: [entry('en-US', 'Ada'), entry('de-DE', 'Ada')],
+        metaDescription: [entry('en-US', 'About Ada'), entry('de-DE', 'Über Ada')],
+      },
+    )
+    const {ctx, prompt} = personHarness({currentDoc: withGerman, historicalDoc: ENGLISH_ONLY})
+
+    const result = await analyzeSource({subject: PERSON_SUBJECT}, ctx)
+
+    // No changed field, so no AI call and no retranslation of a covered locale.
+    expect(prompt).not.toHaveBeenCalled()
+    expect(targetLocales(result)).toEqual([{locale: 'fr-FR', reason: 'missing translation'}])
+  })
+
+  it('still sees a real edit to the source-locale text', async () => {
+    const edited = person([entry('en-US', 'Ada writes about Acme in 2026.')])
+    const {ctx, prompt} = personHarness({
+      analysis: JSON.stringify({
+        materiality: 'material',
+        explanation: 'The bio changed.',
+        suggestions: [{fieldName: 'bio', explanation: 'Reworded.', recommendation: 'retranslate'}],
+      }),
+      currentDoc: edited,
+      historicalDoc: ENGLISH_ONLY,
+    })
+
+    await analyzeSource({subject: PERSON_SUBJECT}, ctx)
+
+    // The field summary is built from the projection, so it names the field by
+    // its dot path rather than by the array it lives in.
+    expect(prompt).toHaveBeenCalledTimes(1)
+    expect(prompt.mock.calls[0][0].instruction).toContain('bio')
+  })
+
+  it('ignores a change to a field that is not localized', async () => {
+    const renamed = {...ENGLISH_ONLY, name: 'Augusta Ada King'}
+    const {ctx, prompt} = personHarness({currentDoc: renamed, historicalDoc: ENGLISH_ONLY})
+
+    await analyzeSource({subject: PERSON_SUBJECT}, ctx)
+
+    expect(prompt).not.toHaveBeenCalled()
   })
 })
 

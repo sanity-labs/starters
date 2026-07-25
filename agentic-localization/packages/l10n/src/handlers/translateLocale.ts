@@ -5,16 +5,22 @@
  * function the eval suite calls. That is the point of the seam: if the runtime
  * assembled glossaries and style guides its own way, the evals would keep
  * proving quality for a path production does not take.
+ *
+ * Two tiers, one effect. The document tier writes a sibling document per
+ * locale and joins them on `translation.metadata`; the field tier writes
+ * entries into the subject's own `internationalizedArray` fields. Only the
+ * write target differs — the context assembly above it is shared.
  */
 
 import type {TranslationReference} from '@sanity/document-internationalization'
 import type {EffectHandler, FieldOp, GdrUri} from '@sanity/workflow-engine'
 
 import {DocumentId, getDraftId, getPublishedId, getVersionId} from '@sanity/id-utils'
-import {extractDocumentId} from '@sanity/workflow-engine'
+import {extractDocumentId, stripSystemFields} from '@sanity/workflow-engine'
 
+import type {InternationalizedField} from '../core/fieldTier'
 import type {Glossary, StyleGuide} from '../promptAssembly'
-import type {ContentClient} from './effectRuntime'
+import type {ContentClient, EffectContext} from './effectRuntime'
 
 import {buildTranslateParams, filterGlossaryByContent} from '../promptAssembly'
 import {
@@ -23,7 +29,9 @@ import {
   STYLE_GUIDE_FOR_LOCALE_QUERY,
   TRANSLATIONS_FOR_DOCUMENT_QUERY,
 } from '../queries'
+import {entriesOf, entryFor, internationalizedFields} from '../core/fieldTier'
 import {getTranslationMetadataId} from '../core/ids'
+import {sanitizeTranslationValue} from '../core/sanitizeTranslationValue'
 import {postProcessTranslation} from '../translate'
 import {SOURCE_LANGUAGE} from '../workflows/effects'
 import {
@@ -32,6 +40,7 @@ import {
   effectAlreadyDone,
   optionalRelease,
   optionalString,
+  readSubjectDocument,
   requireGdr,
   requireString,
   siblingGdr,
@@ -43,6 +52,22 @@ const METADATA_TYPE = 'translation.metadata'
 
 type LocaleRow = {code: string; title: null | string}
 type TranslationRow = {language: null | string; ref: null | string}
+
+/** Everything both tiers need, resolved once before the branch. */
+interface TranslationJob {
+  client: ContentClient
+  ctx: EffectContext
+  documentType: string
+  glossaries: Glossary[]
+  locale: string
+  publishedSourceId: string
+  release: null | {releaseName: string}
+  revisionNote: null | string
+  sourceDoc: Record<string, unknown>
+  sourceLocale: {code: string; title: string}
+  styleGuide: null | StyleGuide
+  targetLocale: {code: string; title: string}
+}
 
 export const translateLocale: EffectHandler = async (params, ctx) => {
   if (await effectAlreadyDone(ctx)) {
@@ -56,15 +81,10 @@ export const translateLocale: EffectHandler = async (params, ctx) => {
   const revisionNote = optionalString(params, 'revisionNote')
 
   const client = contentClientFor(ctx, source)
-  const sourceId = DocumentId(extractDocumentId(source))
-  const publishedSourceId = getPublishedId(sourceId)
+  const publishedSourceId = getPublishedId(DocumentId(extractDocumentId(source)))
 
-  const [sourceDoc, glossaries, styleGuide, locales, metadata] = await Promise.all([
-    client.fetch<null | Record<string, unknown>>(
-      `*[_id == $id || _id == $draftId] | order(_id asc)[0]`,
-      {id: publishedSourceId, draftId: getDraftId(sourceId)},
-      {tag: 'get-source-doc'},
-    ),
+  const [sourceDoc, glossaries, styleGuide, locales] = await Promise.all([
+    readSubjectDocument(client, ctx, publishedSourceId),
     client.fetch<Glossary[]>(GLOSSARIES_QUERY, {}, {tag: 'get-glossaries'}),
     client.fetch<null | StyleGuide>(
       STYLE_GUIDE_FOR_LOCALE_QUERY,
@@ -76,11 +96,6 @@ export const translateLocale: EffectHandler = async (params, ctx) => {
       {codes: [locale, SOURCE_LANGUAGE]},
       {tag: 'get-locales'},
     ),
-    client.fetch<null | {translations: null | TranslationRow[]}>(
-      TRANSLATIONS_FOR_DOCUMENT_QUERY,
-      {metadataId: getTranslationMetadataId(publishedSourceId), publishedId: publishedSourceId},
-      {tag: 'get-translation-metadata'},
-    ),
   ])
 
   if (!sourceDoc) throw new Error(`Source document ${publishedSourceId} not found`)
@@ -90,22 +105,51 @@ export const translateLocale: EffectHandler = async (params, ctx) => {
     throw new Error(`Source document ${publishedSourceId} has no _type`)
   }
 
-  const targetLocale = namedLocale(locales, locale)
-  const sourceLocale = namedLocale(locales, SOURCE_LANGUAGE)
-
   await ctx.setProgress('translationProgress', 10)
+
+  const job: TranslationJob = {
+    client,
+    ctx,
+    documentType,
+    glossaries,
+    locale,
+    publishedSourceId,
+    release,
+    revisionNote,
+    sourceDoc,
+    sourceLocale: namedLocale(locales, SOURCE_LANGUAGE),
+    styleGuide,
+    targetLocale: namedLocale(locales, locale),
+  }
+
+  const fields = internationalizedFields(documentType)
+  const targetPublishedId =
+    fields.length > 0 ? await translateInPlace(job, fields) : await translateIntoSibling(job)
+
+  await ctx.setProgress('translationProgress', 100)
+
+  return {ops: [targetOp(siblingGdr(source, targetPublishedId), documentType)]}
+}
+
+/**
+ * The document tier: one document per locale, joined on `translation.metadata`.
+ * Returns the published id of the translated document.
+ */
+async function translateIntoSibling(job: TranslationJob): Promise<string> {
+  const {client, ctx, documentType, locale, publishedSourceId, release} = job
+
+  const metadata = await client.fetch<null | {translations: null | TranslationRow[]}>(
+    TRANSLATIONS_FOR_DOCUMENT_QUERY,
+    {metadataId: getTranslationMetadataId(publishedSourceId), publishedId: publishedSourceId},
+    {tag: 'get-translation-metadata'},
+  )
 
   // An existing translation is overwritten in place; a new one lets the agent
   // mint the id, which is how the dashboard's executor has always worked.
   const existingId = metadata?.translations?.find((row) => row.language === locale)?.ref ?? null
 
   const translateParams = buildTranslateParams({
-    schemaId: SCHEMA_ID,
-    documentId: publishedSourceId,
-    glossaries: filterGlossaryByContent(glossaries, sourceDoc),
-    targetLocale,
-    sourceLocale,
-    styleGuide: styleGuide ?? undefined,
+    ...sharedParams(job),
     languageFieldPath: LANGUAGE_FIELD_PATH,
     operation: existingId ? 'edit' : 'create',
     ...(existingId ? {targetDocumentId: existingId} : {}),
@@ -126,7 +170,7 @@ export const translateLocale: EffectHandler = async (params, ctx) => {
     noWrite: true,
     fromLanguage: translateParams.fromLanguage,
     toLanguage: translateParams.toLanguage,
-    styleGuide: withRevisionNote(translateParams.styleGuide, revisionNote),
+    styleGuide: withRevisionNote(translateParams.styleGuide, job.revisionNote),
     protectedPhrases: translateParams.protectedPhrases,
     languageFieldPath: translateParams.languageFieldPath,
     targetDocument,
@@ -147,11 +191,7 @@ export const translateLocale: EffectHandler = async (params, ctx) => {
     translatedResult: translated,
   })
 
-  const document = {
-    ...processed,
-    _type: documentType,
-    [LANGUAGE_FIELD_PATH]: locale,
-  }
+  const document = {...processed, _type: documentType, [LANGUAGE_FIELD_PATH]: locale}
 
   if (release) {
     await createVersion(client, {
@@ -181,9 +221,162 @@ export const translateLocale: EffectHandler = async (params, ctx) => {
     })
   }
 
-  await ctx.setProgress('translationProgress', 100)
+  return targetPublishedId
+}
 
-  return {ops: [targetOp(siblingGdr(source, targetPublishedId), documentType)]}
+/**
+ * The field tier: every locale lives in the subject, so this child writes
+ * entries into the subject's own draft (or release version) rather than a
+ * document of its own. Returns the subject's published id.
+ *
+ * Sibling locale children run concurrently against that one document. They do
+ * not conflict: each patch touches only its own locale's entries, and a Content
+ * Lake transaction takes an exclusive lock on the document it mutates, so
+ * without an `ifRevisionID` there is nothing to lose a race over.
+ */
+async function translateInPlace(
+  job: TranslationJob,
+  fields: InternationalizedField[],
+): Promise<string> {
+  const {client, ctx, locale, publishedSourceId, release, sourceDoc} = job
+
+  // Only the fields that carry source content: an empty bio has nothing to
+  // translate and no entry key to translate it at.
+  const targets = fields.flatMap((field) => {
+    const entry = entryFor(sourceDoc, field, SOURCE_LANGUAGE)
+    return entry ? [{entry, field}] : []
+  })
+  if (targets.length === 0) {
+    throw new Error(`${publishedSourceId} has no ${SOURCE_LANGUAGE} content to translate`)
+  }
+
+  const translateParams = buildTranslateParams({
+    ...sharedParams(job),
+    // The agent has to read the same layer the entry keys came from, or the
+    // target paths resolve to nothing. Under the field tier's published
+    // perspective that is the published document; under a campaign's default
+    // it is the draft the perspective read resolved to.
+    documentId: readIdOf(sourceDoc, publishedSourceId),
+    // No `languageFieldPath`: a field-tier document has no language field, and
+    // naming an absent path is a 400. The locale lives on each array entry.
+    inPlace: true,
+  })
+
+  await ctx.setProgress('translationProgress', 25)
+
+  // One call for every field of this locale. The targets name the SOURCE
+  // entries, so the agent translates them where they lie and `noWrite` keeps
+  // the document untouched — the translated values come back at the same keys
+  // and this handler writes its own entries from them. Verified against the
+  // live API: disjoint roots (`bio`, `seo.*`) coalesce into a single request.
+  const translated = await agentClient(client, ctx).agent.action.translate({
+    schemaId: translateParams.schemaId,
+    documentId: translateParams.documentId,
+    noWrite: true,
+    fromLanguage: translateParams.fromLanguage,
+    toLanguage: translateParams.toLanguage,
+    styleGuide: withRevisionNote(translateParams.styleGuide, job.revisionNote),
+    protectedPhrases: translateParams.protectedPhrases,
+    target: targets.map(({entry, field}) => ({
+      // A registered field path is a plain dot path, so every segment before
+      // the entry key is a field name.
+      path: [...field.path.split('.'), {_key: entry._key}, 'value'],
+    })),
+  })
+
+  await ctx.setProgress('translationProgress', 70)
+
+  const targetId = release
+    ? getVersionId(DocumentId(publishedSourceId), release.releaseName)
+    : getDraftId(DocumentId(publishedSourceId))
+
+  // The layer being patched has to exist first. Both forms are idempotent, so
+  // whichever sibling locale gets there first wins and the rest are no-ops.
+  const base = documentBody(sourceDoc, targetId, job.documentType)
+  if (release) {
+    await createVersion(client, {document: base, publishedId: publishedSourceId, log: ctx.log})
+  } else {
+    await client.createIfNotExists(base, {tag: 'write-draft'})
+  }
+
+  const tx = client.transaction()
+  // A Sanity patch does not create missing parents, so `seo` has to exist
+  // before `seo.metaTitle` can be set. Deduped: two fields share one container.
+  for (const container of containersOf(targets.map(({field}) => field))) {
+    tx.patch(targetId, (patch) => patch.setIfMissing({[container.path]: container.value}))
+  }
+  for (const {entry, field} of targets) {
+    const value = translatedValue(translated, field, entry._key, locale)
+    // One `append` per patch: @sanity/client's Patch keeps `insert` in a single
+    // slot, so chaining a second one overwrites the first. Unset-then-append
+    // makes a redelivered effect replace its own entry rather than add a second.
+    tx.patch(targetId, (patch) =>
+      patch
+        .setIfMissing({[field.path]: []})
+        .unset([`${field.path}[language=="${locale}"]`])
+        .append(field.path, [{_type: field.itemType, language: locale, value}]),
+    )
+  }
+  await tx.commit({autoGenerateArrayKeys: true, tag: 'write-locale-entries'})
+
+  return publishedSourceId
+}
+
+/** The half of `buildTranslateParams` neither tier varies. */
+function sharedParams(job: TranslationJob) {
+  return {
+    schemaId: SCHEMA_ID,
+    documentId: job.publishedSourceId,
+    glossaries: filterGlossaryByContent(job.glossaries, job.sourceDoc),
+    targetLocale: job.targetLocale,
+    sourceLocale: job.sourceLocale,
+    styleGuide: job.styleGuide ?? undefined,
+  }
+}
+
+/** Each distinct ancestor object the target fields need, in declaration order. */
+function containersOf(fields: InternationalizedField[]): InternationalizedField['containers'] {
+  const seen = new Map<string, {path: string; value: {_type: string}}>()
+  for (const field of fields) {
+    for (const container of field.containers) seen.set(container.path, container)
+  }
+  return [...seen.values()]
+}
+
+/** The translated text, read back from the source entry it was translated at. */
+function translatedValue(
+  translated: Record<string, unknown>,
+  field: InternationalizedField,
+  key: string,
+  locale: string,
+): unknown {
+  const value = entriesOf(translated, field).find((entry) => entry._key === key)?.value
+  if (value == null || value === '') {
+    throw new Error(`Translation returned no ${locale} value for "${field.path}"`)
+  }
+  // The translate action occasionally emits Unicode null bytes, which the
+  // Content Lake rejects — and this value goes straight into a patch.
+  return sanitizeTranslationValue(value)
+}
+
+/** The id the perspective read actually resolved to. */
+function readIdOf(source: Record<string, unknown>, publishedId: string): string {
+  return typeof source._originalId === 'string' ? source._originalId : publishedId
+}
+
+/**
+ * The source content as the body of a new draft or version. The engine's
+ * helper drops `_rev`/`_createdAt`/`_updatedAt`; `_originalId` is an artifact
+ * of reading under a perspective, not content, so it goes too.
+ */
+function documentBody(
+  source: Record<string, unknown>,
+  id: string,
+  type: string,
+): Record<string, unknown> & {_id: string; _type: string} {
+  const body = stripSystemFields(source)
+  delete body._originalId
+  return {...body, _id: id, _type: type}
 }
 
 /**

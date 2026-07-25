@@ -115,7 +115,10 @@ export default defineBlueprint({
         on: ['publish'],
         // Inlined, not imported: the blueprint is loaded by jiti, and the
         // deployed definitions carry the same literal (workflows/effects.ts).
-        filter: "_type == 'article' && language == 'en-US'",
+        // A field-tier type has no language field — its locales live in
+        // internationalized arrays — so only the document tier is filtered
+        // down to its source language.
+        filter: "(_type == 'article' && language == 'en-US') || _type == 'person'",
         projection: '{_id, _rev, _type, language}',
         resource: {type: 'dataset', id: `${projectId}.${datasetName}`},
       },
@@ -131,7 +134,7 @@ export default defineBlueprint({
       robotToken: '$.resources.fn-robot.token',
       event: {
         on: ['delete'],
-        filter: "_type == 'article'",
+        filter: "_type in ['article', 'person']",
         projection: '{_id, _type}',
         resource: {type: 'dataset', id: `${projectId}.${datasetName}`},
       },

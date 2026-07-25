@@ -11,6 +11,7 @@ import {createHash} from 'node:crypto'
 import {documentEventHandler} from '@sanity/functions'
 import {DocumentId, getPublishedId} from '@sanity/id-utils'
 import {gdrUri, StartNotAllowedError} from '@sanity/workflow-engine'
+import {startPerspectiveFor} from '@starter/l10n/core'
 import {localizeDocument} from '@starter/l10n/workflows'
 
 import {localizationEngine, requireEnv, workflowsClient} from '../engine'
@@ -53,6 +54,10 @@ export const handler = documentEventHandler<PublishEventData>(async ({context, e
       definition: localizeDocument.name,
       instanceId,
       initialFields: [{type: 'subject', name: 'subject', value: {id: subject, type: _type}}],
+      // A field-tier subject holds its own translations, so the run reads the
+      // published layer and its children's draft writes cannot look like a
+      // source edit. The document tier keeps the engine's drafts default.
+      perspective: startPerspectiveFor(_type),
     })
     console.log(`[${NAME}] started ${instanceId} for ${publishedId}`)
   } catch (error) {

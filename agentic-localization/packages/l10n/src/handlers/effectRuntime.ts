@@ -7,9 +7,15 @@
  */
 
 import type {SanityClient} from '@sanity/client'
-import type {EffectHandler, GdrUri, ReleaseRef, WorkflowClient} from '@sanity/workflow-engine'
+import type {
+  EffectHandler,
+  GdrUri,
+  ReleaseRef,
+  WorkflowClient,
+  WorkflowPerspective,
+} from '@sanity/workflow-engine'
 
-import {gdrUri, parseGdr} from '@sanity/workflow-engine'
+import {DEFAULT_CONTENT_PERSPECTIVE, gdrUri, parseGdr} from '@sanity/workflow-engine'
 
 /** The engine's handler context. Only reachable through the handler signature. */
 export type EffectContext = Parameters<EffectHandler>[1]
@@ -155,6 +161,45 @@ export function datasetOf(reference: GdrUri): string {
     throw new Error(`GDR ${reference} does not address a dataset`)
   }
   return parsed.dataset
+}
+
+/**
+ * The subject as the engine sees it.
+ *
+ * Not a detail: the `source-changed` trigger compares `$fields.subject._rev`
+ * with the `analyzedRev` this read produces, and the engine hydrates content
+ * under `instance.perspective ?? DEFAULT_CONTENT_PERSPECTIVE`. A handler
+ * reading a different layer would record a revision the trigger can never
+ * match, and the run would report drift on every tick.
+ *
+ * Field-tier runs start under a `published` perspective precisely so their own
+ * draft writes stay invisible here (see `startPerspectiveFor`).
+ */
+export async function readSubjectDocument(
+  client: ContentClient,
+  ctx: EffectContext,
+  publishedId: string,
+): Promise<null | Record<string, unknown>> {
+  return client.fetch<null | Record<string, unknown>>(
+    `*[_id == $id][0]`,
+    {id: publishedId},
+    {perspective: await instancePerspective(ctx), tag: 'get-source-doc'},
+  )
+}
+
+/** The read perspective this run was started with, or the engine's default. */
+export async function instancePerspective(ctx: EffectContext): Promise<WorkflowPerspective> {
+  const value = await ctx.client.fetch<unknown>(
+    `*[_id == $instanceId][0].perspective`,
+    {instanceId: ctx.instanceId},
+    {tag: 'read-perspective'},
+  )
+  return isPerspective(value) ? value : DEFAULT_CONTENT_PERSPECTIVE
+}
+
+function isPerspective(value: unknown): value is WorkflowPerspective {
+  if (Array.isArray(value)) return value.every((entry) => typeof entry === 'string')
+  return value === 'raw' || value === 'published' || value === 'drafts'
 }
 
 /**

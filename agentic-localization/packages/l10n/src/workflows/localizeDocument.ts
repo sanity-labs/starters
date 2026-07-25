@@ -184,6 +184,19 @@ export const localizeDocument = defineWorkflow({
     defineStage({
       name: 'translating',
       title: 'Translating',
+      // The field tier makes this gate load-bearing: its locale children write
+      // their entries into the subject itself, so a publish mid-fan-out ships a
+      // document that is translated into some markets and not others. Same
+      // shape as the review gate — `publish` only, so the source can still be
+      // edited — and it holds document-tier sources for the same window, which
+      // is a few seconds of an already-machine-only stage.
+      guards: [
+        defineGuard({
+          name: 'hold-source-publish-during-translation',
+          title: 'Localization in progress',
+          match: {idRefs: [{type: 'fieldRead', field: 'subject'}], actions: ['publish']},
+        }),
+      ],
       activities: [
         defineActivity({
           name: 'translate',
