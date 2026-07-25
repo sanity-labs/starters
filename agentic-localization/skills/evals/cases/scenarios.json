@@ -271,6 +271,42 @@
     ]
   },
   {
+    "id": "operate-agent-driven-review",
+    "category": "operate",
+    "skill": "sanity-l10n",
+    "load": ["references/operating.md"],
+    "prompt": "I want my coding agent to work the review queue: find the runs parked on a person, tell me why each one is waiting, and approve the ones I say are fine. How do I wire it up, and what else can it reach once it is connected?",
+    "mustName": [
+      "@sanity/workflow-mcp",
+      "diagnose_workflow",
+      "fire_action",
+      "SANITY_AUTH_TOKEN",
+      "deploy_workflow_definition"
+    ],
+    "rubric": [
+      {
+        "w": "critical",
+        "c": "Gives the agent the workflow environment address — the workflows dataset and the tag — rather than letting it assume a default"
+      },
+      {
+        "w": "critical",
+        "c": "Reads and diagnoses before writing, and names the single verb that advances an instance"
+      },
+      {
+        "w": "critical",
+        "c": "Says the token is exported in the agent host's environment and is not read from the repo's .env"
+      },
+      {
+        "w": "minor",
+        "c": "Names the authoring loop as the rest of the surface: guide, validate, then a create-only deploy"
+      },
+      {
+        "w": "minor",
+        "c": "Notes the agent fires the same engine verb as the Studio, so authority comes from the token rather than from the channel"
+      }
+    ]
+  },
+  {
     "id": "context-glossary-value",
     "category": "context",
     "skill": "sanity-l10n",

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "sanity-workflows": {
+      "command": "npx",
+      "args": ["-y", "@sanity/workflow-mcp@0.23.0"],
+      "env": {"SANITY_AUTH_TOKEN": "${SANITY_AUTH_TOKEN}"}
+    }
+  }
+}

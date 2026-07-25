@@ -12,6 +12,7 @@ Without structured context, AI translates "Releases" as "Veröffentlichungen" in
 - **A review gate that teaches** — What a reviewer corrects is distilled into draft glossary entries and style-guide rules for the next run
 - **Translations inspector** — Studio UI for the open run: per-locale progress, source-versus-translation diff, approve or request changes
 - **Translations dashboard** — Real-time overview of coverage, gaps, and stale documents across all locales (Sanity App SDK)
+- **Agent entry point** — `.mcp.json` wires [`@sanity/workflow-mcp`](https://www.sanity.io/docs/editorial-workflows/mcp), so an agent inspects, diagnoses and advances a run through the same engine verbs the Studio fires
 - **Localized frontend** — Next.js app with path-based i18n routing, locale switcher, and fallback content
 - **Quality evals** — Translate with and without context, measure the delta with deterministic checks and an LLM judge
 - **Journey tests** — Gherkin scenarios against a real project: real datasets, deployed definitions, the real engine

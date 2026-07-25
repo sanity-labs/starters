@@ -58,6 +58,60 @@ renders the open run; `apps/translations-dashboard/` shows coverage across
 locales. Raw instances are queryable as `sanity.workflow.instance` documents in
 the **workflows** dataset — not the content dataset.
 
+## Driving a run from an agent
+
+The same verbs, over MCP.
+[`@sanity/workflow-mcp`](https://www.sanity.io/docs/editorial-workflows/mcp) is
+registered in `.mcp.json` at the repo root, pinned to the version every other
+`@sanity/workflow-*` package is pinned to.
+
+The server is org-authed and has no default environment, so every call says
+where. Tell the agent once — **workflows live in
+`dataset:<projectId>.workflows`, tag `production`** — and it threads the address
+through the session. Those two halves are `WORKFLOWS_DATASET` and `WORKFLOW_TAG`
+in `packages/l10n/src/workflows/config.ts`. A call without an address is a
+validation error, never a guess.
+
+| Tool                           | Kind  | Use                                                   |
+| ------------------------------ | ----- | ----------------------------------------------------- |
+| `list_workflow_definitions`    | read  | What is deployed, and which definitions are startable |
+| `get_workflow_definition`      | read  | One deployed definition, valid as deploy input again  |
+| `list_workflow_instances`      | read  | `list`, filtered and paginated                        |
+| `get_workflow_state`           | read  | One instance: stage, activities, invocable actions    |
+| `diagnose_workflow`            | read  | Healthy or stuck, and what would unstick it           |
+| `get_workflow_authoring_guide` | read  | The DSL guide, read before authoring a definition     |
+| `validate_workflow_definition` | read  | The deploy-time checks, without deploying             |
+| `start_workflow`               | write | Start a startable definition                          |
+| `fire_action`                  | write | Advance an instance: approve, request changes, abort  |
+| `deploy_workflow_definition`   | write | Publish definitions into the addressed environment    |
+
+Parameters, filters and pagination are on the docs page. This table is the map,
+not a second copy that can drift out of date.
+
+**The token is the host's, not the repo's.** `SANITY_AUTH_TOKEN` has to be
+exported in the environment of whatever launches the agent: `.mcp.json` expands
+`${SANITY_AUTH_TOKEN}` from the MCP client's process environment, and the server
+never reads `.env`. Everything else here resolves a token through
+`@starter/l10n/credentials`; this does not. Unset is not a load error — Claude
+Code keeps the config, warns in `claude mcp list`, and the server refuses to
+start.
+
+Authoring is the other half of the surface.
+`get_workflow_authoring_guide` hands the agent the DSL,
+`validate_workflow_definition` runs the deploy-time checks over a batch, and
+`deploy_workflow_definition` publishes the result into the addressed
+environment — with `get_workflow_definition` as the starting point when the
+workflow being edited is already deployed. Deploys are create-only and
+content-addressed: identical content is a no-op, any change mints the next
+version, and running instances stay on the version they started under. An agent
+deploy does not pass through `sanity.workflow.ts`, so that file describes the
+tag's contents as of the last CLI deploy.
+
+Nothing here is an agent-only channel: `fire_action` is the engine verb the
+Studio's review gate and the dashboard already call. Authority travels with the
+token — history records the token's identity as the actor, stamped `mcp`, not
+the human driving the agent.
+
 ## Nothing happened after publishing
 
 Walk it in this order; each step rules out one layer.
