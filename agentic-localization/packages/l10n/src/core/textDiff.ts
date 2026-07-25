@@ -76,6 +76,10 @@ interface ChangeRun {
 /**
  * Runs are walked left to right so each only ever borrows unchanged text that no
  * earlier run has already claimed.
+ *
+ * Hand-rolled because there is nothing to adopt: `@sanity/diff-match-patch`
+ * (3.2.0, what `@sanity/diff` runs on) exports no word-mode helper — only
+ * `cleanupSemantic` and `cleanupEfficiency` over character diffs.
  */
 function alignToWords(segments: readonly TextSegment[]): TextSegment[] {
   const runs: ChangeRun[] = []

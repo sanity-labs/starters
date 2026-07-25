@@ -24,6 +24,7 @@ import {
   type ModelProposalKind,
   type ProposalKind,
 } from '../core/proposalKinds'
+import {stripJsonFence} from '../core/stripJsonFence'
 import {proposalTypeName} from '../core/typeNames'
 
 /** The vocabulary lives in `core/`, where the Studio can read it too. */
@@ -144,7 +145,7 @@ export function parseProposalResponse(
   raw: string,
   context: ProposalValidationContext,
 ): ParsedProposals {
-  const parsed: unknown = JSON.parse(raw.replace(/^```json\s*|\s*```$/g, '').trim())
+  const parsed: unknown = JSON.parse(stripJsonFence(raw))
   if (!isRecord(parsed)) throw new Error('Distillation response was not a JSON object')
   if (!Array.isArray(parsed.proposals)) {
     throw new Error('Distillation response is missing proposals')

@@ -3,6 +3,11 @@
  * React context hook, and `structure.ts`'s `withLocaleFilter` reads the
  * selection as an Observable inside a structure resolver, which runs outside
  * React. (It also has no cross-tab `storage` sync.)
+ *
+ * Nor `sanity`'s `createKeyValueStore`/`useKeyValueStore`: both are `@internal`,
+ * and they persist to the project-scoped `/users/me/keyvalue` endpoint — a
+ * server round trip per read and no `storage` event, where this is a local,
+ * cross-tab preference.
  */
 
 import {BehaviorSubject, distinctUntilChanged, skip} from 'rxjs'

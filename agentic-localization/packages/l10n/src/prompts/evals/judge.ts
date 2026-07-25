@@ -1,4 +1,5 @@
 import type {JudgeScore, ModelEvalCase} from './model-eval-types'
+import {stripJsonFence} from '../../core/stripJsonFence'
 import {getClient} from './client'
 
 /**
@@ -102,10 +103,7 @@ export async function judgeTranslation(options: {
   })
 
   // The SDK returns a parsed object when format is 'json', or a string otherwise
-  const parsed =
-    typeof response === 'string'
-      ? JSON.parse(response.replace(/^```json\s*|\s*```$/g, '').trim())
-      : response
+  const parsed = typeof response === 'string' ? JSON.parse(stripJsonFence(response)) : response
 
   const scores = {
     fluency: readDimension(parsed, 'fluency'),

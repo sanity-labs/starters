@@ -28,6 +28,7 @@ import {coveredLocales, internationalizedFields, sourceProjection} from '../core
 import {getTranslationMetadataId} from '../core/ids'
 import {isRecord} from '../core/isRecord'
 import {ANALYSIS_PROMPT_INSTRUCTION} from '../core/staleAnalysisPrompt'
+import {stripJsonFence} from '../core/stripJsonFence'
 import {LOCALE_CODES_QUERY, TRANSLATIONS_FOR_DOCUMENT_QUERY} from '../prompts/queries'
 import {SOURCE_LANGUAGE} from '../workflows/config'
 import {
@@ -172,8 +173,7 @@ export function parseAnalysisResponse(
   raw: string,
   validFieldNames: Set<string>,
 ): StaleAnalysisResult {
-  const cleaned = raw.replace(/^```json\s*|\s*```$/g, '').trim()
-  const parsed: unknown = JSON.parse(cleaned)
+  const parsed: unknown = JSON.parse(stripJsonFence(raw))
   if (!isRecord(parsed)) throw new Error('AI analysis response was not a JSON object')
 
   const {explanation, materiality, suggestions} = parsed

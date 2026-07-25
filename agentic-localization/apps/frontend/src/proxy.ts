@@ -2,6 +2,11 @@ import {NextResponse, type NextRequest} from 'next/server'
 
 import {DEFAULT_LANGUAGE} from '@/sanity/queries'
 
+/**
+ * Not `@starter/l10n`'s `isValidLocale`: the frontend depends on no workspace
+ * package, so it can be cloned on its own. Must match the locale codes seeded
+ * in `l10n.locale` — the same rule as `DEFAULT_LANGUAGE` in `sanity/queries.ts`.
+ */
 const localePattern = /^[a-z]{2}-[A-Z]{2}$/
 
 export default function proxy(request: NextRequest) {
