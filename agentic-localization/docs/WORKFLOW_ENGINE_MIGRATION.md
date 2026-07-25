@@ -15,7 +15,8 @@ inferred from docs. Where the docs and reality disagree, this file records reali
 | **PR 3** — workflows dataset + deploy    | **Committed** (`d3784c5`)           |
 | **PR 4** — effect handlers + runtime     | **Committed** (`c6f3713`)           |
 | **PR 5** — Studio and dashboard surfaces | **Committed** (`250bf89`…`fe55583`) |
-| PR 6 — field-level tier                  | Not started                         |
+| PR 6a — field tier, engine + runtime     | In the working tree                 |
+| PR 6b — field tier, Studio surfaces      | Not started                         |
 
 Branch: `feature/use-workflows-for-localization`. Baseline before this work was
 169 tests; it is now **213** (`pnpm --filter @starter/l10n test`), with typecheck
@@ -121,6 +122,14 @@ hooks?})`.
 - **Distill comments, docs and the README** to just what a human or agent needs
   to operate and incorporate the pattern (user, 2026-07-24). A standing
   constraint on new writing from PR 4 onward, plus a final pass.
+- **Self-reinforcing loop** (user, 2026-07-24): use generates context. On
+  `approved`, a `distill-review` effect diffs the machine draft against the
+  human-approved text and proposes DRAFT glossary entries / style-guide
+  amendments + eval-case candidates; humans approve them as content; prompt
+  assembly already reads approved context, so the loop closes without new
+  infrastructure. Eval corpus harvests approved triples; the qualityDelta
+  trend is the loop's health metric. Automation proposes, never decides.
+  Design alongside the package split; implement after e2e.
 
 Bundle discipline already has a foothold worth preserving: `src/workflows/` imports
 only `@sanity/workflow-engine/define`, and `src/core/` is React-free by design, so
@@ -252,6 +261,46 @@ Every item here cost real time. None of it is obvious from the docs.
   shape core's copy-document-url uses. And it takes the release **name**
   (`summer`), not the title ("Summer Campaign") — `useEditState`'s version
   param likewise. Feeding a title silently reads a nonexistent version.
+
+### Perspectives (learned in PR 6a, bench-proven)
+
+- `startInstance({perspective})` scopes **every** content read the instance makes,
+  including how `$fields.subject` is hydrated for conditions — not just the
+  field-entry queries and spawn `forEach` reads the type docs mention. The
+  default is `DEFAULT_CONTENT_PERSPECTIVE = 'drafts'`.
+- Proof: under `'published'` a draft-only write leaves `$fields.subject._rev`
+  and `.name` unmoved; under the default both move
+  (`localizeDocument.fieldTier.test.ts`).
+- Consequence for the field tier: its locale children patch the subject's own
+  draft, so a run started under the default reports its own output as source
+  drift. `startPerspectiveFor(type)` (`core/fieldTier.ts`) is the single place
+  that decision is made — the `start-localization` Function passes it.
+- A handler that records a revision the engine later compares **must read under
+  `instance.perspective ?? 'drafts'`** — `readSubjectDocument()`. Reading the
+  other layer makes `analyzedRev` unmatchable and `sourceChanged` permanently
+  true. The perspective is a plain top-level field on the instance:
+  `*[_id == $instanceId][0].perspective`.
+- **`@sanity/workflow-studio-plugin`'s Start action has no perspective hook** —
+  only `perspectiveField`, which seeds a `release.ref` from Studio's selected
+  release. A `person` run started from the Studio's own picker therefore gets
+  the drafts default and the false positive returns. The field-tier UI unit owns
+  closing that (its own `startInstance` call, or a plugin mapping once one
+  exists).
+- Two stages of one definition may each declare a guard and both deploy; the
+  names must differ. Exiting a stage deletes its guard document as the next
+  stage's is created, so `translating → review` hands the publish hold over with
+  no gap.
+
+### Agent Actions (verified live in PR 6a)
+
+- `translate()` accepts `target: TranslateTarget[]`, and **disjoint roots
+  coalesce into one request**: `bio`, `seo.metaTitle` and `seo.metaDescription`
+  came back translated in place at the same `_key`s from a single call, with
+  untargeted fields (`name`) untouched. That is one AI call per locale for the
+  whole field tier, not one per field.
+- Omitting `targetDocument` makes the source document the target — the
+  documented default, and the only shape that works for in-place translation.
+  `buildTranslateParams({inPlace: true})` emits it.
 
 ### Test bench
 
@@ -429,16 +478,47 @@ Landed as four commits: prep/dead code (`250bf89`), Studio + schema
   public `action.action === 'schedule'` discriminant; the badge-by-exclusion
   filter is pinned by a unit test (`plugin.test.ts`).
 
-### PR 6 — field-level tier
+### PR 6a — field tier, engine and runtime — DONE (as built)
 
-Move `person.bio` (`internationalizedArrayText`) onto the same three definitions —
-`localize-document` already accepts `person` as a subject type.
+`person`'s three internationalized fields (`bio`, `seo.metaTitle`,
+`seo.metaDescription`) run on the same three definitions. Only the handler's
+write target and two structural fixes differ.
 
-The one genuine divergence: for the field tier every locale lives in **one**
-document, so N locale children would patch the same `internationalizedArray`
-concurrently. Either serialise the writes in a single child or use carefully keyed
-patches. The existing code has a related comment about `@sanity/client` `.append()`
-chaining that is worth reading first.
+- `core/fieldTier.ts` is the registry and the tier's whole vocabulary: which
+  fields a type localizes, the ancestor objects a patch needs, coverage
+  derivation, the source projection, and `startPerspectiveFor`. Static for the
+  same reason `SOURCE_LANGUAGE` is — a handler has no compiled Studio schema.
+- `translate-locale` branches: `translateIntoSibling` (unchanged document tier)
+  vs `translateInPlace`. In place is **one** AI call naming every source entry
+  as a target, then one `tx.patch` per field —
+  `setIfMissing → unset(language) → append` — against the subject's draft or
+  release version. Concurrent siblings are safe: per-document exclusive
+  transaction lock, no `ifRevisionID`. No `translation.metadata`, no
+  `postProcessTranslation`, no `languageFieldPath`.
+- `analyze-source` derives coverage from the arrays (a locale counts only when
+  **every** field carries it) and diffs the **source-locale projection** of two
+  revisions. Diffing whole documents cannot work when the translations live in
+  the subject: an approved run's own publish would read as a material edit and
+  restart itself forever.
+- `sourceChanged` is fixed by starting field-tier runs under a `published`
+  perspective (see §3) rather than by weakening the trigger.
+- The publish guard now covers `translating` as well as `review`, so a subject
+  cannot be published mid-fan-out. It holds document-tier sources for the same
+  window — accepted.
+- Blueprint: `start-localization` filters
+  `(_type == 'article' && language == 'en-US') || _type == 'person'`;
+  `handle-deleted-subject` filters `_type in ['article', 'person']`.
+
+Verified: 322 unit/bench tests, eval green, typecheck/lint/format clean,
+`deploy --check` passes, Functions build. Nothing deployed.
+
+### PR 6b — field tier, Studio surfaces
+
+The UI half: `translations/*.tsx`, `plugin.ts`, `sanity.config.ts`, seeds. Also
+owns the two gaps 6a left open — a Studio-picker start does not carry the
+field-tier perspective (§3), and the deletion inventory's field-tier rows
+(`useFieldTranslateActions`, `deriveFieldCellStates`, `useStaleSyncEffect`,
+`createSemaphore`, `fieldTranslation.metadata`'s workflow half) come out with it.
 
 ---
 
@@ -507,7 +587,7 @@ onto it are removed.
 ## 7. Verification
 
 ```bash
-pnpm --filter @starter/l10n test     # 213 tests; the bench suite is the design gate
+pnpm --filter @starter/l10n test     # 322 tests; the bench suite is the design gate
 pnpm --filter l10n eval              # quality gate — needs credentials (PR 4 onward)
 pnpm -r typecheck                    # note: `pretypecheck` runs typegen
 pnpm lint                            # 0 errors expected; 6 pre-existing warnings
