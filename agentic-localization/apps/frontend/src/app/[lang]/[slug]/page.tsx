@@ -89,10 +89,11 @@ export async function generateMetadata({
   params: Promise<{lang: string; slug: string}>
 }): Promise<Metadata> {
   const {lang, slug} = await params
-  // Draft titles, but never encoded: stega characters would land in `<title>`
-  // and in every alternate URL, where nothing can strip them.
-  const preview = await resolvePreview()
-  const resolved = await resolve(slug, lang, {...preview, stega: false})
+  // Always the published rendition: metadata has no Suspense boundary, so a
+  // `resolvePreview()` here would force the whole route dynamic
+  // (blocking-route). Draft previewing is the page body's job — and stega
+  // characters could never be stripped from `<title>` or alternate URLs anyway.
+  const resolved = await resolve(slug, lang, PUBLISHED)
   if (!resolved) return {}
 
   const {article, translations} = resolved
