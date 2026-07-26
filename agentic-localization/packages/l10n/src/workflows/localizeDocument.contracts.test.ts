@@ -2,8 +2,9 @@ import {EffectOutputsInvalidError} from '@sanity/workflow-engine'
 import {createBench, subjectField} from '@sanity/workflow-engine-test'
 import {expect, test} from 'vitest'
 
-import {ANALYZE_SOURCE, IN_PROGRESS_STAGES, SETTLED_STAGES, TRANSLATE_LOCALE} from './effects'
+import {ANALYZE_SOURCE, TRANSLATE_LOCALE} from './effects'
 import {localizeDocument} from './localizeDocument'
+import {IN_PROGRESS_STAGES, LOCALIZE_DOCUMENT_STAGES, SETTLED_STAGES} from './stages'
 import {localizationWorkflows} from './index'
 
 const T0 = '2026-07-24T09:00:00.000Z'
@@ -394,6 +395,19 @@ test('the engine reports where a run stops being autonomous', async () => {
     'request-changes',
   ])
   expect(humanGates.every((wait) => wait.stage === 'review')).toBe(true)
+})
+
+/**
+ * `LocalizeDocumentStage` derives from `LOCALIZE_DOCUMENT_STAGES`, and the
+ * definition declares its stages against that union — so the compiler already
+ * rejects a stage the vocabulary does not name. This is the direction it cannot
+ * see: a name in the vocabulary that no stage declares would widen the union
+ * past anything a run can reach.
+ */
+test('the stage vocabulary is exactly the stages the definition declares', () => {
+  expect([...LOCALIZE_DOCUMENT_STAGES].sort()).toEqual(
+    localizeDocument.stages.map((stage) => stage.name).sort(),
+  )
 })
 
 /**

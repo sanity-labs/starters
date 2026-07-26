@@ -11,6 +11,17 @@ import {
 import {SOURCE_LANGUAGE} from './config'
 import {ANALYZE_SOURCE} from './effects'
 import {localizeLocale} from './localizeLocale'
+import {type LocalizeDocumentStage} from './stages'
+
+/**
+ * `defineStage` widens `name` to `string`. Declaring every stage through this
+ * instead keeps the definition and `LocalizeDocumentStage` one vocabulary.
+ */
+function defineLocalizeDocumentStage(
+  stage: Parameters<typeof defineStage>[0] & {name: LocalizeDocumentStage},
+): ReturnType<typeof defineStage> {
+  return defineStage(stage)
+}
 
 /**
  * One source document across every locale that needs work.
@@ -28,7 +39,7 @@ export const localizeDocument = defineWorkflow({
   name: 'localize-document',
   title: 'Localize a document',
   description: 'Analyzes a source document, translates the locales that need work, then reviews.',
-  initialStage: 'analyzing',
+  initialStage: 'analyzing' satisfies LocalizeDocumentStage,
   // The cohort gate, named once. It reads the open stage visit only, so a
   // re-entered stage waits on its own fresh children rather than the settled
   // ones from a previous pass. The non-empty clause keeps it correct if the
@@ -129,7 +140,7 @@ export const localizeDocument = defineWorkflow({
     defineField({type: 'text', name: 'changeNote', title: 'Requested changes'}),
   ],
   stages: [
-    defineStage({
+    defineLocalizeDocumentStage({
       name: 'analyzing',
       title: 'Analyzing the source',
       activities: [
@@ -193,7 +204,7 @@ export const localizeDocument = defineWorkflow({
         }),
       ],
     }),
-    defineStage({
+    defineLocalizeDocumentStage({
       name: 'translating',
       title: 'Translating',
       // The field tier makes this gate load-bearing: its locale children write
@@ -282,7 +293,7 @@ export const localizeDocument = defineWorkflow({
         }),
       ],
     }),
-    defineStage({
+    defineLocalizeDocumentStage({
       name: 'review',
       title: 'Review',
       // `publish` only, deliberately. Denying `update` would block the source edit
@@ -413,9 +424,9 @@ export const localizeDocument = defineWorkflow({
         }),
       ],
     }),
-    defineStage({name: 'approved', title: 'Approved'}),
+    defineLocalizeDocumentStage({name: 'approved', title: 'Approved'}),
     // Reached when the source change did not warrant any retranslation.
-    defineStage({name: 'done', title: 'No work needed'}),
-    defineStage({name: 'failed', title: 'Failed'}),
+    defineLocalizeDocumentStage({name: 'done', title: 'No work needed'}),
+    defineLocalizeDocumentStage({name: 'failed', title: 'Failed'}),
   ],
 })

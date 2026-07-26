@@ -13,8 +13,9 @@ import {expect, test} from 'vitest'
 
 import {buildLocaleRuns, toChildRun} from '../core/localeRuns'
 import {readLocaleRequests, readText} from '../core/instanceFields'
-import {ANALYZE_SOURCE, APPROVED_STAGE, TRANSLATE_LOCALE} from './effects'
+import {ANALYZE_SOURCE, TRANSLATE_LOCALE} from './effects'
 import {localizeDocument} from './localizeDocument'
+import {APPROVED_STAGE} from './stages'
 import {localizationWorkflows} from './index'
 
 const T0 = '2026-07-24T09:00:00.000Z'

@@ -2,16 +2,11 @@ export {localizeCampaign} from './localizeCampaign'
 export {localizeDocument} from './localizeDocument'
 export {localizeLocale} from './localizeLocale'
 
-export {
-  ANALYZE_SOURCE,
-  APPROVED_STAGE,
-  EFFECT_NAMES,
-  IN_PROGRESS_STAGES,
-  PUBLISH_RELEASE,
-  SETTLED_STAGES,
-  TRANSLATE_LOCALE,
-} from './effects'
+export {ANALYZE_SOURCE, EFFECT_NAMES, PUBLISH_RELEASE, TRANSLATE_LOCALE} from './effects'
 export type {EffectName} from './effects'
+
+export {APPROVED_STAGE, IN_PROGRESS_STAGES, SETTLED_STAGES} from './stages'
+export type {LocalizeDocumentStage} from './stages'
 
 export {SOURCE_LANGUAGE, WORKFLOW_TAG, WORKFLOWS_DATASET} from './config'
 export {projectResourceClients} from './resourceClients'
