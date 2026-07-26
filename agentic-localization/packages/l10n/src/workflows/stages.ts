@@ -30,6 +30,12 @@ export type LocalizeDocumentStage = (typeof LOCALIZE_DOCUMENT_STAGES)[number]
  */
 export const APPROVED_STAGE = 'approved' satisfies LocalizeDocumentStage
 
+/** The stage a run holds in while reviewers decide — where the verbs live. */
+export const REVIEW_STAGE = 'review' satisfies LocalizeDocumentStage
+
+/** The terminal stage of a run whose analysis or cohort failed outright. */
+export const FAILED_STAGE = 'failed' satisfies LocalizeDocumentStage
+
 /**
  * `SubjectRun.stage` is whatever string the engine wrote — an instance started
  * under an earlier deployment carries that deployment's vocabulary — so the sets
@@ -48,3 +54,20 @@ export const IN_PROGRESS_STAGES = stageSet('analyzing', 'translating')
 
 /** Terminal-success stages, seen only before the instance settles out of a list. */
 export const SETTLED_STAGES = stageSet(APPROVED_STAGE, 'done')
+
+/** What a run's stage means to a person, independent of any surface's vocabulary. */
+export type RunPhase = 'in-progress' | 'review' | 'settled' | 'failed' | 'unknown'
+
+/**
+ * Classify a stage string the engine wrote. Every surface maps phases to its
+ * own presentation — inbox sections, dashboard statuses — but the semantics are
+ * decided once, here. `'unknown'` is a real outcome, not an error: an instance
+ * started under an earlier deployment carries that deployment's vocabulary.
+ */
+export function runPhase(stage: string): RunPhase {
+  if (IN_PROGRESS_STAGES.has(stage)) return 'in-progress'
+  if (stage === REVIEW_STAGE) return 'review'
+  if (SETTLED_STAGES.has(stage)) return 'settled'
+  if (stage === FAILED_STAGE) return 'failed'
+  return 'unknown'
+}

@@ -58,10 +58,12 @@ improves translations.
 | `localizationWorkflows`                                                               | All three, in dependency order. Deploy takes the whole set in one call                                                     |
 | `localizeCampaign`, `localizeDocument`, `localizeLocale`                              | The definitions individually                                                                                               |
 | `ANALYZE_SOURCE`, `TRANSLATE_LOCALE`, `PUBLISH_RELEASE`, `EFFECT_NAMES`, `EffectName` | Effect names — a registry key, unique per definition                                                                       |
-| `APPROVED_STAGE`                                                                      | The stage an approved run rests in. The `distill-review` filter interpolates it                                            |
+| `APPROVED_STAGE`, `REVIEW_STAGE`, `FAILED_STAGE`                                      | Individual stages consumers name — the `distill-review` filter interpolates the first                                      |
 | `IN_PROGRESS_STAGES`, `SETTLED_STAGES`                                                | `localize-document` stages, for surfaces bucketing a run by the stage it is in                                             |
+| `runPhase`, `RunPhase`                                                                | What a stage means to a person — surfaces map phases to their own vocabulary                                               |
 | `LocalizeDocumentStage`                                                               | Every stage `localize-document` declares, as a union — the definition is typed against it                                  |
-| `WORKFLOW_TAG`, `WORKFLOWS_DATASET`                                                   | The engine coordinates. A mismatch reads an empty partition                                                                |
+| `WORKFLOW_TAG`, `WORKFLOWS_DATASET`, `workflowsResource`                              | The engine coordinates and the resource they address. A mismatch reads an empty partition                                  |
+| `ENGINE_API_VERSION`                                                                  | The API version every host speaks to the engine's store with                                                               |
 | `SOURCE_LANGUAGE`                                                                     | The language a run reads from. Static, because deployed definitions are                                                    |
 | `projectResourceClients`, `ProjectResourceClients`                                    | Sibling clients for the project's other datasets — without them the engine refuses every ref outside the workflow resource |
 

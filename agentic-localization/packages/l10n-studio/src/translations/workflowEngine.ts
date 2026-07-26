@@ -10,7 +10,7 @@ import {gdrUri, type Engine, type GdrUri, type WorkflowInstance} from '@sanity/w
 import {useDocumentWorkflows, useWorkflowEngine} from '@sanity/workflow-studio'
 import {getPublishedId, useWorkspace} from 'sanity'
 
-import {WORKFLOW_TAG, WORKFLOWS_DATASET} from '@starter/l10n/workflows'
+import {WORKFLOW_TAG, workflowsResource} from '@starter/l10n/workflows'
 import {localizeDocument} from '@starter/l10n/workflows'
 
 /** The deployed definition name, so Studio config cannot drift from the definition. */
@@ -19,7 +19,7 @@ export const LOCALIZE_DOCUMENT_DEFINITION = localizeDocument.name
 export function useLocalizationEngine(): Engine {
   const {projectId} = useWorkspace()
   return useWorkflowEngine({
-    workflowResource: {type: 'dataset', id: `${projectId}.${WORKFLOWS_DATASET}`},
+    workflowResource: workflowsResource(projectId),
     tag: WORKFLOW_TAG,
   })
 }

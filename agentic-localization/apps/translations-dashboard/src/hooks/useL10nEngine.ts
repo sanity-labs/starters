@@ -13,12 +13,10 @@ import type {CreateEngineArgs, Engine} from '@sanity/workflow-engine'
 
 import {useClient} from '@sanity/sdk-react'
 import {createEngine} from '@sanity/workflow-engine'
-import {projectResourceClients} from '@starter/l10n/workflows'
+import {ENGINE_API_VERSION, projectResourceClients} from '@starter/l10n/workflows'
 import {useMemo} from 'react'
 
 import {WORKFLOW_TAG, WORKFLOWS_DATASET, WORKFLOWS_RESOURCE} from '../consts/workflows'
-
-const ENGINE_API_VERSION = '2026-07-01'
 
 /**
  * Split out from the hook so the declared ref surface is assertable without a

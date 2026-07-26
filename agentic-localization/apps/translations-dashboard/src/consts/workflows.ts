@@ -6,7 +6,7 @@
  */
 
 import type {WorkflowResource} from '@sanity/workflow-engine'
-import {WORKFLOW_TAG, WORKFLOWS_DATASET} from '@starter/l10n/workflows'
+import {WORKFLOW_TAG, WORKFLOWS_DATASET, workflowsResource} from '@starter/l10n/workflows'
 
 export {WORKFLOW_TAG, WORKFLOWS_DATASET}
 
@@ -20,7 +20,4 @@ export const CONTENT_RESOURCE: WorkflowResource = {
 }
 
 /** Where the engine's own documents live — definitions, instances, guards. */
-export const WORKFLOWS_RESOURCE: WorkflowResource = {
-  id: `${PROJECT_ID}.${WORKFLOWS_DATASET}`,
-  type: 'dataset',
-}
+export const WORKFLOWS_RESOURCE: WorkflowResource = workflowsResource(PROJECT_ID)

@@ -13,7 +13,7 @@
  */
 
 import type {SubjectRun} from '@starter/l10n'
-import {IN_PROGRESS_STAGES} from '@starter/l10n/workflows'
+import {runPhase} from '@starter/l10n/workflows'
 import {BehaviorSubject} from 'rxjs'
 
 export const RUN_SECTIONS = [
@@ -39,10 +39,11 @@ export const EMPTY_RUN_SECTIONS: RunSections = {
  * `failed` stage too: from the inbox both read as "this needs a human".
  */
 export function sectionsFor(run: SubjectRun): RunSectionId[] {
+  const phase = runPhase(run.stage)
   const sections: RunSectionId[] = []
-  if (IN_PROGRESS_STAGES.has(run.stage)) sections.push('translating')
-  if (run.stage === 'review') sections.push(run.sourceChanged ? 'source-changed' : 'needs-review')
-  if (run.hasFailedLocales || run.stage === 'failed') sections.push('failed-locales')
+  if (phase === 'in-progress') sections.push('translating')
+  if (phase === 'review') sections.push(run.sourceChanged ? 'source-changed' : 'needs-review')
+  if (run.hasFailedLocales || phase === 'failed') sections.push('failed-locales')
   return sections
 }
 

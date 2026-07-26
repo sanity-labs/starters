@@ -3,9 +3,7 @@ import type {DeclaredExecutionContext, EffectHandler, Engine} from '@sanity/work
 
 import {createClient} from '@sanity/client'
 import {createEngine, EXECUTION_KINDS} from '@sanity/workflow-engine'
-import {projectResourceClients} from '@starter/l10n/workflows'
-
-const API_VERSION = '2025-05-16'
+import {ENGINE_API_VERSION, projectResourceClients} from '@starter/l10n/workflows'
 
 /** Above the 120s Function timeout, so a live dispatch never outlives its claim. */
 const EFFECT_LEASE_MS = 150_000
@@ -31,7 +29,7 @@ export function executionContext(name: string): DeclaredExecutionContext {
 export function workflowsClient(config: ClientConfig, name: string): SanityClient {
   return createClient({
     ...config,
-    apiVersion: API_VERSION,
+    apiVersion: ENGINE_API_VERSION,
     useCdn: false,
     requestTagPrefix: `fn.l10n.${name}`,
   })

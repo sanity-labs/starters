@@ -3,7 +3,7 @@
  */
 
 import type {SubjectRun, TranslationWorkflowStatus} from '@starter/l10n'
-import {IN_PROGRESS_STAGES, SETTLED_STAGES} from '@starter/l10n/workflows'
+import {runPhase} from '@starter/l10n/workflows'
 
 /** The workflow statuses plus the in-flight one an open run adds. */
 export type DashboardStatus = 'translating' | TranslationWorkflowStatus
@@ -39,14 +39,18 @@ export function resolveLocaleStatus(args: {
       instanceId: run.instanceId,
       sourceChanged: run.sourceChanged,
     }
-    if (IN_PROGRESS_STAGES.has(run.stage)) return {...flags, status: 'translating'}
-    // Drift is reported, not routed around: the reviewer decides whether it matters.
-    if (run.stage === 'review') {
-      return {...flags, status: run.sourceChanged ? 'stale' : 'needsReview'}
+    switch (runPhase(run.stage)) {
+      case 'in-progress':
+        return {...flags, status: 'translating'}
+      // Drift is reported, not routed around: the reviewer decides whether it matters.
+      case 'review':
+        return {...flags, status: run.sourceChanged ? 'stale' : 'needsReview'}
+      case 'settled':
+        return {...flags, status: 'approved'}
+      // `failed` and anything unrecognised fall back to what the content says.
+      default:
+        return {...flags, status: content}
     }
-    if (SETTLED_STAGES.has(run.stage)) return {...flags, status: 'approved'}
-    // `failed` and anything unrecognised fall back to what the content says.
-    return {...flags, status: content}
   }
 
   return {hasFailedLocales: false, instanceId: null, sourceChanged: false, status: content}

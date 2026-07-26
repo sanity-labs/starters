@@ -7,6 +7,7 @@ import {
 } from '@sanity/blueprints'
 import {
   APPROVED_STAGE,
+  localizeDocument,
   SOURCE_LANGUAGE,
   WORKFLOW_TAG,
   WORKFLOWS_DATASET,
@@ -151,7 +152,7 @@ export default defineBlueprint({
         // deployed definition — `distillTrigger.test.ts` bench-proves that
         // `approved` is a real terminal stage of it.
         filter:
-          `_type == 'sanity.workflow.instance' && definition == 'localize-document' ` +
+          `_type == 'sanity.workflow.instance' && definition == '${localizeDocument.name}' ` +
           `&& currentStage == '${APPROVED_STAGE}'`,
         projection: '{_id, _type, definition, currentStage}',
         resource: {type: 'dataset', id: workflowsDatasetId},
