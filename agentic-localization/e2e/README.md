@@ -163,6 +163,16 @@ row the matrix currently reports — and closes the gate when none does.
 Being explicit, because a green suite that is quietly narrow is worse than a
 missing one:
 
+- **Not the auth an editor uses.** These journeys inject a token, because an
+  automated browser cannot complete SSO. A real editor's Studio holds an
+  api.sanity.io **cookie**, and the two resolve identity differently: an
+  upstream defect currently refuses every engine write on the cookie path while
+  the token path works, so this suite can be entirely green while no editor can
+  start a run or fire a verb (`skills/sanity-l10n/references/extending.md`,
+  under the actor-id entry). Validate editor-facing behaviour in a normal
+  logged-in session; the token is an unblock, not a proof. Closing this gap
+  means capturing a real login once as Playwright `storageState` and running
+  the journeys from it.
 - **No browser verbs.** The Studio journeys are read-only. Approve and
   request-changes are written and tagged, not proven — see "Conditional tags"
   above for exactly why each is closed.
