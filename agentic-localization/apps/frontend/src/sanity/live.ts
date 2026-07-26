@@ -10,6 +10,7 @@ import {
 } from 'next-sanity/live'
 
 import {stegaFilter} from './stega'
+import {STUDIO_URL} from './studio'
 
 const readToken = process.env.SANITY_API_READ_TOKEN
 
@@ -29,7 +30,7 @@ export const client = createClient({
   // client and back on per fetch, which keeps both of these and flips
   // `enabled`.
   stega: {
-    studioUrl: process.env.SANITY_STUDIO_URL ?? 'http://localhost:3333',
+    studioUrl: STUDIO_URL,
     filter: stegaFilter,
   },
 })

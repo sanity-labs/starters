@@ -48,7 +48,7 @@ async function ArticleList({lang, preview}: {lang: string; preview: Preview}) {
       ) : (
         <div className="space-y-4">
           {articles.map((article) => (
-            <ArticleCard key={article._id} article={article} lang={lang} />
+            <ArticleCard key={article._id} article={article} lang={lang} preview={preview} />
           ))}
         </div>
       )}

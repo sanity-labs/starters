@@ -7,6 +7,6 @@ export default defineProject({
   },
   test: {
     name: '@starter/frontend',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
   },
 })
