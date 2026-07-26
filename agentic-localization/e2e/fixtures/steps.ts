@@ -60,7 +60,7 @@ async function pendingCohort(context: L10nContext): Promise<WorkflowInstance[]> 
 
 /** Journey-agnostic: delivering events, reading stages, and the review decision. */
 export const runSteps = [
-  ...contextAndAction<undefined>('the publish event is delivered', async (context) => {
+  ...contextAndAction('the publish event is delivered', async (context) => {
     context.agentCallsBefore = context.harness.agent.calls.length
     await deliverPublish(context.harness, context.subject)
     const run = await context.harness.runFor(context.subject._id)
@@ -134,7 +134,7 @@ export const runSteps = [
     expect(holding.length).toBeGreaterThan(0)
   }),
 
-  ...contextAndAction<undefined>('the source document is deleted', async (context) => {
+  ...contextAndAction('the source document is deleted', async (context) => {
     // The lake first, then the event — the same order the platform sees it. The
     // run's guard denies `publish`, not `delete`, so the editor gets this far.
     await context.harness.content.delete({
@@ -159,7 +159,7 @@ export const runSteps = [
     ).toEqual([])
   }),
 
-  ...contextAndAction<undefined>('the reviewer approves', async (context) => {
+  ...contextAndAction('the reviewer approves', async (context) => {
     await context.harness.engine.fireAction({
       instanceId: context.instanceId,
       activity: 'review',
@@ -204,7 +204,7 @@ export const modePSteps = [
     },
   ),
 
-  ...contextAndAction<undefined>(
+  ...contextAndAction(
     'the analysis reports a cosmetic change affecting no locales',
     async (context) => {
       await reportAnalysis(context.harness, context.instanceId, {
@@ -225,7 +225,7 @@ export const modePSteps = [
     await settleLocale(context.harness, context.instanceId, locale, 'failed')
   }),
 
-  ...contextAndAction<undefined>('every remaining locale translation succeeds', async (context) => {
+  ...contextAndAction('every remaining locale translation succeeds', async (context) => {
     await settleLocales(context.harness, context.instanceId, 'done')
   }),
 

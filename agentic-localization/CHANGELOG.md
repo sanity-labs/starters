@@ -20,10 +20,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **Breaking:** `@starter/l10n` split in two — `@starter/l10n` is the node floor (primitives, prompt assembly, workflow definitions, effect handlers) and is React-free by construction, enforced by a lint zone and a resolved-module-graph test; `@starter/l10n-studio` holds the plugin, schema types and the Translations inspector ([adr-001](docs/decisions/adr-001-package-shape.md))
-- **Breaking:** Sanity Studio v6 — the workflow Studio plugin needs 6.3+ and there is no v5 path — and Node >= 22.12
+- **Breaking:** Sanity Studio v6 — the workflow Studio plugin needs 6.3+ and there is no v5 path — and Node >= 22.18
 - Review is one human pass over the whole document, across all locales; locale children are machine-only
 - `publish` is held by the run's own engine guard rather than a hand-rolled gate; `schedule` is wrapped at the config root, because core injects it after plugins resolve
 - Schema types moved to `@sanity/types` imports (`defineType`/`defineField`), keeping a schema registration from pulling the whole Studio into a consumer's bundle
+- Linting is oxlint extending `@sanity/plugin-kit/oxlint`, the org's shared preset — `oxlint.config.ts` replaces the eslint stack and the `@starter/eslint-config` package
 
 ### Removed
 

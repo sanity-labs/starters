@@ -12,7 +12,6 @@
  * with no open run schedules as it always did.
  */
 
-import {createElement} from 'react'
 import {
   type DocumentActionComponent,
   type DocumentActionDescription,
@@ -41,10 +40,10 @@ export function createLocalizationScheduleGate(
     return {
       ...originalResult,
       disabled: true,
-      title: createElement(
-        Text,
-        {size: 1},
-        STAGE_REASON[instance.currentStage] ?? 'A localization run is open for this document.',
+      title: (
+        <Text size={1}>
+          {STAGE_REASON[instance.currentStage] ?? 'A localization run is open for this document.'}
+        </Text>
       ),
       tone: 'caution',
     }

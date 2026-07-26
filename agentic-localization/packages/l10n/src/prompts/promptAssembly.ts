@@ -19,7 +19,7 @@ export function extractDocumentText(value: unknown): string {
         : value.map(extractDocumentText).filter(Boolean).join(' ')
 
     case isPortableTextTextBlock(value):
-      return toPlainText(value as unknown as PortableTextBlock)
+      return toPlainText(value)
 
     case isReference(value):
     case isImage(value):

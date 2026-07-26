@@ -178,8 +178,8 @@ invariant.
 | `@starter/l10n`        | engine + stdlib only, no React/`sanity` | Functions, workflow CLI, evals, dashboard, frontend |
 | `@starter/l10n-studio` | everything, plus `@starter/l10n`        | the Studio only                                     |
 
-Two guards keep it honest instead of relying on memory: an eslint zone over
-`packages/l10n/src/**` in [`eslint.config.mjs`](../../../eslint.config.mjs), and
+Two guards keep it honest instead of relying on memory: an oxlint zone over
+`packages/l10n/src/**` in [`oxlint.config.ts`](../../../oxlint.config.ts), and
 `packages/l10n/src/exports.test.ts`, which bundles each entry with rolldown and
 asserts on resolved module ids. This is not aesthetics: a Function inlines its
 whole import graph.

@@ -55,7 +55,7 @@ code against that, not just against "does it work".
   the barrels are the API reference, and every export documents itself as TSDoc.
 - **Bundle footprint is a design constraint.** Anything a Function, the CLI or a
   frontend imports must not drag React, `@sanity/ui`, or Studio internals with it.
-  `@starter/l10n` is React-free by construction, enforced by an eslint zone and
+  `@starter/l10n` is React-free by construction, enforced by an oxlint zone and
   `packages/l10n/src/exports.test.ts`. Check before adding an import, not after.
 - **Deletion is progress.** Replacing hand-rolled machinery with an engine
   primitive and removing the old code is the goal, not a nice-to-have.
@@ -64,7 +64,7 @@ code against that, not just against "does it work".
 
 - Use `pnpm`, not `npm`
 - Run commands from root via `pnpm --filter <pkg>` (e.g. `pnpm --filter @starter/l10n test`)
-- Node **>=22.12** and Sanity Studio **v6** (the workflow Studio plugin needs 6.3+;
+- Node **>=22.18** and Sanity Studio **v6** (the workflow Studio plugin needs 6.3+;
   there is no v5 path)
 - `overrides` live in `pnpm-workspace.yaml`, not `package.json` (pnpm 10.30+), and
   do not reach auto-installed peers — declare those explicitly instead

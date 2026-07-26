@@ -83,7 +83,7 @@ Feature<L10nContext>({
       })
     }),
 
-    ...contextAndAction<undefined>('the effect handlers drain the run', async (context) => {
+    ...contextAndAction('the effect handlers drain the run', async (context) => {
       await context.harness.drainRun(context.instanceId)
     }),
 
@@ -124,7 +124,7 @@ Feature<L10nContext>({
       },
     ),
 
-    ...contextAndAction<undefined>('the approved run is distilled', async (context) => {
+    ...contextAndAction('the approved run is distilled', async (context) => {
       await deliverApproved(context.harness, context.instanceId)
     }),
 

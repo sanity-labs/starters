@@ -55,14 +55,14 @@ function isTokenChar(char: string): boolean {
 /** Length of the trailing partial token in `text`. */
 function tokenTail(text: string): number {
   let length = 0
-  while (length < text.length && isTokenChar(text[text.length - 1 - length]!)) length++
+  while (length < text.length && isTokenChar(text[text.length - 1 - length])) length++
   return length
 }
 
 /** Length of the leading partial token in `text`. */
 function tokenHead(text: string): number {
   let length = 0
-  while (length < text.length && isTokenChar(text[length]!)) length++
+  while (length < text.length && isTokenChar(text[length])) length++
   return length
 }
 
@@ -107,11 +107,11 @@ function alignToWords(segments: readonly TextSegment[]): TextSegment[] {
   // Moving text into both sides of a run leaves the two reconstructed strings
   // byte-identical, so this pass can only change where the boundaries fall.
   for (let index = 0; index < runs.length; index++) {
-    const run = runs[index]!
+    const run = runs[index]
     const changed = run.removed || run.added
     if (changed === '') continue
 
-    if (isTokenChar(changed[0]!)) {
+    if (isTokenChar(changed[0])) {
       const borrowed = tokenTail(run.before)
       const prefix = run.before.slice(run.before.length - borrowed)
       run.before = run.before.slice(0, run.before.length - borrowed)
@@ -267,12 +267,12 @@ function pairEdits(rows: readonly BlockChange[]): BlockChange[] {
     const start = index
     while (
       index < rows.length &&
-      (rows[index]!.type === 'added' || rows[index]!.type === 'removed')
+      (rows[index].type === 'added' || rows[index].type === 'removed')
     ) {
       index++
     }
     if (index === start) {
-      result.push(rows[start]!)
+      result.push(rows[start])
       index++
       continue
     }
@@ -284,10 +284,10 @@ function pairEdits(rows: readonly BlockChange[]): BlockChange[] {
 
     for (let offset = 0; offset < paired; offset++) {
       result.push({
-        blockNumber: added[offset]!.blockNumber,
+        blockNumber: added[offset].blockNumber,
         type: 'changed',
-        oldText: removed[offset]!.oldText,
-        newText: added[offset]!.newText,
+        oldText: removed[offset].oldText,
+        newText: added[offset].newText,
       })
     }
     result.push(...added.slice(paired), ...removed.slice(paired))
@@ -303,15 +303,15 @@ function pairEdits(rows: readonly BlockChange[]): BlockChange[] {
 function withContext(rows: readonly BlockChange[]): BlockChange[] {
   const keep = new Set<number>()
   for (let index = 0; index < rows.length; index++) {
-    if (rows[index]!.type === 'context') continue
+    if (rows[index].type === 'context') continue
     keep.add(index)
     for (let before = index - 1, taken = 0; before >= 0 && taken < CONTEXT_BLOCKS; before--) {
-      if (rows[before]!.type !== 'context') break
+      if (rows[before].type !== 'context') break
       keep.add(before)
       taken++
     }
     for (let after = index + 1, taken = 0; after < rows.length && taken < CONTEXT_BLOCKS; after++) {
-      if (rows[after]!.type !== 'context') break
+      if (rows[after].type !== 'context') break
       keep.add(after)
       taken++
     }
@@ -322,7 +322,7 @@ function withContext(rows: readonly BlockChange[]): BlockChange[] {
   for (let index = 0; index < rows.length; index++) {
     if (!keep.has(index)) continue
     if (lastKept >= 0 && index - lastKept > 1) result.push({blockNumber: 0, type: 'separator'})
-    result.push(rows[index]!)
+    result.push(rows[index])
     lastKept = index
   }
   return result

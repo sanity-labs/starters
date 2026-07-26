@@ -162,7 +162,7 @@ export function createHarness(mode: DriveMode): Harness {
     if (!effect) {
       throw new Error(
         `[e2e] no pending "${args.effect}" on ${args.instanceId} — pending: ` +
-          `${pending.map((entry) => entry.name).join(', ') || '(none)'}`,
+          pending.map((entry) => entry.name).join(', ') || '(none)',
       )
     }
     await engine.completeEffect({

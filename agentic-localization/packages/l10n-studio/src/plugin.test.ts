@@ -88,8 +88,9 @@ describe('the proposal registration', () => {
   }
 
   it('registers the proposal document type', () => {
-    const names = (plugin.schema?.types as {name: string}[]).map((type) => type.name)
-    expect(names).toContain(proposalTypeName)
+    const types = plugin.schema?.types
+    if (!Array.isArray(types)) throw new Error('the l10n plugin no longer contributes schema types')
+    expect(types.map((type) => type.name)).toContain(proposalTypeName)
   })
 
   it('replaces the default actions for a proposal rather than extending them', () => {

@@ -32,7 +32,7 @@ export async function translateDocument(options: {
     const params = buildTranslateParams({
       schemaId: SCHEMA_ID,
       documentId: DOCUMENT_ID,
-      glossaries: glossaries!,
+      glossaries: glossaries,
       targetLocale,
       sourceLocale,
       styleGuide,

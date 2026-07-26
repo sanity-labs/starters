@@ -256,7 +256,7 @@ function engineFor(instance: WorkflowInstance, children: WorkflowInstance[]): Di
   return {
     getInstance: async () => instance,
     children: async () => children,
-  } as unknown as DistillEngine
+  }
 }
 
 function run(client: DistillClient, engine: DistillEngine) {

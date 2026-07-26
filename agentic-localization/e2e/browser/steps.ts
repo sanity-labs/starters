@@ -69,17 +69,14 @@ export const studioSteps = [
     },
   ),
 
-  ...contextAndAction<undefined>(
-    'the reviewer opens the Translations inspector',
-    async (context) => {
-      const {page} = context.session
-      await settle(inspectorButton(page), 'the Translations toolbar button', page)
-      await inspectorButton(page).click()
-      await settle(inspector(page), 'the Translations inspector', page)
-      // The matrix is derived from content the pane is still streaming in.
-      await settle(matrixRows(page).first(), 'the first locale row', page)
-    },
-  ),
+  ...contextAndAction('the reviewer opens the Translations inspector', async (context) => {
+    const {page} = context.session
+    await settle(inspectorButton(page), 'the Translations toolbar button', page)
+    await inspectorButton(page).click()
+    await settle(inspector(page), 'the Translations inspector', page)
+    // The matrix is derived from content the pane is still streaming in.
+    await settle(matrixRows(page).first(), 'the first locale row', page)
+  }),
 
   Then<StudioJourney>('the inspector is open', async (context) => {
     expect(await inspector(context.session.page).count()).toBe(1)
@@ -96,7 +93,7 @@ export const studioSteps = [
     },
   ),
 
-  ...contextAndAction<undefined>('the matrix is shown as a grid', async (context) => {
+  ...contextAndAction('the matrix is shown as a grid', async (context) => {
     await showGrid(context.session.page)
   }),
 
@@ -128,12 +125,9 @@ export const studioSteps = [
     }
   }),
 
-  ...contextAndAction<undefined>(
-    "the reviewer selects the changed locale's row",
-    async (context) => {
-      await matrixRow(context.session.page, context.locale).click()
-    },
-  ),
+  ...contextAndAction("the reviewer selects the changed locale's row", async (context) => {
+    await matrixRow(context.session.page, context.locale).click()
+  }),
 
   ...contextAndAction<string>(
     "the reviewer selects the changed locale's cell for {string}",
@@ -170,7 +164,7 @@ export const studioSteps = [
     expect(await deferredDiffs(context).count()).toBeLessThan(context.deferredBefore)
   }),
 
-  ...contextAndAction<undefined>(
+  ...contextAndAction(
     "the reviewer opens the changed locale's document from its row",
     async (context) => {
       context.panesBefore = await documentPanes(context.session.page).count()

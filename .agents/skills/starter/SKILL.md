@@ -99,15 +99,14 @@ Loading patterns by context:
 Use `packages/@starter/` scope for shared configs. All workspaces extend them —
 DRY without coupling starters to each other.
 
-| Package                                                    | State                                                                                                       |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `@starter/tsconfig`                                        | `base.json` with ES2024, bundler resolution, strict mode. Current and correct.                              |
-| `@starter/eslint-config`                                   | Flat config array (ESLint v9). **Current actual**, not the target.                                          |
-| oxlint extending `@sanity/plugin-kit/oxlint` via `extends` | **Ratified target** — plugin-kit is the canon and the preset is never copy-pasted. Not yet landed anywhere. |
+| Package                                                    | State                                                                                                                                 |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `@starter/tsconfig`                                        | `base.json` with ES2024, bundler resolution, strict mode. Current and correct.                                                        |
+| `@starter/eslint-config`                                   | Flat config array (ESLint v9). Legacy; every remaining consumer is a migration target.                                                |
+| oxlint extending `@sanity/plugin-kit/oxlint` via `extends` | **Ratified target** — plugin-kit is the canon and the preset is never copy-pasted. Landed in `agentic-localization/oxlint.config.ts`. |
 
-Do not add a new `@starter/eslint-config` consumer expecting it to survive; do
-not cite the oxlint target as prior art. `references/map.md` §7 holds the tooling
-table.
+Do not add a new `@starter/eslint-config` consumer expecting it to survive.
+`references/map.md` §7 holds the tooling table.
 
 ## pnpm Catalog — DEFAULT
 
@@ -146,7 +145,8 @@ Root `package.json` delegates to workspaces:
   "dev": "concurrently ... pnpm --filter <pkg> dev",
   "build": "pnpm -r build",
   "test": "pnpm -r test",
-  "lint": "eslint --cache --cache-location node_modules/.cache/eslint/ .",
+  "lint": "pnpm run oxlint",
+  "oxlint": "oxlint --disable-nested-config",
   "format": "oxfmt .",
   "format:check": "oxfmt --check .",
   "typegen": "pnpm --filter studio typegen",

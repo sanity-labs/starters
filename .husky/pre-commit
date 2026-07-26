@@ -28,3 +28,13 @@ for starter in $(find . -maxdepth 2 -name 'eslint.config.*' -not -path '*/node_m
     echo "$starter_files" | xargs git add
   fi
 done
+
+# Starters on oxlint (no cache flag — oxlint has none)
+for starter in $(find . -maxdepth 2 \( -name 'oxlint.config.*' -o -name '.oxlintrc.json' \) -not -path '*/node_modules/*' -exec dirname {} \; | sed 's|^\./||' | sort -u); do
+  starter_files=$(echo "$lint_files" | grep "^$starter/" | tr '\n' ' ' || true)
+  if [ -n "$starter_files" ]; then
+    relative_files=$(echo "$starter_files" | sed "s|$starter/||g")
+    (cd "$starter" && pnpm exec oxlint --disable-nested-config --fix $relative_files)
+    echo "$starter_files" | xargs git add
+  fi
+done

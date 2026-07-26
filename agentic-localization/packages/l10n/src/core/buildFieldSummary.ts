@@ -56,7 +56,7 @@ function collapseDiffSegments(segments: readonly TextSegment[]): DiffSegment[] {
   let i = 0
 
   while (i < segments.length) {
-    const segment = segments[i]!
+    const segment = segments[i]
 
     if (segment.action === 'unchanged') {
       collapsed.push({type: 'unchanged', text: segment.text})
@@ -66,8 +66,8 @@ function collapseDiffSegments(segments: readonly TextSegment[]): DiffSegment[] {
 
     let removed = ''
     let added = ''
-    while (i < segments.length && segments[i]!.action !== 'unchanged') {
-      const change = segments[i]!
+    while (i < segments.length && segments[i].action !== 'unchanged') {
+      const change = segments[i]
       if (change.action === 'removed') removed += change.text
       else added += change.text
       i++
@@ -98,7 +98,7 @@ export function buildDiffAwareExtract(
   const regions: ChangeRegion[] = []
 
   for (let i = 0; i < segments.length; i++) {
-    const seg = segments[i]!
+    const seg = segments[i]
     if (seg.type !== 'change') continue
 
     const prevSeg = i > 0 ? segments[i - 1] : undefined
@@ -112,7 +112,7 @@ export function buildDiffAwareExtract(
       gapAfter.length <= contextChars ? gapAfter.trim() : gapAfter.slice(0, contextChars).trim()
 
     if (regions.length > 0 && gapBefore.length < contextChars * 2) {
-      const prev = regions[regions.length - 1]!
+      const prev = regions[regions.length - 1]
       prev.removed += gapBefore + seg.removed
       prev.added += gapBefore + seg.added
       prev.contextAfter = contextAfter
@@ -146,7 +146,7 @@ export function buildDiffAwareExtract(
   let totalChars = 0
 
   for (let idx = 0; idx < displayRegions.length; idx++) {
-    const region = displayRegions[idx]!
+    const region = displayRegions[idx]
     const regionLines: string[] = []
 
     regionLines.push(`  Change ${idx + 1}:`)

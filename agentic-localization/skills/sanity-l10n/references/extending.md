@@ -217,7 +217,7 @@ deploy`, `pnpm workflows:deploy`.
 ## Keeping the extension composable
 
 - **Stay on the node floor.** A definition or handler that imports `react`,
-  `sanity` or `@sanity/ui` cannot run in a Function. The eslint zone over
+  `sanity` or `@sanity/ui` cannot run in a Function. The oxlint zone over
   `packages/l10n/src/**` and `packages/l10n/src/exports.test.ts` will tell you,
   but check before adding the import.
 - **Reuse the prompt assembly.** If the extension translates, build its request

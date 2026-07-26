@@ -18,6 +18,7 @@ import {isRecord} from './isRecord'
  * various depths — the code point could be anywhere in the structure.
  */
 const INVALID_UNICODE_RE =
+  // oxlint-disable-next-line no-control-regex -- NULL is the point; see above
   /[\u0000\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g
 
 export function sanitizeTranslationValue(value: unknown): unknown {

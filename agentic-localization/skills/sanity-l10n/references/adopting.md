@@ -39,7 +39,7 @@ each removable without touching the others.
 
 Non-negotiable, and worth checking before promising a timeline:
 
-- **Node >= 22.12, Sanity Studio v6.** The workflow Studio plugin needs 6.3+.
+- **Node >= 22.18, Sanity Studio v6.** The workflow Studio plugin needs 6.3+.
   There is no v5 path.
 - **A dataset for the engine.** Instances do not live with content. The blueprint
   creates it; `WORKFLOWS_DATASET` and `WORKFLOW_TAG` in

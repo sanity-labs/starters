@@ -6,8 +6,8 @@ workflow definitions, and the effect handlers that satisfy them.
 Nothing here imports `react`, `sanity`, `@sanity/ui`, `@sanity/icons` or
 `styled-components` — not even in type position — so every entry costs the same
 inside a Sanity Function, the workflow CLI or a frontend as it does in the
-Studio. Two guards enforce that rather than asking you to remember it: an eslint
-zone over `src/**` ([`eslint.config.mjs`](../../eslint.config.mjs)) and
+Studio. Two guards enforce that rather than asking you to remember it: an oxlint
+zone over `src/**` ([`oxlint.config.ts`](../../oxlint.config.ts)) and
 [`src/exports.test.ts`](./src/exports.test.ts), which bundles each entry with
 rolldown and asserts on the resolved module ids.
 

@@ -29,6 +29,7 @@ export async function ensureDatasets(): Promise<void> {
           `  npx sanity dataset create ${name} --visibility private\n` +
           `Or point the suite at datasets you already have:\n` +
           `  SANITY_E2E_CONTENT_DATASET / SANITY_E2E_WORKFLOWS_DATASET`,
+        {cause: error},
       )
     }
   }

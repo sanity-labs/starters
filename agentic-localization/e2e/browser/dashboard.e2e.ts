@@ -69,7 +69,7 @@ Feature<StudioJourney>({
     }),
   ],
   stepDefinitions: [
-    ...contextAndAction<undefined>('the dashboard is open', async (context) => {
+    ...contextAndAction('the dashboard is open', async (context) => {
       await context.session.goto('/')
     }),
 

@@ -165,7 +165,7 @@ export async function readSubjectDocument(
 
 /** The read perspective this run was started with, or the engine's default. */
 export async function instancePerspective(ctx: EffectContext): Promise<WorkflowPerspective> {
-  const value = await ctx.client.fetch<unknown>(
+  const value = await ctx.client.fetch(
     `*[_id == $instanceId][0].perspective`,
     {instanceId: ctx.instanceId},
     {tag: 'read-perspective'},

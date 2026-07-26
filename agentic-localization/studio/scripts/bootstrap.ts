@@ -22,7 +22,7 @@ import {resolve} from 'node:path'
 import {parseEnv} from 'node:util'
 import {getCliClient} from 'sanity/cli'
 
-const dir = import.meta.dirname!
+const dir = import.meta.dirname
 const studioEnv = resolve(dir, '../.env')
 const rootEnv = resolve(dir, '../../.env')
 

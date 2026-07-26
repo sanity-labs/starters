@@ -90,7 +90,7 @@ Feature<StudioJourney>({
     }),
   ],
   stepDefinitions: [
-    ...contextAndAction<undefined>('the Studio structure is open', async (context) => {
+    ...contextAndAction('the Studio structure is open', async (context) => {
       await context.session.goto('/structure')
       await settle(
         context.session.page.getByTestId('pane-item-Localization'),
@@ -99,7 +99,7 @@ Feature<StudioJourney>({
       )
     }),
 
-    ...contextAndAction<undefined>('the editor opens the Localization group', async (context) => {
+    ...contextAndAction('the editor opens the Localization group', async (context) => {
       await openInbox(context.session.page)
     }),
 
@@ -125,25 +125,22 @@ Feature<StudioJourney>({
       },
     ),
 
-    ...contextAndAction<undefined>(
-      'the editor enters the first section holding a run',
-      async (context) => {
-        const {page} = context.session
-        for (const section of SECTIONS) {
-          const count = await promisedCount(page, section)
-          if (count === 0) continue
-          context.sectionCount = count
-          await sectionItem(page, section).first().click()
-          await settle(
-            lastPane(page).getByText(section, {exact: true}),
-            `the "${section}" pane`,
-            page,
-          )
-          return
-        }
-        throw new Error('[e2e] no inbox section holds a run — the gate should have skipped this')
-      },
-    ),
+    ...contextAndAction('the editor enters the first section holding a run', async (context) => {
+      const {page} = context.session
+      for (const section of SECTIONS) {
+        const count = await promisedCount(page, section)
+        if (count === 0) continue
+        context.sectionCount = count
+        await sectionItem(page, section).first().click()
+        await settle(
+          lastPane(page).getByText(section, {exact: true}),
+          `the "${section}" pane`,
+          page,
+        )
+        return
+      }
+      throw new Error('[e2e] no inbox section holds a run — the gate should have skipped this')
+    }),
 
     /**
      * The count comes from the engine's instance list and the rows from the
@@ -163,14 +160,11 @@ Feature<StudioJourney>({
       expect(await rows.count()).toBe(context.sectionCount)
     }),
 
-    ...contextAndAction<undefined>(
-      'the editor opens the first run in the section',
-      async (context) => {
-        const {page} = context.session
-        context.panesBefore = await documentPanes(page).count()
-        await lastPane(page).locator('[data-ui="PreviewCard"]').first().click()
-      },
-    ),
+    ...contextAndAction('the editor opens the first run in the section', async (context) => {
+      const {page} = context.session
+      context.panesBefore = await documentPanes(page).count()
+      await lastPane(page).locator('[data-ui="PreviewCard"]').first().click()
+    }),
 
     Then<StudioJourney>('a document pane is open', async (context) => {
       const {page} = context.session

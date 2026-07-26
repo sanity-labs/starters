@@ -30,7 +30,7 @@ const l10nTypes = [
 const documentTierTypes = ['article']
 
 /** Every type `localize-document` runs against, both tiers. */
-const localizationSubjectTypes = [...documentTierTypes, ...fieldTierTypes()]
+const localizationSubjectTypes = new Set([...documentTierTypes, ...fieldTierTypes()])
 
 const projectId = import.meta.env?.SANITY_STUDIO_PROJECT_ID ?? process.env.SANITY_STUDIO_PROJECT_ID!
 const dataset = import.meta.env?.SANITY_STUDIO_DATASET ?? process.env.SANITY_STUDIO_DATASET!
@@ -126,7 +126,7 @@ export default defineConfig({
       // run's own guard; `schedule` is outside its lock map, so it is wrapped
       // here. At the config root because the core injects `schedule` after
       // plugins run.
-      if (!localizationSubjectTypes.includes(context.schemaType)) return prev
+      if (!localizationSubjectTypes.has(context.schemaType)) return prev
       return prev.map((action) =>
         action.action === 'schedule' ? createLocalizationScheduleGate(action) : action,
       )

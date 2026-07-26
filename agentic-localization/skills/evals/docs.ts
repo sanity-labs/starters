@@ -66,7 +66,7 @@ export const REPO_ROOTS = [
  */
 export const ROOT_FILES = [
   '.mcp.json',
-  'eslint.config.mjs',
+  'oxlint.config.ts',
   'pnpm-workspace.yaml',
   'sanity.blueprint.ts',
   'sanity.workflow.ts',

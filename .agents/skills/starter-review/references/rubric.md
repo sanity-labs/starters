@@ -62,7 +62,7 @@ must say which.
 
 **Good** — `agentic-localization/packages/l10n/package.json` (node floor, zero
 react/sanity) enforced by `packages/l10n/src/exports.test.ts` and the
-`l10n/node-floor` zone in `eslint.config.mjs`; peer-pin-only deps annotated in
+`packages/l10n/src/**` zone in `oxlint.config.ts`; peer-pin-only deps annotated in
 `packages/l10n-studio/package.json`'s `"//dependencies"`.
 
 **Slop signature** — phantom devDeps added to make a union manifest typecheck; a
@@ -209,17 +209,18 @@ coverage it does not have; assertions on mocks of internal state.
 **Measure**
 
 ```bash
-grep -rn "@sanity/plugin-kit" package.json */package.json packages/*/package.json oxlintrc.json .oxlintrc.json 2>/dev/null
+grep -rn "@sanity/plugin-kit" package.json */package.json packages/*/package.json oxlint.config.ts .oxlintrc.json 2>/dev/null
 npx @sanity/plugin-kit verify-package    # from the plugin package
 ```
 
 The lint preset must arrive via `extends`, not a copied rule list.
 
-**Good** — **target, not yet landed.** The north star is ratified for pure
-oxlint extending `@sanity/plugin-kit/oxlint` with verify-package conformance for
-`packages/l10n-studio` (`agentic-localization/TODO.md` row 36); today it still
-runs `eslint.config.mjs`. Conformance gaps that fight the source-only workspace
-pattern are surfaced as an ADR, not silently ignored.
+**Good** — `agentic-localization/oxlint.config.ts` extends
+`@sanity/plugin-kit/oxlint` and pins the preset exactly. verify-package
+conformance for `packages/l10n-studio` is still open: the checks assume a
+published, pkg-utils-built plugin, and a source-only workspace package fails
+five of them. Conformance gaps that fight the source-only workspace pattern are
+surfaced as an ADR, not silently ignored.
 
 **Slop signature** — a copy-pasted rule list drifting from the preset; a plugin
 package with no `sanity.json`/plugin metadata and no recorded exception; per-

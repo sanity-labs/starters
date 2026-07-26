@@ -67,7 +67,7 @@ Feature<L10nContext>({
       context.subject = await publishPerson(context.harness, {name: 'Grace Hopper'})
     }),
 
-    ...contextAndAction<undefined>('the effect handlers drain the run', async (context) => {
+    ...contextAndAction('the effect handlers drain the run', async (context) => {
       await context.harness.drainRun(context.instanceId)
     }),
 

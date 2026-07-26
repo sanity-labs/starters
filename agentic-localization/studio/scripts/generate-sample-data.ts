@@ -42,9 +42,9 @@ const {values: flags} = parseArgs({
   allowPositionals: true,
 })
 
-const OUT_FILE = flags.out!
-const CONCURRENCY = parseInt(flags.concurrency!, 10)
-const SKIP_VALIDATE = flags['no-validate']!
+const OUT_FILE = flags.out
+const CONCURRENCY = parseInt(flags.concurrency, 10)
+const SKIP_VALIDATE = flags['no-validate']
 const SCHEMA_ID = `_.schemas.${flags.workspace}`
 
 // ─── Sanity client ──────────────────────────────────────────────────────────
@@ -108,9 +108,7 @@ async function generateArticles(briefs: Brief[], label: string) {
           tags: brief.tags,
         }
         done++
-        process.stderr.write(
-          `  [${done}/${briefs.length}] ${(results[i] as Record<string, unknown>).title}\n`,
-        )
+        process.stderr.write(`  [${done}/${briefs.length}] ${results[i].title}\n`)
       })
       .catch((err: Error) => {
         process.stderr.write(`  ✗ ${brief._id}: ${err.message}\n`)
@@ -254,7 +252,7 @@ async function* generateDocuments() {
   for (const doc of personDocs.values()) yield doc
 
   // 5. en-US source articles — AI generates title, excerpt, body
-  const sourceArticles = await generateArticles(articleBriefs as Brief[], 'en-US articles')
+  const sourceArticles = await generateArticles(articleBriefs, 'en-US articles')
   for (const article of sourceArticles) yield article
 
   // 6. Translated articles — AI generates content in target locale

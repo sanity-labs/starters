@@ -19,7 +19,7 @@ Without structured context, AI translates "Releases" as "Veröffentlichungen" in
 
 ## Getting started
 
-**Prerequisites:** Node.js >=22.12, pnpm, a [Sanity account](https://www.sanity.io/get-started)
+**Prerequisites:** Node.js >=22.18, pnpm, a [Sanity account](https://www.sanity.io/get-started)
 
 ### 1. Create the project
 

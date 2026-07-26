@@ -157,7 +157,7 @@ function packagesWithBarrels(): PackageBarrels[] {
       barrels.set(specifier, resolve(directory, source))
     }
 
-    // Config packages (eslint-config, tsconfig) export no TypeScript surface.
+    // Config packages (tsconfig) export no TypeScript surface.
     if (barrels.size === 0) continue
 
     found.push({name: manifest.name, barrels})

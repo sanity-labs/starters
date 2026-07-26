@@ -137,7 +137,6 @@ const NO_ANCHORS: ReadonlyMap<string, string> = new Map()
  */
 export function useDocumentTierGrid({
   documentId,
-  documentType,
   targetLocales,
   runs,
   releaseName,

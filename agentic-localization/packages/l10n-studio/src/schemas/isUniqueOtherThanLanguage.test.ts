@@ -56,7 +56,7 @@ describe('isUniqueOtherThanLanguage', () => {
     const {client, fetch} = createMockClient()
     const context = createContext(createDocument('drafts.article-1', 'en-US'), client)
     await isUniqueOtherThanLanguage('getting-started', context)
-    expect(fetch.mock.calls[0]![1]).toEqual({
+    expect(fetch.mock.calls[0][1]).toEqual({
       id: 'article-1',
       language: 'en-US',
       slug: 'getting-started',
@@ -67,7 +67,7 @@ describe('isUniqueOtherThanLanguage', () => {
     const {client, fetch} = createMockClient()
     const context = createContext(createDocument('versions.rSpring.article-1', 'de-DE'), client)
     await isUniqueOtherThanLanguage('getting-started', context)
-    expect(fetch.mock.calls[0]![1]).toEqual({
+    expect(fetch.mock.calls[0][1]).toEqual({
       id: 'article-1',
       language: 'de-DE',
       slug: 'getting-started',

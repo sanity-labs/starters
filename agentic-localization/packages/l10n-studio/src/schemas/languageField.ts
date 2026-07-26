@@ -44,7 +44,7 @@ const LANGUAGE_SELECT_KEY = '__language'
 
 function patchPreview(type: DocumentDefinition): DocumentDefinition {
   const existing = type.preview ?? {}
-  const select = {...(existing.select ?? {}), [LANGUAGE_SELECT_KEY]: languageFieldName}
+  const select = {...existing.select, [LANGUAGE_SELECT_KEY]: languageFieldName}
   const originalPrepare = existing.prepare
 
   return {
