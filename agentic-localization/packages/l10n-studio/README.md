@@ -11,42 +11,26 @@ Function or a frontend never reaches it through this package.
 
 ## Entries
 
-### `@starter/l10n-studio` — the plugin and its UI
+Two explicit barrels — the barrels are the API reference, and every export
+documents itself as TSDoc. If a name is not on a barrel, it is internal.
 
-| Export                                                                                                   | What it is                                                                                                                                 |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `createL10n({localizedSchemaTypes, defaultLanguage})`                                                    | Returns `{plugin, injectLanguageField}`. `plugin` registers the schema types, i18n bundle, navbar, locale badge and Translations inspector |
-| `withLocaleFilter(list)`                                                                                 | Scopes a structure document list to the active locale                                                                                      |
-| `withRunSections(S, i18n, items)`                                                                        | The Localization structure group with the run-state inbox on top: live counts per section, rows carrying stage and locales                 |
-| `createTranslationInspector(config)`                                                                     | The Translations inspector on its own, for a custom plugin composition                                                                     |
-| `createLocalizationScheduleGate()`                                                                       | The document action that gates scheduling on an open run                                                                                   |
-| `ReviewMatrix`, `ReviewActions`, `TranslationCompare`, `InlineDiff`, `PortableTextDiff`, `ErrorBoundary` | The pane's components, reusable in a custom pane                                                                                           |
-| `useTranslationTargets`, `useBaseDocumentId`, `useReleases`, `useOpenTranslationsInspector`              | Hooks the pane is built from                                                                                                               |
-| `useLocalizationEngine`, `useLocalizationInstance`, `LOCALIZE_DOCUMENT_DEFINITION`                       | Studio-side engine wiring. The definition name comes from the definition itself, so config cannot drift                                    |
-| `buildEditIntent`                                                                                        | The intent link that opens a locale's document at the right field and perspective                                                          |
-| `useLocales`, `useLocaleFilter`, `globalLocaleFilter$`                                                   | Locale context and the cross-pane filter                                                                                                   |
+### [`@starter/l10n-studio`](./src/index.ts) — the plugin and its UI
 
-### `@starter/l10n-studio/schemas` — the schema types
+`createL10n()` and the pieces it is composed from: the structure helpers
+(locale filter, the run-state inbox), the Translations inspector and its
+components and hooks, the schedule gate, and the Studio-side engine wiring.
 
-| Export                                                              | What it is                                                                                                         |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `translationLocale`, `translationGlossary`, `translationStyleGuide` | The three document types (`l10n.locale`, `l10n.glossary`, `l10n.styleGuide`)                                       |
-| `proposal({subjectTypes})`                                          | The learning loop's `l10n.proposal` type — a factory, because `subject` references the project's own subject types |
-| `glossaryEntry`, `localeTranslation`                                | The object types a glossary is built from                                                                          |
-| `uiStrings`                                                         | The frontend's chrome as a field-tier singleton (`l10n.uiStrings`), localized by the same run as its content       |
-| `injectLanguageField(types)`                                        | Adds the `language` field to every localized document type                                                         |
-| `validateLocaleCode`, `LOCALE_EXISTS_QUERY`                         | The async validator behind that field                                                                              |
-| `isUniqueOtherThanLanguage`, `SLUG_UNIQUE_QUERY`                    | Slug uniqueness across locales, version-id-safe (`isUnique` for localized slug fields)                             |
+### [`@starter/l10n-studio/schemas`](./src/schemas/index.ts) — the schema types
 
-`createL10n()` registers all seven types, so this entry is for doing it yourself —
-extending a type, renaming a title, or taking the locale document without the rest
-of the plugin.
+`createL10n()` registers all seven types, so this entry is for doing it
+yourself — extending a type, renaming a title, or taking the locale document
+without the rest of the plugin.
 
 These schemas import `defineType` / `defineField` / `defineArrayMember` from
-`@sanity/types`, not `sanity`. They are the same runtime functions; importing the
-leaf package is what keeps a schema registration from pulling the whole Studio
-into a consumer's bundle. Measured: it was the reason the dashboard's build carried
-the Studio at all.
+`@sanity/types`, not `sanity`. They are the same runtime functions; importing
+the leaf package is what keeps a schema registration from pulling the whole
+Studio into a consumer's bundle. Measured: it was the reason the dashboard's
+build carried the Studio at all.
 
 ## Usage
 

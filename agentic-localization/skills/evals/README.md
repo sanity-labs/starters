@@ -31,8 +31,8 @@ would be handed over with them.
 
 **`repo.test.ts`** — the same discipline over every markdown file in the repo.
 Every path named exists; every Function declared in the blueprint has a source
-directory and a build entry; every symbol a package README's export table claims
-is on that entry's barrel; every `@sanity/workflow-*` version written in prose
+directory and a build entry; every package entry resolves to an
+explicit barrel that never `export *`s; every `@sanity/workflow-*` version written in prose
 matches the catalog pin.
 
 **`routing.live.ts`** — description discriminability. Each query goes to the

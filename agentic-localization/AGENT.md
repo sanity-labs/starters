@@ -51,8 +51,8 @@ code against that, not just against "does it work".
   under `browser/`, one vitest project each. Firing verbs in the browser is the
   open gap; `e2e/README.md` keeps the honest not-covered list.
 - **Domain packages, not one grab-bag.** Two packages split on the React line,
-  entries as layers — `docs/decisions/adr-001-package-shape.md` is the decision and
-  the two READMEs are the public API.
+  entries as layers — `docs/decisions/adr-001-package-shape.md` is the decision;
+  the barrels are the API reference, and every export documents itself as TSDoc.
 - **Bundle footprint is a design constraint.** Anything a Function, the CLI or a
   frontend imports must not drag React, `@sanity/ui`, or Studio internals with it.
   `@starter/l10n` is React-free by construction, enforced by an eslint zone and

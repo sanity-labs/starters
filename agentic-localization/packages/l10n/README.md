@@ -15,92 +15,49 @@ Studio UI lives in [`@starter/l10n-studio`](../l10n-studio).
 
 ## Entries
 
-Six, each an explicit barrel. There are no deep imports — if something is not on
-a barrel, it is internal.
+Six, each an explicit barrel — the barrels are the API reference, and every
+export documents itself as TSDoc. There are no deep imports: if a name is not
+on a barrel, it is internal. A drift test asserts the barrels stay explicit
+(no `export *`).
 
-The tables declare the contract surface and how it groups; what each symbol
-does is TSDoc on the symbol, stated once. A drift test checks every name below
-resolves on its barrel.
+### [`@starter/l10n`](./src/index.ts) — primitives
 
-### `@starter/l10n` — primitives
+Schema and field names, plugin configuration, the status vocabulary every
+surface renders, BCP-47 locale handling, the field-level tier, revision
+diffing, typed reads over workflow instances, and the run-tree projection into
+per-locale rows.
 
-| Export                                                                                                                                           | What it is                                                                               |
-| ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| `localeTypeName`, `glossaryTypeName`, `styleGuideTypeName`, `glossaryEntryTypeName`, `languageFieldName`                                         | Schema type and field names, so a query and a schema cannot drift                        |
-| `resolveConfig`, `TranslationsConfig`, `ResolvedTranslationsConfig`                                                                              | Plugin configuration and its defaults                                                    |
-| `TranslationStatus`, `TranslationWorkflowStatus`, `TranslationInFlightStatus`                                                                    | The status vocabulary every surface renders                                              |
-| `getStatusDisplay` → `StatusDisplay`                                                                                                             | Status → icon **name**, tone, label, tooltip. The surface binds the name to a component  |
-| `isValidLocale`, `getFlagFromCode`, `regionToFlag`, `resolveLocaleDefaults`                                                                      | BCP-47 handling via `Intl`, no data source                                               |
-| `uniqueLocaleValidator`, `prepareGlossary`, `prepareGlossaryEntry`                                                                               | Schema validators and preview builders                                                   |
-| `internationalizedFields`, `fieldTierTypes`, `isFieldTier`, `entriesOf`, `entryFor`, `coveredLocales`, `sourceProjection`, `startPerspectiveFor` | The field-level tier: which types localize in place, and how to read them                |
-| `computeFieldChanges`, `computeMagnitude`, `detectFieldType`                                                                                     | What changed between two revisions, and how much it matters                              |
-| `buildFieldSummary`, `buildDiffAwareExtract`, `extractBlockText`, `ANALYSIS_PROMPT_INSTRUCTION`                                                  | The change summary and system prompt behind stale analysis                               |
-| `compareSides`                                                                                                                                   | Source/target reduction behind the review diff                                           |
-| `readDocumentId`, `readFlag`, `readLocaleRequests`, `readMateriality`, `readProgress`, `readReleaseName`, `readText`                             | Typed reads over a workflow instance's fields                                            |
-| `buildLocaleRuns`, `childInstanceIds`, `toChildRun`                                                                                              | A run tree projected into per-locale rows                                                |
-| `getTranslationMetadataId`                                                                                                                       | Deterministic `translation.metadata` id — the same input always yields the same document |
-| `sanitizeTranslationValue`                                                                                                                       | Strips what a model should not have returned, before it reaches the Content Lake         |
-| `InternationalizedArrayItem`, `TranslationReference`, `LocalizedObject`                                                                          | The `internationalizedArray` shapes, declared here so the floor holds (see below)        |
+### [`@starter/l10n/prompts`](./src/prompts/index.ts) — prompt assembly
 
-### `@starter/l10n/prompts` — prompt assembly
+The starter's hypothesis in code: context stored as structured content
+measurably improves translations. `buildTranslateParams` returns what
+`client.agent.action.translate()` takes, assembled from glossaries narrowed to
+the terms the document actually contains.
 
-The starter's hypothesis in code: context stored as structured content measurably
-improves translations.
+### [`@starter/l10n/workflows`](./src/workflows/index.ts) — the definitions
 
-| Export                                                                                                                                                            | What it is                                                                             |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `buildTranslateParams`                                                                                                                                            | Returns a `TranslateDocument` — hand it to `client.agent.action.translate()` unchanged |
-| `assembleStyleGuide`, `buildGlossarySection`, `buildStyleGuideSection`                                                                                            | The assembled prompt, and each section on its own for testing                          |
-| `filterGlossaryByContent`, `extractProtectedPhrases`, `extractDocumentText`                                                                                       | Narrowing a glossary to the terms a document actually contains                         |
-| `measureStyleGuide`, `STYLE_GUIDE_WARN_THRESHOLD`                                                                                                                 | Size budget for the assembled guide                                                    |
-| `GLOSSARIES_QUERY`, `STYLE_GUIDE_FOR_LOCALE_QUERY`, `SUPPORTED_LANGUAGES_QUERY`, `LOCALES_BY_CODE_QUERY`, `LOCALE_CODES_QUERY`, `TRANSLATIONS_FOR_DOCUMENT_QUERY` | The GROQ reads that supply it                                                          |
+The three definitions and everything a host must agree with them on: effect
+names, the `localize-document` stage vocabulary and its `runPhase` semantics,
+the engine coordinates, and the resource clients that admit the project's
+other datasets to the engine's surface.
 
-### `@starter/l10n/workflows` — the definitions
+### [`@starter/l10n/effects`](./src/effects/index.ts) — the handlers
 
-| Export                                                                                                                                    | What it is                                                      |
-| ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `localizationWorkflows`, `localizeCampaign`, `localizeDocument`, `localizeLocale`                                                         | The definitions, singly and as the set deploy takes in one call |
-| `ANALYZE_SOURCE`, `TRANSLATE_LOCALE`, `PUBLISH_RELEASE`, `EFFECT_NAMES`, `EffectName`                                                     | Effect names — a registry key, unique per definition            |
-| `LocalizeDocumentStage`, `APPROVED_STAGE`, `REVIEW_STAGE`, `FAILED_STAGE`, `IN_PROGRESS_STAGES`, `SETTLED_STAGES`, `runPhase`, `RunPhase` | The `localize-document` stage vocabulary and its semantics      |
-| `WORKFLOW_TAG`, `WORKFLOWS_DATASET`, `workflowsResource`, `ENGINE_API_VERSION`, `SOURCE_LANGUAGE`                                         | The coordinates every host must agree on                        |
-| `projectResourceClients`, `ProjectResourceClients`                                                                                        | Admitting the project's other datasets to the engine's surface  |
+The handler map `createEngine({effectHandlers})` takes, each handler singly,
+and the runtime they are built on. One rule the entry exists to enforce:
+`ctx.client` addresses the workflows dataset only — content traffic goes
+through the routing helpers here.
 
-### `@starter/l10n/effects` — the handlers
-
-| Export                                                                          | What it is                                                                                                |
-| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `localizationEffectHandlers`                                                    | The map. Pass to `createEngine({effectHandlers})`                                                         |
-| `analyzeSource`, `translateLocale`, `publishRelease`                            | Each handler, for composing a map of your own                                                             |
-| `contentClientFor`, `agentClient`, `readSubjectDocument`, `instancePerspective` | Client routing. `ctx.client` addresses the workflows dataset only — content traffic must go through these |
-| `requireGdr`, `requireString`, `optionalString`, `optionalRelease`, `isGdrUri`  | Effect param narrowing                                                                                    |
-| `siblingGdr`, `datasetOf`                                                       | GDR arithmetic                                                                                            |
-| `effectAlreadyDone`                                                             | The at-least-once idempotency read. Call it before spending an AI call                                    |
-| `ContentClient`, `EffectContext`, `AGENT_API_VERSION`                           | The types and constants the above are expressed in                                                        |
-
-### `@starter/l10n/distill` — the learning loop
+### [`@starter/l10n/distill`](./src/distill/index.ts) — the learning loop
 
 An observer of finished runs, not a phase of one
 ([adr-002](../../docs/decisions/adr-002-learning-loop.md)). Optional: deleting
 this entry, `functions/distill-review/` and one blueprint resource removes the
-loop.
+loop. The pure noise gate that runs before any spend is internal
+([`src/core/distillDelta.ts`](./src/core/distillDelta.ts)) — it is why a
+reviewer who fixed a comma costs nothing.
 
-| Export                                                                                       | What it is                                                                        |
-| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `distillReview`, `claimId`, `CLAIM_RETENTION_MS`                                             | The whole pass, its deterministic claim id, and the sweep window                  |
-| `gatherRun`                                                                                  | Machine draft vs approved text for a finished run, both tiers and both scopes     |
-| `buildDistillPrompt`, `buildLocaleSummary`, `DISTILL_PROMPT_INSTRUCTION`                     | The one prompt call per run                                                       |
-| `parseProposalResponse`, `PROPOSAL_KINDS`, `MODEL_PROPOSAL_KINDS`, `isProposalKind`          | The model's answer, disbelieved by default — verbatim evidence or the row is gone |
-| `proposalDocumentFor`, `evalCaseDocumentFor`, `proposalId`, `proposalDraftId`, `proposalKey` | The DRAFT `l10n.proposal` documents, content-addressed so two runs agree as one   |
-
-The pure noise gate that runs before any spend is internal
-([`src/core/distillDelta.ts`](./src/core/distillDelta.ts)) — it is why a reviewer
-who fixed a comma costs nothing.
-
-### `@starter/l10n/credentials` — a token outside the CLI
-
-| Export         | What it is                                                             |
-| -------------- | ---------------------------------------------------------------------- |
-| `getUserToken` | `SANITY_AUTH_TOKEN`, then a local `sanity login` session. Nothing else |
+### [`@starter/l10n/credentials`](./src/credentials/index.ts) — a token outside the CLI
 
 Its own entry because `configstore` reads the filesystem, and every other entry
 is bundled into a Function or a frontend. Consumed by the eval suite and `e2e/`.

@@ -126,125 +126,52 @@ describe('functions', () => {
 })
 
 /**
- * The names a barrel exports. No barrel in this repo re-exports with `export *`
- * — the test asserts that rather than pretending to follow one.
+ * The barrels are the API reference — every entry in a package's `exports` map
+ * points at an explicit barrel, and an explicit barrel never `export *`s: what
+ * is public is what a reader can see named, with its TSDoc, in one file.
  */
-function exportedNames(source: string): Set<string> {
-  const names = new Set<string>()
-
-  for (const match of source.matchAll(/export\s+(?:type\s+)?\{([^}]*)\}/g)) {
-    for (const specifier of match[1].split(',')) {
-      const local = specifier.trim().replace(/^type\s+/, '')
-      if (!local) continue
-      const parts = local.split(/\s+as\s+/)
-      names.add(parts[parts.length - 1].trim())
-    }
-  }
-
-  for (const match of source.matchAll(
-    /export\s+(?:declare\s+)?(?:async\s+)?(?:const|let|var|function|class|interface|type|enum)\s+([A-Za-z_$][\w$]*)/g,
-  )) {
-    names.add(match[1])
-  }
-
-  return names
-}
-
-/**
- * The symbols a README's export tables claim.
- *
- * Deliberately narrow: only the first column of a table under a
- * `### \`@starter/…\`` heading, and only backticked tokens that are bare
- * identifiers once a call's arguments are dropped. A cell naming a type in
- * prose, or a document type like `l10n.locale`, is not a claim about an export
- * and is not treated as one.
- */
-function exportTables(readme: string): Map<string, string[]> {
-  const tables = new Map<string, string[]>()
-  let entry: null | string = null
-
-  for (const line of readme.split('\n')) {
-    const heading = line.match(/^#{2,3}\s+`(@starter\/[\w@/.-]+)`/)
-    if (heading) {
-      entry = heading[1]
-      continue
-    }
-    if (line.startsWith('#')) entry = null
-    if (!entry || !line.startsWith('|')) continue
-
-    const firstCell = line.split('|')[1] ?? ''
-    if (firstCell.trim() === 'Export' || /^[\s:-]+$/.test(firstCell)) continue
-
-    const symbols = [...firstCell.matchAll(/`([^`]+)`/g)]
-      .map((match) => match[1].split('(')[0].trim())
-      .filter((symbol) => /^[A-Za-z_$][\w$]*$/.test(symbol))
-
-    tables.set(entry, [...(tables.get(entry) ?? []), ...symbols])
-  }
-
-  return tables
-}
-
-interface PackageEntries {
+interface PackageBarrels {
   name: string
-  readme: string
   /** Entry specifier → absolute barrel path. */
   barrels: Map<string, string>
 }
 
-function packagesWithReadmes(): PackageEntries[] {
+function packagesWithBarrels(): PackageBarrels[] {
   const root = resolve(REPO_ROOT, 'packages')
-  const found: PackageEntries[] = []
+  const found: PackageBarrels[] = []
 
   for (const entry of readdirSync(root, {withFileTypes: true})) {
     if (!entry.isDirectory()) continue
     const directory = resolve(root, entry.name)
-    if (!existsSync(resolve(directory, 'README.md'))) continue
 
-    const manifest: {exports?: Record<string, {source: string}>; name: string} = JSON.parse(
-      readFileSync(resolve(directory, 'package.json'), 'utf8'),
-    )
-    // No entry barrels, nothing an export table could claim.
+    const manifest: {exports?: Record<string, string | {source?: string}>; name: string} =
+      JSON.parse(readFileSync(resolve(directory, 'package.json'), 'utf8'))
     if (!manifest.exports) continue
 
     const barrels = new Map<string, string>()
     for (const [subpath, target] of Object.entries(manifest.exports)) {
+      const source = typeof target === 'string' ? target : target.source
+      // An export without a TypeScript source (a JSON or asset entry) is not a barrel.
+      if (!source || !/\.tsx?$/.test(source)) continue
       const specifier = subpath === '.' ? manifest.name : `${manifest.name}${subpath.slice(1)}`
-      barrels.set(specifier, resolve(directory, target.source))
+      barrels.set(specifier, resolve(directory, source))
     }
 
-    found.push({
-      name: manifest.name,
-      readme: readFileSync(resolve(directory, 'README.md'), 'utf8'),
-      barrels,
-    })
+    // Config packages (eslint-config, tsconfig) export no TypeScript surface.
+    if (barrels.size === 0) continue
+
+    found.push({name: manifest.name, barrels})
   }
 
   return found
 }
 
-describe.each(packagesWithReadmes())('$name README', (pkg) => {
-  test('every export table names a real entry, and every symbol is on its barrel', () => {
-    const tables = exportTables(pkg.readme)
-    expect(tables.size).toBeGreaterThan(0)
-
-    const unresolved: string[] = []
-    for (const [entry, symbols] of tables) {
-      const barrel = pkg.barrels.get(entry)
-      if (!barrel) {
-        unresolved.push(`${entry}: not an entry of ${pkg.name}`)
-        continue
-      }
-      const source = readFileSync(barrel, 'utf8')
-      expect(source).not.toMatch(/^export \*/m)
-
-      const exported = exportedNames(source)
-      for (const symbol of symbols) {
-        if (!exported.has(symbol)) unresolved.push(`${entry}: \`${symbol}\``)
-      }
+describe.each(packagesWithBarrels())('$name barrels', (pkg) => {
+  test('every entry resolves to an explicit barrel', () => {
+    for (const [entry, barrel] of pkg.barrels) {
+      expect(existsSync(barrel), `${entry}: missing barrel ${barrel}`).toBe(true)
+      expect(readFileSync(barrel, 'utf8')).not.toMatch(/^export \*/m)
     }
-
-    expect(unresolved).toEqual([])
   })
 })
 
