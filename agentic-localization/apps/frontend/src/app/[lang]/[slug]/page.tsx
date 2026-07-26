@@ -176,7 +176,9 @@ async function ResolvedArticle({params}: {params: Promise<{lang: string; slug: s
         <h1>{article.title}</h1>
 
         {article.author?.name && (
-          <p className="text-[var(--color-text-secondary)] not-prose">By {article.author.name}</p>
+          <p className="text-[var(--color-text-secondary)] not-prose">
+            {formatUiString(strings.byline, {name: article.author.name})}
+          </p>
         )}
 
         {article.publishedAt && (

@@ -51,6 +51,7 @@ const FIELD_TIER: Record<string, InternationalizedField[]> = {
     {path: 'articlesHeading', itemType: 'internationalizedArrayStringValue', containers: []},
     {path: 'emptyArticles', itemType: 'internationalizedArrayStringValue', containers: []},
     {path: 'backToArticles', itemType: 'internationalizedArrayStringValue', containers: []},
+    {path: 'byline', itemType: 'internationalizedArrayStringValue', containers: []},
     {path: 'homeLabel', itemType: 'internationalizedArrayStringValue', containers: []},
     {path: 'architectureLabel', itemType: 'internationalizedArrayStringValue', containers: []},
     {path: 'fallbackNotice', itemType: 'internationalizedArrayTextValue', containers: []},

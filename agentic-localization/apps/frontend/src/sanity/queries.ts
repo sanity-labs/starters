@@ -18,7 +18,7 @@ const SIBLING_TRANSLATIONS = `*[_type == "translation.metadata" && references(^.
     .translations[defined(value->slug.current)].value->{"language": language, "slug": slug.current}`
 
 /** The chrome strings on the `l10n.uiStrings` singleton, one array per string. */
-const UI_STRING_FIELDS = `siteTitle, siteTagline, articlesHeading, emptyArticles, backToArticles, homeLabel, architectureLabel, fallbackNotice`
+const UI_STRING_FIELDS = `siteTitle, siteTagline, articlesHeading, emptyArticles, backToArticles, byline, homeLabel, architectureLabel, fallbackNotice`
 
 export const LOCALES_QUERY = defineQuery(
   `*[_type == "l10n.locale"] | order(title asc) { ${LOCALE_FIELDS} }`,

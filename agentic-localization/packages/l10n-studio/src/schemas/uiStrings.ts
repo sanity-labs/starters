@@ -46,6 +46,13 @@ export const uiStrings = defineType({
       type: 'internationalizedArrayString',
     }),
     defineField({
+      name: 'byline',
+      title: 'Byline',
+      description:
+        'Credits an article to its author. {name} is replaced with the name — a whole string, not a prefix, because the name does not sit in the same place in every language.',
+      type: 'internationalizedArrayString',
+    }),
+    defineField({
       name: 'homeLabel',
       title: 'Home Link',
       type: 'internationalizedArrayString',

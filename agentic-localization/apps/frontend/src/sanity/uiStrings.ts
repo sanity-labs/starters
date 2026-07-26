@@ -17,6 +17,7 @@ export const UI_STRING_DEFAULTS = {
   articlesHeading: 'Articles',
   emptyArticles: 'No articles available in this language.',
   backToArticles: 'Back to articles',
+  byline: 'By {name}',
   homeLabel: 'Home',
   architectureLabel: 'Architecture',
   fallbackNotice:
@@ -64,7 +65,7 @@ export function resolveUiStrings(
   return resolved
 }
 
-/** Fills `{locale}` / `{fallback}` in the fallback notice. */
+/** Fills the `{token}` placeholders a string declares. */
 export function formatUiString(template: string, values: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (match, token: string) => values[token] ?? match)
 }
