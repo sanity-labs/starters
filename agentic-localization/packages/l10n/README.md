@@ -18,6 +18,10 @@ Studio UI lives in [`@starter/l10n-studio`](../l10n-studio).
 Six, each an explicit barrel. There are no deep imports — if something is not on
 a barrel, it is internal.
 
+The tables declare the contract surface and how it groups; what each symbol
+does is TSDoc on the symbol, stated once. A drift test checks every name below
+resolves on its barrel.
+
 ### `@starter/l10n` — primitives
 
 | Export                                                                                                                                           | What it is                                                                               |
@@ -53,19 +57,13 @@ improves translations.
 
 ### `@starter/l10n/workflows` — the definitions
 
-| Export                                                                                | What it is                                                                                                                 |
-| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `localizationWorkflows`                                                               | All three, in dependency order. Deploy takes the whole set in one call                                                     |
-| `localizeCampaign`, `localizeDocument`, `localizeLocale`                              | The definitions individually                                                                                               |
-| `ANALYZE_SOURCE`, `TRANSLATE_LOCALE`, `PUBLISH_RELEASE`, `EFFECT_NAMES`, `EffectName` | Effect names — a registry key, unique per definition                                                                       |
-| `APPROVED_STAGE`, `REVIEW_STAGE`, `FAILED_STAGE`                                      | Individual stages consumers name — the `distill-review` filter interpolates the first                                      |
-| `IN_PROGRESS_STAGES`, `SETTLED_STAGES`                                                | `localize-document` stages, for surfaces bucketing a run by the stage it is in                                             |
-| `runPhase`, `RunPhase`                                                                | What a stage means to a person — surfaces map phases to their own vocabulary                                               |
-| `LocalizeDocumentStage`                                                               | Every stage `localize-document` declares, as a union — the definition is typed against it                                  |
-| `WORKFLOW_TAG`, `WORKFLOWS_DATASET`, `workflowsResource`                              | The engine coordinates and the resource they address. A mismatch reads an empty partition                                  |
-| `ENGINE_API_VERSION`                                                                  | The API version every host speaks to the engine's store with                                                               |
-| `SOURCE_LANGUAGE`                                                                     | The language a run reads from. Static, because deployed definitions are                                                    |
-| `projectResourceClients`, `ProjectResourceClients`                                    | Sibling clients for the project's other datasets — without them the engine refuses every ref outside the workflow resource |
+| Export                                                                                                                                    | What it is                                                      |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `localizationWorkflows`, `localizeCampaign`, `localizeDocument`, `localizeLocale`                                                         | The definitions, singly and as the set deploy takes in one call |
+| `ANALYZE_SOURCE`, `TRANSLATE_LOCALE`, `PUBLISH_RELEASE`, `EFFECT_NAMES`, `EffectName`                                                     | Effect names — a registry key, unique per definition            |
+| `LocalizeDocumentStage`, `APPROVED_STAGE`, `REVIEW_STAGE`, `FAILED_STAGE`, `IN_PROGRESS_STAGES`, `SETTLED_STAGES`, `runPhase`, `RunPhase` | The `localize-document` stage vocabulary and its semantics      |
+| `WORKFLOW_TAG`, `WORKFLOWS_DATASET`, `workflowsResource`, `ENGINE_API_VERSION`, `SOURCE_LANGUAGE`                                         | The coordinates every host must agree on                        |
+| `projectResourceClients`, `ProjectResourceClients`                                                                                        | Admitting the project's other datasets to the engine's surface  |
 
 ### `@starter/l10n/effects` — the handlers
 
