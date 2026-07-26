@@ -73,7 +73,15 @@ non-trivial; every item cost real debugging time.
   completions included. That is what stops a hallucinated `materiality` reaching
   workflow state.
 - **Actor ids are account-global `sanityUserId`.** A bare `'ada'` is rejected; the
-  bench's own user is `g-bench-user`.
+  bench's own user is `g-bench-user`. This bites in the browser too: a Studio
+  session held as an api.sanity.io cookie presents a project-scoped principal
+  (`p…`) on the workflow resource host, and the engine refuses it outright
+  (`refuseProjectPrincipalWithoutGlobal` — "the engine speaks account-global user
+  ids only"), so session evaluation and every review verb fail for that editor.
+  The same person's `sanity login` token resolves account-global and works —
+  inject it as `__studio_auth_token_<projectId>` = `{"token": …}`. Filed
+  upstream; `workflow-react` also logs this failure without setting the hook's
+  `session.error`, which reads as an eternal "Loading…".
 - **A guard's `idRefs` resolves to exactly one document.** An array idRef deploys
   no guard at all, which is why a parent cannot hold the documents its children
   write. Two stages may each declare a guard if the names differ, and exiting a
