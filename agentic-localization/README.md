@@ -135,7 +135,7 @@ To deploy the dashboard app (`pnpm bootstrap` already wrote your organization ID
 pnpm --filter @starter/translations-dashboard exec sanity deploy
 ```
 
-If you want "Open in Studio" links in the deployed dashboard to point to your production Studio, also add:
+If you want the dashboard's "Open in Studio" links and the frontend's visual-editing overlays to point to your production Studio, also add:
 
 ```sh
 echo 'SANITY_STUDIO_URL=https://your-studio.sanity.studio' >> .env

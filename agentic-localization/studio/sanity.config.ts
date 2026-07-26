@@ -1,5 +1,6 @@
 import {createClient} from '@sanity/client'
 import {defineConfig} from 'sanity'
+import {defineDocuments, defineLocations, presentationTool} from 'sanity/presentation'
 import {structureTool, type StructureResolver} from 'sanity/structure'
 import {assist} from '@sanity/assist'
 import {visionTool} from '@sanity/vision'
@@ -33,6 +34,10 @@ const localizationSubjectTypes = [...documentTierTypes, ...fieldTierTypes()]
 
 const projectId = import.meta.env?.SANITY_STUDIO_PROJECT_ID ?? process.env.SANITY_STUDIO_PROJECT_ID!
 const dataset = import.meta.env?.SANITY_STUDIO_DATASET ?? process.env.SANITY_STUDIO_DATASET!
+const previewOrigin =
+  import.meta.env?.SANITY_STUDIO_PREVIEW_ORIGIN ??
+  process.env.SANITY_STUDIO_PREVIEW_ORIGIN ??
+  'http://localhost:3000'
 
 const l10n = createL10n({localizedSchemaTypes: documentTierTypes, defaultLanguage: SOURCE_LANGUAGE})
 
@@ -101,8 +106,13 @@ export default defineConfig({
   projectId,
   dataset,
 
-  unstable_clientFactory: (options) =>
-    createClient({...options, requestTagPrefix: `${options.requestTagPrefix}.agentic-l10n`}),
+  // The starter's traffic stays attributable by replacing the tag prefix, not
+  // suffixing it: the client caps a full request tag at 75 characters, and
+  // Presentation's longest tail (`preview-url-secret.
+  // fetch-vercel-bypass-protection-secret`, 57 chars) leaves the whole prefix
+  // 17. `sanity.studio` + a suffix blows that budget, the fetch throws, and
+  // the Presentation tool hangs on its spinner.
+  unstable_clientFactory: (options) => createClient({...options, requestTagPrefix: 'agentic-l10n'}),
 
   document: {
     // Neither is hand-authored: a join document is written by the translation
@@ -129,6 +139,42 @@ export default defineConfig({
       // Every content document gets a Workflows view alongside its form; which
       // definitions apply is discovered at runtime from the deployed set.
       defaultDocumentNode: workflowDefaultDocumentNode(),
+    }),
+    presentationTool({
+      previewUrl: {
+        initial: previewOrigin,
+        previewMode: {enable: '/api/draft-mode/enable'},
+      },
+      resolve: {
+        // The frontend's only article route. Slugs are per locale, so the
+        // language has to be part of the match: two locales can hold the same
+        // slug and only one of them lives at this URL.
+        mainDocuments: defineDocuments([
+          {
+            route: '/:lang/:slug',
+            filter: '_type == "article" && slug.current == $slug && language == $lang',
+          },
+        ]),
+        locations: {
+          // A document-tier article is one locale's rendition, with its own
+          // slug, so it has exactly one URL. Its siblings are other documents
+          // and Presentation lists them under their own ids.
+          article: defineLocations({
+            select: {title: 'title', slug: 'slug.current', language: 'language'},
+            resolve: (doc) =>
+              doc?.slug && doc?.language
+                ? {
+                    locations: [
+                      {title: doc.title || 'Untitled', href: `/${doc.language}/${doc.slug}`},
+                    ],
+                  }
+                : null,
+          }),
+          // Field tier: a profile carries its locales on itself and is rendered
+          // inside the articles that reference it, so there is no URL to open.
+          person: {message: 'Profiles render inside articles; they have no page of their own.'},
+        },
+      },
     }),
     visionTool(),
     // Engine state lives in its own dataset. The tag and dataset must match the

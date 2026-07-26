@@ -1,30 +1,38 @@
+import {Suspense} from 'react'
 import {getChrome} from '@/sanity/chrome'
-import {sanityFetch} from '@/sanity/live'
+import {resolvePreview, sanityFetch, type Preview} from '@/sanity/live'
 import {ARTICLES_BY_LANGUAGE_QUERY} from '@/sanity/queries'
 import {ArticleCard} from '@/components/ArticleCard'
 import {SiteNav} from '@/components/SiteNav'
 
-export default async function HomePage({params}: {params: Promise<{lang: string}>}) {
-  const {lang} = await params
-  return <ArticleList lang={lang} />
+// `resolvePreview` reads request state, which cache components only allows
+// inside a Suspense boundary — outside one it would block the whole route.
+export default function HomePage({params}: {params: Promise<{lang: string}>}) {
+  return (
+    <Suspense>
+      <ResolvedHome params={params} />
+    </Suspense>
+  )
 }
 
-async function ArticleList({lang}: {lang: string}) {
+async function ResolvedHome({params}: {params: Promise<{lang: string}>}) {
+  const {lang} = await params
+  const preview = await resolvePreview()
+
+  return <ArticleList lang={lang} preview={preview} />
+}
+
+async function ArticleList({lang, preview}: {lang: string; preview: Preview}) {
   'use cache'
 
   const [{data: articles}, {strings}] = await Promise.all([
-    sanityFetch({
-      query: ARTICLES_BY_LANGUAGE_QUERY,
-      params: {language: lang},
-      perspective: 'published',
-      stega: false,
-    }),
-    getChrome(lang),
+    sanityFetch({query: ARTICLES_BY_LANGUAGE_QUERY, params: {language: lang}, ...preview}),
+    getChrome(lang, preview),
   ])
 
   return (
     <main className="animate-fade-in">
-      <SiteNav lang={lang} />
+      <SiteNav lang={lang} preview={preview} />
 
       <div className="mb-12">
         <h1 className="text-4xl font-bold tracking-tight">{strings.siteTitle}</h1>

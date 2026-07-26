@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import {getChrome} from '@/sanity/chrome'
+import type {Preview} from '@/sanity/live'
 import type {Translation} from '@/sanity/types'
 import {LocaleSwitcher, type LocaleLink} from '@/components/LocaleSwitcher'
 
@@ -9,10 +10,18 @@ import {LocaleSwitcher, type LocaleLink} from '@/components/LocaleSwitcher'
  * reusing the current locale's, which is a 404. Omit it and every locale links
  * to its home page.
  */
-export async function SiteNav({lang, translations}: {lang: string; translations?: Translation[]}) {
+export async function SiteNav({
+  lang,
+  preview,
+  translations,
+}: {
+  lang: string
+  preview: Preview
+  translations?: Translation[]
+}) {
   'use cache'
 
-  const {strings, locales} = await getChrome(lang)
+  const {strings, locales} = await getChrome(lang, preview)
 
   // A locale document with no code has no URL, so it cannot be switched to.
   const links: LocaleLink[] = locales.flatMap((locale) => {

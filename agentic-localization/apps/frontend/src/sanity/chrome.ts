@@ -1,4 +1,4 @@
-import {sanityFetch} from './live'
+import {sanityFetch, type Preview} from './live'
 import {CHROME_QUERY} from './queries'
 import type {Locale} from './types'
 import {resolveUiStrings, type UiStrings} from './uiStrings'
@@ -11,14 +11,11 @@ import {resolveUiStrings, type UiStrings} from './uiStrings'
  */
 export async function getChrome(
   language: string,
+  preview: Preview,
 ): Promise<{strings: UiStrings; locales: Locale[]}> {
   'use cache'
 
-  const {data} = await sanityFetch({
-    query: CHROME_QUERY,
-    perspective: 'published',
-    stega: false,
-  })
+  const {data} = await sanityFetch({query: CHROME_QUERY, ...preview})
 
   return {
     strings: resolveUiStrings(data.strings, language, data.locales),

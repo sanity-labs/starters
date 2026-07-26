@@ -1,10 +1,6 @@
-// TODO: Add Sanity Presentation tool / Visual Editing
-// - Add <VisualEditing /> from next-sanity in layout
-// - Add @sanity/presentation plugin to studio/sanity.config.ts
-// - Set up draft mode API route + preview secret
-// - Add data-sanity attributes or createDataAttribute for click-to-edit
 import type {Metadata} from 'next'
 import {draftMode} from 'next/headers'
+import {VisualEditing} from 'next-sanity/visual-editing'
 import {Suspense} from 'react'
 import '../globals.css'
 import {sanityFetch, SanityLive} from '@/sanity/live'
@@ -60,5 +56,13 @@ export default async function LangLayout({
 /** `draftMode()` is request data, so it stays outside every cache boundary. */
 async function LiveContent() {
   const {isEnabled} = await draftMode()
-  return <SanityLive includeDrafts={isEnabled} />
+
+  return (
+    <>
+      <SanityLive includeDrafts={isEnabled} />
+      {/* The overlays, the history bridge back to Presentation, and the
+          perspective switcher. Nothing to mount for a visitor. */}
+      {isEnabled && <VisualEditing />}
+    </>
+  )
 }

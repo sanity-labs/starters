@@ -25,6 +25,7 @@ echo 'SANITY_API_READ_TOKEN=your-token' >> apps/frontend/.env.local
 - **Locale routing** — path prefix (`/en-US/`, `/de-DE/`) with `proxy.ts` redirecting unprefixed paths using the `NEXT_LOCALE` cookie
 - **Fallback content** — when a translation is missing, shows the source-language content with a banner indicating it's a fallback
 - **Locale switcher** — dropdown that navigates between locale variants of the current page
+- **Visual editing** — the Studio's Presentation tool previews this app; `/api/draft-mode/enable` validates its secret, and every page passes the resolved perspective into its `'use cache'` boundary. Overlays link to `SANITY_STUDIO_URL` (default `http://localhost:3333`)
 
 ## Architecture
 
@@ -39,8 +40,11 @@ src/
 │   ├── page.tsx                Article list
 │   ├── [slug]/page.tsx         Article detail with Portable Text
 │   └── architecture/page.tsx   Architecture documentation page
+├── app/api/draft-mode/enable/
+│   └── route.ts                Presentation's preview-mode entry point
 ├── sanity/
-│   ├── live.ts                 Client + `defineLive` (sanityFetch, SanityLive)
+│   ├── live.ts                 Client, `defineLive` (sanityFetch, SanityLive), `resolvePreview`
+│   ├── stega.ts                Which fields never carry edit overlays
 │   ├── queries.ts              GROQ queries for locales and articles
 │   └── types.ts                Query result types, wired into `sanityFetch`
 ├── components/

@@ -1,5 +1,7 @@
 import type {Metadata} from 'next'
 import Link from 'next/link'
+import {Suspense} from 'react'
+import {resolvePreview, type Preview} from '@/sanity/live'
 import {DEFAULT_LANGUAGE} from '@/sanity/queries'
 import {SiteNav} from '@/components/SiteNav'
 
@@ -106,17 +108,29 @@ function Badge({children}: {children: React.ReactNode}) {
   )
 }
 
-export default async function ArchitecturePage({params}: {params: Promise<{lang: string}>}) {
-  const {lang} = await params
-  return <ArchitectureContent lang={lang} />
+// `resolvePreview` reads request state, which cache components only allows
+// inside a Suspense boundary — outside one it would block the whole route.
+export default function ArchitecturePage({params}: {params: Promise<{lang: string}>}) {
+  return (
+    <Suspense>
+      <ResolvedArchitecture params={params} />
+    </Suspense>
+  )
 }
 
-async function ArchitectureContent({lang}: {lang: string}) {
+async function ResolvedArchitecture({params}: {params: Promise<{lang: string}>}) {
+  const {lang} = await params
+  const preview = await resolvePreview()
+
+  return <ArchitectureContent lang={lang} preview={preview} />
+}
+
+async function ArchitectureContent({lang, preview}: {lang: string; preview: Preview}) {
   'use cache'
 
   return (
     <div className="animate-fade-in pb-20">
-      <SiteNav lang={lang} />
+      <SiteNav lang={lang} preview={preview} />
 
       <Link
         href={`/${lang}`}

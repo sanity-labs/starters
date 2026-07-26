@@ -1,8 +1,9 @@
 import type {Metadata} from 'next'
 import {notFound, redirect} from 'next/navigation'
 import Link from 'next/link'
+import {Suspense} from 'react'
 import {getChrome} from '@/sanity/chrome'
-import {sanityFetch} from '@/sanity/live'
+import {PUBLISHED, resolvePreview, sanityFetch, type Preview} from '@/sanity/live'
 import {listTranslations, resolveFallbackChain} from '@/sanity/locales'
 import {ARTICLE_QUERY, ARTICLE_SLUGS_QUERY, DEFAULT_LANGUAGE} from '@/sanity/queries'
 import type {ArticleResolution, Translation} from '@/sanity/types'
@@ -17,8 +18,7 @@ export async function generateStaticParams({params}: {params: {lang: string}}) {
   const {data: slugs} = await sanityFetch({
     query: ARTICLE_SLUGS_QUERY,
     params: {language: params.lang},
-    perspective: 'published',
-    stega: false,
+    ...PUBLISHED,
   })
 
   if (slugs.length > 0) return definedSlugs(slugs)
@@ -28,8 +28,7 @@ export async function generateStaticParams({params}: {params: {lang: string}}) {
   const {data: fallbackSlugs} = await sanityFetch({
     query: ARTICLE_SLUGS_QUERY,
     params: {language: DEFAULT_LANGUAGE},
-    perspective: 'published',
-    stega: false,
+    ...PUBLISHED,
   })
 
   return definedSlugs(fallbackSlugs)
@@ -39,15 +38,10 @@ function definedSlugs(rows: {slug: string | null}[]): {slug: string}[] {
   return rows.flatMap((row) => (row.slug ? [{slug: row.slug}] : []))
 }
 
-async function loadArticle(slug: string, language: string) {
+async function loadArticle(slug: string, language: string, preview: Preview) {
   'use cache'
 
-  const {data} = await sanityFetch({
-    query: ARTICLE_QUERY,
-    params: {slug, language},
-    perspective: 'published',
-    stega: false,
-  })
+  const {data} = await sanityFetch({query: ARTICLE_QUERY, params: {slug, language}, ...preview})
 
   return data
 }
@@ -65,8 +59,8 @@ interface Resolved {
  * its own (the URL is stale — redirect to it); or nobody has it in the
  * requested locale and the fallback chain decides what to show instead.
  */
-async function resolve(slug: string, language: string): Promise<Resolved | null> {
-  const article = await loadArticle(slug, language)
+async function resolve(slug: string, language: string, preview: Preview): Promise<Resolved | null> {
+  const article = await loadArticle(slug, language, preview)
   if (!article) return null
 
   const translations = listTranslations(article)
@@ -82,7 +76,7 @@ async function resolve(slug: string, language: string): Promise<Resolved | null>
     const translation = translations.find((entry) => entry.language === candidate)
     if (!translation) continue
 
-    const fallback = await loadArticle(translation.slug, candidate)
+    const fallback = await loadArticle(translation.slug, candidate, preview)
     if (fallback) return {article: fallback, translations, fallbackFrom: language}
   }
 
@@ -95,7 +89,10 @@ export async function generateMetadata({
   params: Promise<{lang: string; slug: string}>
 }): Promise<Metadata> {
   const {lang, slug} = await params
-  const resolved = await resolve(slug, lang)
+  // Draft titles, but never encoded: stega characters would land in `<title>`
+  // and in every alternate URL, where nothing can strip them.
+  const preview = await resolvePreview()
+  const resolved = await resolve(slug, lang, {...preview, stega: false})
   if (!resolved) return {}
 
   const {article, translations} = resolved
@@ -127,13 +124,23 @@ export async function generateMetadata({
   }
 }
 
-export default async function ArticlePage({
-  params,
-}: {
-  params: Promise<{lang: string; slug: string}>
-}) {
+// `resolvePreview` reads request state, which cache components only allows
+// inside a Suspense boundary — outside one it would block the whole route.
+export default function ArticlePage({params}: {params: Promise<{lang: string; slug: string}>}) {
+  return (
+    <Suspense>
+      <ResolvedArticle params={params} />
+    </Suspense>
+  )
+}
+
+async function ResolvedArticle({params}: {params: Promise<{lang: string; slug: string}>}) {
   const {lang, slug} = await params
-  const [resolved, {strings}] = await Promise.all([resolve(slug, lang), getChrome(lang)])
+  const preview = await resolvePreview()
+  const [resolved, {strings}] = await Promise.all([
+    resolve(slug, lang, preview),
+    getChrome(lang, preview),
+  ])
 
   if (!resolved) {
     notFound()
@@ -143,7 +150,7 @@ export default async function ArticlePage({
 
   return (
     <div className="animate-fade-in">
-      <SiteNav lang={lang} translations={translations} />
+      <SiteNav lang={lang} preview={preview} translations={translations} />
 
       <Link
         href={`/${lang}`}
