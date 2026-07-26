@@ -11,7 +11,7 @@ import {Feature} from 'racejar/vitest'
 import {afterAll, expect} from 'vitest'
 
 import {resetContext} from '../fixtures/context'
-import {gateFeature, type GateReason} from './gate'
+import {gateFeature, type GateReason, probeGate} from './gate'
 import {openSession, settle, STUDIO_ORIGIN} from './session'
 import {contextAndAction, studioSteps} from './steps'
 import {documentPanes} from './studio'
@@ -71,14 +71,14 @@ async function probeOpenRun(): Promise<GateReason> {
   )
 }
 
-const noOpenRun = await probeOpenRun()
+const noOpenRun = await probeGate(session, probeOpenRun)
 
 let scenario = 0
 
 afterAll(() => session.close())
 
 Feature<StudioJourney>({
-  featureText: gateFeature(featureText, '@requires-open-run', noOpenRun),
+  featureText: gateFeature(featureText, {'@requires-open-run': noOpenRun}),
   hooks: [
     Before<StudioJourney>((context) => {
       resetContext(context)

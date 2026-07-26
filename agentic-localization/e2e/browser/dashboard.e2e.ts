@@ -12,7 +12,7 @@ import {afterAll, expect} from 'vitest'
 
 import {resetContext} from '../fixtures/context'
 import {DASHBOARD_ORIGIN, openSession, settle} from './session'
-import {gateFeature, type GateReason} from './gate'
+import {gateFeature, type GateReason, probeGate} from './gate'
 import {contextAndAction} from './steps'
 import featureText from './dashboard.feature?raw'
 
@@ -50,14 +50,14 @@ async function probeSession(): Promise<GateReason> {
   )
 }
 
-const sessionBlocked = await probeSession()
+const sessionBlocked = await probeGate(session, probeSession)
 
 let scenario = 0
 
 afterAll(() => session.close())
 
 Feature<StudioJourney>({
-  featureText: gateFeature(featureText, '@requires-auth', sessionBlocked),
+  featureText: gateFeature(featureText, {'@requires-auth': sessionBlocked}),
   hooks: [
     Before<StudioJourney>((context) => {
       resetContext(context)

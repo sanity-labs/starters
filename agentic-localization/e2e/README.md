@@ -130,10 +130,12 @@ the feature text before compiling it and prints the reason. The tag stays in the
 `.feature` as the documented precondition; the scenario is skipped, never failed,
 and the run says why.
 
-| Tag                  | Closed when                                                                                                   |
-| -------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `@requires-auth`     | `E2E_BROWSER_VERBS` unset (verbs write to a run — opt in explicitly), no verb offered, or a login-page bounce |
-| `@requires-open-run` | Every inbox section counts zero                                                                               |
+| Tag                        | Closed when                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `@requires-auth`           | `E2E_BROWSER_VERBS` unset (verbs write to a run — opt in explicitly), no verb offered, or a login-page bounce |
+| `@requires-open-run`       | Every inbox section counts zero                                                                               |
+| `@requires-sample-data`    | The dev dataset holds no such document                                                                        |
+| `@requires-changed-locale` | No matrix row reports a change to the field the scenario opens                                                |
 
 The dashboard scenarios run under the injected token. The review verbs stay
 closed today: they arm only behind `E2E_BROWSER_VERBS=1`, and even armed they
@@ -141,6 +143,20 @@ need an open run in review. The inbox's row-opening scenario needs one too, and
 making one is not cheap — publishing a source edit hands the deployed
 `start-localization` Function a real subject and fans out to every locale with
 real Agent Actions.
+
+The two inspector journeys carry `@requires-sample-data` at feature level: they
+drive a document from `studio/sample-data.ndjson` by id, and on a dataset that
+never ran `pnpm bootstrap` every locator in the feature misses, so the run would
+report a settle timeout that says nothing about the cause. One GROQ read
+(`browser/content.ts`) turns that into a skip naming the document.
+
+`@requires-changed-locale` covers the scenarios that need a locale with
+something to read. **No locale code is pinned anywhere.** The matrix reports a
+locale as changed while its pending revision differs from its published one,
+which is run state: the row carrying a diff now is translated and quiet an hour
+later, and a different row has taken its place. `browser/fixture.ts` opens the
+inspector, reads the grid's own coverage labels and hands the scenarios whichever
+row the matrix currently reports — and closes the gate when none does.
 
 ## What this does NOT cover
 

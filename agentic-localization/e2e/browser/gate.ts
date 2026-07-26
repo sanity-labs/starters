@@ -12,17 +12,41 @@
  * known reason is a suite nobody reads.
  */
 
+import type {Session} from './session'
+
 /** A closed gate: why the tagged scenarios cannot run here. */
 export type GateReason = string | undefined
 
 const SKIP_TAG = '@skip'
 
 /**
- * @param featureText - the raw `.feature` source
- * @param tag - the conditional tag, e.g. `@requires-auth`
- * @param blocked - the reason the gate is closed, or `undefined` to let it run
+ * Ask a session-driven probe, closing the session if it throws.
+ *
+ * A probe runs in module scope, before `afterAll` is registered, so a throw
+ * there would leave Chromium alive until the worker exits. The error is what
+ * the run should report, so it is rethrown — just not with a browser attached.
  */
-export function gateFeature(featureText: string, tag: string, blocked: GateReason): string {
+export async function probeGate<T>(session: Session, ask: () => Promise<T>): Promise<T> {
+  try {
+    return await ask()
+  } catch (error) {
+    await session.close()
+    throw error
+  }
+}
+
+/**
+ * @param featureText - the raw `.feature` source
+ * @param gates - conditional tag → why it is closed, or `undefined` to let it run
+ */
+export function gateFeature(featureText: string, gates: Record<string, GateReason>): string {
+  return Object.entries(gates).reduce(
+    (text, [tag, blocked]) => gateTag(text, tag, blocked),
+    featureText,
+  )
+}
+
+function gateTag(featureText: string, tag: string, blocked: GateReason): string {
   const lines = featureText.split('\n')
   const tagged = lines.filter((line) => line.trim().split(/\s+/).includes(tag))
 

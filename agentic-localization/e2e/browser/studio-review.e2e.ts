@@ -10,13 +10,14 @@ import {Feature} from 'racejar/vitest'
 import {afterAll, expect} from 'vitest'
 
 import {resetContext} from '../fixtures/context'
-import {gateFeature, type GateReason} from './gate'
+import {readMatrixFixture} from './fixture'
+import {gateFeature, type GateReason, probeGate} from './gate'
 import {openSession, settle, STUDIO_ORIGIN} from './session'
 import {contextAndAction, studioSteps} from './steps'
 import {documentPath, inspector, matrixRows, reviewAction} from './studio'
 import featureText from './studio-review.feature?raw'
 
-const SUBJECT = 'article-simultaneous-global-launch'
+const SUBJECT = {type: 'article', id: 'article-simultaneous-global-launch', field: 'body'}
 
 /** The verb the gate probes for. Its text comes from the workflow definition. */
 const APPROVE = 'Approve'
@@ -27,6 +28,8 @@ const VERB_PROBE_MS = 10_000
 const DIALOG = '#l10n-request-changes'
 
 const session = await openSession(STUDIO_ORIGIN, 'studio-review')
+
+const fixture = await probeGate(session, () => readMatrixFixture(session, SUBJECT))
 
 /**
  * Can this browser fire a review verb?
@@ -40,7 +43,7 @@ const session = await openSession(STUDIO_ORIGIN, 'studio-review')
  */
 async function probeReviewVerbs(): Promise<GateReason> {
   const {page} = session
-  await session.goto(documentPath('article', SUBJECT, {inspect: 'translations'}))
+  await session.goto(documentPath(SUBJECT.type, SUBJECT.id, {inspect: 'translations'}))
   await settle(matrixRows(page).first(), 'the first locale row', page)
 
   const notice = (await inspector(page).innerText())
@@ -53,14 +56,14 @@ async function probeReviewVerbs(): Promise<GateReason> {
     await approve.waitFor({state: 'visible', timeout: VERB_PROBE_MS})
   } catch {
     return (
-      `the inspector reported "${notice}" for ${SUBJECT}, so no review verb is offered — ` +
+      `the inspector reported "${notice}" for ${SUBJECT.id}, so no review verb is offered — ` +
       'the engine session the verbs need resolves account-globally and the automated ' +
       'browser has none. Fire them by hand in a logged-in Studio.'
     )
   }
 
   if (await approve.isDisabled()) {
-    return `"${APPROVE}" is rendered but disabled for ${SUBJECT} (inspector says "${notice}")`
+    return `"${APPROVE}" is rendered but disabled for ${SUBJECT.id} (inspector says "${notice}")`
   }
   return undefined
 }
@@ -71,20 +74,34 @@ async function probeReviewVerbs(): Promise<GateReason> {
  * with an engine session and an open run, writing is an explicit opt-in; the
  * untagged scenarios stay read-only unconditionally.
  */
-const verbsBlocked: GateReason = process.env.E2E_BROWSER_VERBS
-  ? await probeReviewVerbs()
-  : 'review verbs write to the run they touch — set E2E_BROWSER_VERBS=1 to opt in'
+async function readVerbGate(): Promise<GateReason> {
+  if (!process.env.E2E_BROWSER_VERBS) {
+    return 'review verbs write to the run they touch — set E2E_BROWSER_VERBS=1 to opt in'
+  }
+  // The feature-level gate already skipped these; probing a document that is
+  // not there would only time out on the row the inspector never renders.
+  if (fixture.missing) return fixture.missing
+  return probeGate(session, probeReviewVerbs)
+}
+
+const verbsBlocked = await readVerbGate()
 
 let scenario = 0
 
 afterAll(() => session.close())
 
 Feature<StudioJourney>({
-  featureText: gateFeature(featureText, '@requires-auth', verbsBlocked),
+  featureText: gateFeature(featureText, {
+    '@requires-sample-data': fixture.missing,
+    '@requires-changed-locale': fixture.unchanged,
+    '@requires-auth': verbsBlocked,
+  }),
   hooks: [
     Before<StudioJourney>((context) => {
       resetContext(context)
       context.session = session
+      context.locale = fixture.locale
+      context.localeTitle = fixture.localeTitle
     }),
     After<StudioJourney>(async (context) => {
       scenario += 1
@@ -109,12 +126,12 @@ Feature<StudioJourney>({
       )
     }),
 
-    When<StudioJourney, string, string>(
-      'the reviewer notes {string} and picks {string}',
-      async (context, note, locale) => {
+    When<StudioJourney, string>(
+      'the reviewer notes {string} and picks the changed locale',
+      async (context, note) => {
         const dialog = context.session.page.locator(DIALOG)
         await dialog.getByRole('textbox').fill(note)
-        await dialog.getByLabel(locale).check()
+        await dialog.getByLabel(context.locale).check()
       },
     ),
 

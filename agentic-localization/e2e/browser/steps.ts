@@ -15,6 +15,7 @@ import {expect} from 'vitest'
 import {targetLocales} from './content'
 import {settle} from './session'
 import {
+  cellLabels,
   columnHeaders,
   COVERAGE_STATES,
   coverageStateOf,
@@ -27,7 +28,7 @@ import {
   matrixRow,
   matrixRows,
   openLocaleButton,
-  presentationButton,
+  showGrid,
 } from './studio'
 
 /**
@@ -42,25 +43,12 @@ export function contextAndAction<A = undefined, B = undefined>(
   return [Given<StudioJourney, A, B>(text, callback), When<StudioJourney, A, B>(text, callback)]
 }
 
-/** How long "is there a presentation toggle?" is given before deciding no. */
-const TOGGLE_TIMEOUT_MS = 5_000
-
 /** A comma-separated step argument, as a list. */
 function list(value: string): string[] {
   return value
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean)
-}
-
-/** Every `"<locale>, <field>: <state>"` label the grid currently renders. */
-async function cellLabels(context: StudioJourney): Promise<string[]> {
-  const labels = await inspector(context.session.page).evaluate((root: Element) =>
-    [...root.querySelectorAll('button')]
-      .map((button) => button.getAttribute('aria-label'))
-      .filter((label): label is string => label !== null),
-  )
-  return labels.filter((label) => /^[^,]+, [^:]+: /.test(label))
 }
 
 /** The collapsed long-diff toggles, which a focused field opens. */
@@ -109,17 +97,7 @@ export const studioSteps = [
   ),
 
   ...contextAndAction<undefined>('the matrix is shown as a grid', async (context) => {
-    const {page} = context.session
-    const toggle = presentationButton(page, 'Grid')
-    try {
-      // The toggle exists only once a type has six or more fields, and it
-      // renders a beat after the rows do — so this waits rather than counting.
-      await toggle.waitFor({state: 'visible', timeout: TOGGLE_TIMEOUT_MS})
-      await toggle.click()
-    } catch {
-      // Fewer than six columns: the grid is the only presentation there is.
-    }
-    await settle(columnHeaders(page).first(), 'the first grid column header', page)
+    await showGrid(context.session.page)
   }),
 
   Then<StudioJourney, string>('the grid columns are {string}', async (context, fields) => {
@@ -129,7 +107,7 @@ export const studioSteps = [
   Then<StudioJourney>(
     'every cell reports one of the documented coverage states',
     async (context) => {
-      const labels = await cellLabels(context)
+      const labels = await cellLabels(context.session.page)
       const rows = await matrixRows(context.session.page).count()
       const columns = await columnHeaders(context.session.page).count()
 
@@ -150,22 +128,25 @@ export const studioSteps = [
     }
   }),
 
-  ...contextAndAction<string>('the reviewer selects the {string} row', async (context, locale) => {
-    await matrixRow(context.session.page, locale).click()
-  }),
-
-  ...contextAndAction<string, string>(
-    'the reviewer selects the {string} cell for {string}',
-    async (context, locale, field) => {
-      context.deferredBefore = await deferredDiffs(context).count()
-      await matrixCell(context.session.page, locale, field).click()
+  ...contextAndAction<undefined>(
+    "the reviewer selects the changed locale's row",
+    async (context) => {
+      await matrixRow(context.session.page, context.locale).click()
     },
   ),
 
-  Then<StudioJourney, string>('the detail pane names {string}', async (context, localeTitle) => {
+  ...contextAndAction<string>(
+    "the reviewer selects the changed locale's cell for {string}",
+    async (context, field) => {
+      context.deferredBefore = await deferredDiffs(context).count()
+      await matrixCell(context.session.page, context.locale, field).click()
+    },
+  ),
+
+  Then<StudioJourney>('the detail pane names the changed locale', async (context) => {
     await settle(
-      inspector(context.session.page).getByText(localeTitle, {exact: true}),
-      `the detail pane heading for "${localeTitle}"`,
+      inspector(context.session.page).getByText(context.localeTitle, {exact: true}),
+      `the detail pane heading for "${context.localeTitle}"`,
       context.session.page,
     )
   }),
@@ -189,11 +170,11 @@ export const studioSteps = [
     expect(await deferredDiffs(context).count()).toBeLessThan(context.deferredBefore)
   }),
 
-  ...contextAndAction<string>(
-    'the reviewer opens the {string} document from its row',
-    async (context, locale) => {
+  ...contextAndAction<undefined>(
+    "the reviewer opens the changed locale's document from its row",
+    async (context) => {
       context.panesBefore = await documentPanes(context.session.page).count()
-      await openLocaleButton(context.session.page, locale).click()
+      await openLocaleButton(context.session.page, context.locale).click()
     },
   ),
 

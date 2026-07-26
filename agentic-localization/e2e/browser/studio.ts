@@ -9,9 +9,14 @@
  *
  * Studio's own testids (`document-pane`, `pane-item-*`) are stable API and are
  * used as-is.
+ *
+ * The two matrix presentations are not interchangeable, so putting the grid on
+ * screen and reading its labels live here too: both a step and a gate need them.
  */
 
 import type {Locator, Page} from 'playwright'
+
+import {settle} from './session'
 
 /** The document inspector panel. Studio sets this; the plugin sets nothing. */
 export function inspector(page: Page): Locator {
@@ -60,8 +65,54 @@ export function columnHeaders(page: Page): Locator {
 }
 
 /** The `Rows` / `Grid` toggle. Only rendered once a type has six or more fields. */
-export function presentationButton(page: Page, presentation: 'Grid' | 'Rows'): Locator {
+function presentationButton(page: Page, presentation: 'Grid' | 'Rows'): Locator {
   return inspector(page).getByRole('button', {name: presentation, exact: true})
+}
+
+/** How long "is there a presentation toggle?" is given before deciding no. */
+const TOGGLE_TIMEOUT_MS = 5_000
+
+/**
+ * Put the matrix in the presentation where every cell is its own control.
+ * The rows presentation condenses the field axis into glyphs with no labels,
+ * so a cell can only be read — or clicked — from the grid.
+ */
+export async function showGrid(page: Page): Promise<void> {
+  const toggle = presentationButton(page, 'Grid')
+  try {
+    // The toggle exists only once a type has six or more fields, and it
+    // renders a beat after the rows do — so this waits rather than counting.
+    await toggle.waitFor({state: 'visible', timeout: TOGGLE_TIMEOUT_MS})
+    await toggle.click()
+  } catch {
+    // Fewer than six columns: the grid is the only presentation there is.
+  }
+  await settle(columnHeaders(page).first(), 'the first grid column header', page)
+}
+
+/** Every `"<locale>, <field>: <state>"` cell label the grid currently renders. */
+export async function cellLabels(page: Page): Promise<string[]> {
+  const labels = await inspector(page).evaluate((root: Element) =>
+    [...root.querySelectorAll('button')]
+      .map((button) => button.getAttribute('aria-label'))
+      .filter((label): label is string => label !== null),
+  )
+  return labels.filter((label) => /^[^,]+, [^:]+: /.test(label))
+}
+
+/** The coverage states that leave the detail pane something to show. */
+const CHANGED_STATES = ['Minor', 'Updated', 'Rewritten'] as const
+
+/**
+ * The locale of the first cell the grid reports as changed for `field`, or
+ * `undefined` when every row is unchanged, missing or failed.
+ */
+export async function changedLocale(page: Page, field: string): Promise<string | undefined> {
+  const changed = new RegExp(`^([^,]+), ${escape(field)}: (?:${CHANGED_STATES.join('|')})$`)
+  const [, locale] =
+    (await cellLabels(page)).map((label) => changed.exec(label)).find((match) => match !== null) ??
+    []
+  return locale
 }
 
 /** The review verbs. Their text comes from the workflow definition, not i18n. */
