@@ -4,9 +4,29 @@ export type StorefrontConfig = {
   domain: string
   token: string
   apiVersion?: string
+  /**
+   * Extra fetch options merged into every request. In a Next.js app pass caching
+   * hints here, e.g. `{next: {revalidate: 300, tags: ['shopify']}}`, so repeated
+   * renders (including Sanity live refreshes) are served from the data cache
+   * instead of re-hitting Shopify.
+   */
+  fetchOptions?: RequestInit
+  /**
+   * Retries for transient failures before throwing. Shopify development stores
+   * return `402 Payment Required` for a moment while waking from idle, and the API
+   * returns `429`/`5xx` under load — all transient. Defaults to 2.
+   */
+  maxRetries?: number
 }
 
 type GraphQLResponse<T> = {data?: T; errors?: {message: string}[]}
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/** Transient HTTP statuses worth retrying: dev-store wake-up, rate limit, server. */
+function isTransient(status: number): boolean {
+  return status === 402 || status === 429 || status >= 500
+}
 
 const PRODUCT_CARD_FRAGMENT = /* GraphQL */ `
   fragment ProductCard on Product {
@@ -76,23 +96,51 @@ export function createStorefrontClient(config: StorefrontConfig) {
   const apiVersion = config.apiVersion || '2025-07'
   const endpoint = `https://${config.domain}/api/${apiVersion}/graphql.json`
 
+  const maxRetries = config.maxRetries ?? 2
+
   async function request<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Storefront-Access-Token': config.token,
-      },
-      body: JSON.stringify({query, variables}),
-    })
-    if (!res.ok) {
-      throw new Error(`Shopify Storefront API error: ${res.status} ${res.statusText}`)
+    const body = JSON.stringify({query, variables})
+    let lastError: unknown
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      let res: Response
+      try {
+        res = await fetch(endpoint, {
+          ...config.fetchOptions,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Shopify-Storefront-Access-Token': config.token,
+            ...(config.fetchOptions?.headers as Record<string, string> | undefined),
+          },
+          body,
+        })
+      } catch (err) {
+        // Network error — retry with backoff before giving up.
+        lastError = err
+        if (attempt < maxRetries) {
+          await delay(500 * (attempt + 1))
+          continue
+        }
+        throw err
+      }
+
+      if (!res.ok) {
+        if (isTransient(res.status) && attempt < maxRetries) {
+          await delay(500 * (attempt + 1))
+          continue
+        }
+        throw new Error(`Shopify Storefront API error: ${res.status} ${res.statusText}`)
+      }
+
+      const json = (await res.json()) as GraphQLResponse<T>
+      if (json.errors?.length) {
+        throw new Error(`Shopify Storefront API: ${json.errors.map((e) => e.message).join('; ')}`)
+      }
+      return json.data as T
     }
-    const json = (await res.json()) as GraphQLResponse<T>
-    if (json.errors?.length) {
-      throw new Error(`Shopify Storefront API: ${json.errors.map((e) => e.message).join('; ')}`)
-    }
-    return json.data as T
+
+    throw lastError ?? new Error('Shopify Storefront API request failed')
   }
 
   return {
