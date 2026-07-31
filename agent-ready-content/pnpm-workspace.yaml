@@ -1,0 +1,20 @@
+packages:
+  - studio
+  - apps/*
+  - packages/agent-markdown
+  - packages/schema
+  - packages/@starter/*
+
+catalog:
+  sanity: '^6.5.0'
+  '@sanity/client': '^7.24.0'
+  '@sanity/vision': '^6.5.0'
+  '@sanity/image-url': '^2.1.1'
+  '@portabletext/types': '^4.0.2'
+  groq: '^6.5.0'
+  react: '^19.2.0'
+  react-dom: '^19.2.0'
+  '@types/react': '^19.2.0'
+  '@types/react-dom': '^19.2.0'
+  styled-components: '^6.1.0'
+  typescript: '^5.9.0'

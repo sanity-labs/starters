@@ -1,0 +1,38 @@
+---
+import Base from '../layouts/Base.astro'
+import {SITEMAP_QUERY} from '@agent-ready/markdown'
+import {client} from '../lib/client'
+import {SITE_INFO} from '../lib/config'
+
+const sections = await client.fetch(SITEMAP_QUERY, {}, {tag: 'html.home'})
+---
+
+<Base>
+  <main>
+    <h1>{SITE_INFO.title}</h1>
+    <p>{SITE_INFO.summary}</p>
+    <p>
+      Every page here is also served as markdown: append <code>.md</code> to any URL, or send
+      <code>Accept: text/markdown</code>. Agents start at <a href="/llms.txt">/llms.txt</a>.
+    </p>
+    {
+      sections.map((section) => (
+        <section>
+          <h2>
+            <a href={`/docs/${section.slug.current}`}>{section.title}</a>
+          </h2>
+          {section.description && <p>{section.description}</p>}
+          <ul>
+            {section.articles.map((article) => (
+              <li>
+                <a href={`/docs/${section.slug.current}/${article.slug.current}`}>
+                  {article.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+  </main>
+</Base>
