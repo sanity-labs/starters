@@ -1,0 +1,67 @@
+@import 'tailwindcss';
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-fraunces), ui-serif, Georgia, serif;
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+}
+
+:root {
+  color-scheme: light;
+  /* Birch off-white background, warm charcoal ink, deep fjord-pine accent */
+  --background: oklch(0.968 0.006 95);
+  --foreground: oklch(0.235 0.012 75);
+  --card: oklch(0.988 0.005 95);
+  --card-foreground: oklch(0.235 0.012 75);
+  --primary: oklch(0.4 0.045 175);
+  --primary-foreground: oklch(0.97 0.01 95);
+  --secondary: oklch(0.93 0.008 95);
+  --secondary-foreground: oklch(0.3 0.015 75);
+  --muted: oklch(0.93 0.008 95);
+  --muted-foreground: oklch(0.52 0.014 80);
+  --accent: oklch(0.6 0.09 55);
+  --accent-foreground: oklch(0.97 0.01 95);
+  --destructive: oklch(0.55 0.16 28);
+  --border: oklch(0.885 0.009 90);
+  --input: oklch(0.885 0.009 90);
+  --ring: oklch(0.4 0.045 175);
+  --radius: 0.25rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Drop cap on the first paragraph of an article body */
+.article-body > p:first-of-type::first-letter {
+  float: left;
+  margin-right: 0.75rem;
+  font-family: var(--font-serif);
+  font-size: 3.75rem;
+  font-weight: 500;
+  line-height: 0.8;
+  color: var(--primary);
+}

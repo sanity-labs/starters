@@ -1,0 +1,16 @@
+{
+  "extends": "@starter/tsconfig/base.json",
+  "include": [
+    "schemaTypes/**/*.ts",
+    "components/**/*.tsx",
+    "lib/**/*.ts",
+    "structure.ts",
+    "sanity.config.ts",
+    "sanity.cli.ts",
+    "scripts/**/*.ts"
+  ],
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "noEmit": true
+  }
+}
