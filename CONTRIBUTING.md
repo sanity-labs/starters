@@ -23,10 +23,11 @@ Then customize it:
 
 When it's ready, wire it into the monorepo:
 
-- Add a job to `.github/workflows/ci.yml` (with `environment: <starter-name>`)
-- Create a GitHub Environment in repo settings with `SANITY_PROJECT_ID` and `SANITY_DATASET` (add `SANITY_AUTH_TOKEN` as a secret if the starter deploys)
-- Add the starter name to the lint loop in `.husky/pre-commit`
+- Add a job to `.github/workflows/ci.yml` (with `environment: <starter-name>`) — the starter's own workflows don't run here, so without this job the starter has no monorepo CI coverage
+- Create a GitHub Environment in repo settings with `SANITY_PROJECT_ID` and `SANITY_DATASET` (add `SANITY_AUTH_TOKEN` as a secret, and `SANITY_STACK_ID` as a var, if the starter deploys)
 - Add a row to the table in `README.md`
+
+The `.husky/pre-commit` hook auto-discovers starters — no manual edit needed.
 
 The starter must work standalone when cloned via `sanity init --template`. Run `pnpm validate` to check.
 

@@ -166,16 +166,16 @@ jobs:
           done
           exit $failed
 
-  analytics-content-ops:
-    name: analytics-content-ops (Node ${{ matrix.node-version }})
+  commerce-plp-management:
+    name: commerce-plp-management (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
-    environment: analytics-content-ops
+    environment: commerce-plp-management
     strategy:
       matrix:
         node-version: [20, 22]
     defaults:
       run:
-        working-directory: analytics-content-ops
+        working-directory: commerce-plp-management
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -194,6 +194,8 @@ jobs:
           SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET }}
       - name: Validate template
         run: pnpm run validate
+      - name: Build functions
+        run: pnpm --filter @starter/functions build
       - name: Manifest extract
         run: pnpm --filter studio exec sanity manifest extract
         env:
