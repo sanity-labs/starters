@@ -1,0 +1,26 @@
+{
+  "name": "studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "sanity dev --port 3333",
+    "build": "sanity build",
+    "typecheck": "tsc --noEmit",
+    "deploy-schema": "sanity schema deploy",
+    "typegen": "sanity schema extract --enforce-required-fields --force && sanity typegen generate"
+  },
+  "dependencies": {
+    "@agent-ready/schema": "workspace:*",
+    "@sanity/vision": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "sanity": "catalog:",
+    "styled-components": "catalog:"
+  },
+  "devDependencies": {
+    "@starter/tsconfig": "workspace:*",
+    "@types/react": "catalog:",
+    "typescript": "catalog:"
+  }
+}

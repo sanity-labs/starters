@@ -1,0 +1,61 @@
+{
+  "name": "analytics-content-ops",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Analytics-informed content operations starter. Sync performance signal from any analytics platform into Sanity so editors act on it in Studio, developers power content-intelligence features with GROQ, and Content Agent triages the catalog automatically. Built with Sanity Studio v5, Next.js 16, and Sanity Functions.",
+  "keywords": [
+    "AI",
+    "Analytics",
+    "Content Agent",
+    "Content Operations",
+    "Editorial Workflow",
+    "GA4",
+    "GROQ",
+    "Media",
+    "Next.js",
+    "Sanity"
+  ],
+  "homepage": "https://github.com/sanity-labs/starters/tree/main/analytics-content-ops#readme",
+  "bugs": {
+    "url": "https://github.com/sanity-labs/starters/issues"
+  },
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n studio,frontend,functions -c '#f03e2f,#8b5cf6,#f5a623' 'pnpm --filter studio dev' 'pnpm --filter frontend dev' 'pnpm --filter @starter/functions build && sanity functions dev'",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "eslint --cache --cache-location node_modules/.cache/eslint/ .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "typegen": "pnpm --filter studio typegen",
+    "pretypecheck": "pnpm run typegen",
+    "typecheck": "pnpm -r typecheck",
+    "bootstrap": "pnpm --filter studio bootstrap",
+    "seed": "pnpm --filter studio seed",
+    "analytics-sync": "tsx scripts/analytics-sync.ts",
+    "fn:sync": "tsx scripts/fn.ts analytics-sync",
+    "fn:triage": "tsx scripts/fn.ts agent-triage",
+    "validate": "sanity-template-validate"
+  },
+  "devDependencies": {
+    "@sanity/blueprints": "^0.17.1",
+    "@sanity/client": "catalog:",
+    "@sanity/functions": "1.3.1",
+    "@sanity/template-validator": "^3.1.0",
+    "@starter/analytics-sync": "workspace:*",
+    "@starter/eslint-config": "workspace:*",
+    "@types/node": "^22.19.13",
+    "concurrently": "^9.2.1",
+    "dotenv": "^17.4.2",
+    "eslint": "^9.39.3",
+    "groq": "catalog:",
+    "oxfmt": "^0.46.0",
+    "sanity": "catalog:",
+    "tsx": "^4.21.0"
+  },
+  "engines": {
+    "node": ">=20.19 <22 || >=22.12"
+  },
+  "packageManager": "pnpm@10.30.3"
+}

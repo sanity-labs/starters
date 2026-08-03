@@ -1,0 +1,54 @@
+---
+import Base from '../../../layouts/Base.astro'
+import {ARTICLE_WITH_NAV_QUERY, prevNext} from '@agent-ready/markdown'
+import {client} from '../../../lib/client'
+import {renderContent} from '../../../lib/html'
+
+const {section: sectionSlug, article: articleSlug} = Astro.params
+const data = await client.fetch(
+  ARTICLE_WITH_NAV_QUERY,
+  {sectionSlug, articleSlug},
+  {tag: 'html.article'},
+)
+
+if (!data.article) {
+  return new Response('Article not found', {status: 404})
+}
+
+const {article} = data
+const {prevArticle, nextArticle} = prevNext(data.allArticles, articleSlug ?? '')
+const html = renderContent(article.content)
+---
+
+<Base title={article.title}>
+  <main>
+    <p class="crumb">
+      <a href={`/docs/${sectionSlug}`}>{article.section.title}</a>
+    </p>
+    <h1>{article.title}</h1>
+    {article.summary && <p><em>{article.summary}</em></p>}
+    <p>
+      <a href={`/docs/${sectionSlug}/${articleSlug}.md`}>View as markdown</a>
+    </p>
+    <article set:html={html} />
+    <footer>
+      <span>
+        {prevArticle && <a href={`/docs/${sectionSlug}/${prevArticle.slug.current}`}>← {prevArticle.title}</a>}
+      </span>
+      <span>
+        {nextArticle && <a href={`/docs/${sectionSlug}/${nextArticle.slug.current}`}>{nextArticle.title} →</a>}
+      </span>
+    </footer>
+    <style>
+      .crumb {
+        font-size: 0.875rem;
+      }
+      footer {
+        margin-top: 2rem;
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.875rem;
+      }
+    </style>
+  </main>
+</Base>
