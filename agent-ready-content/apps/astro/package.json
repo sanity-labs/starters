@@ -1,0 +1,24 @@
+{
+  "name": "astro-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 4321",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "astro sync && tsc --noEmit"
+  },
+  "dependencies": {
+    "@agent-ready/markdown": "workspace:*",
+    "@astrojs/node": "^11.0.0",
+    "@portabletext/to-html": "^5.0.2",
+    "@portabletext/types": "catalog:",
+    "@sanity/client": "catalog:",
+    "@sanity/image-url": "catalog:",
+    "astro": "^7.1.0"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

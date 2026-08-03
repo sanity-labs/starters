@@ -1,0 +1,32 @@
+{
+  "name": "agent-ready-content",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Serve HTML to humans and markdown to agents from the same URLs. Sanity Studio + Next.js + Astro monorepo with content negotiation, sitemap.md, and llms.txt.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "bootstrap": "node scripts/bootstrap.mjs",
+    "dev": "concurrently -n studio,next,astro -c '#f03e2f,#8b5cf6,#f5a623' 'pnpm --filter studio dev' 'pnpm --filter next-app dev' 'pnpm --filter astro-app dev'",
+    "build": "pnpm -r build",
+    "lint": "eslint --cache --cache-location node_modules/.cache/eslint/ .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "seed": "pnpm --filter studio exec sanity dataset import ../seed/seed.ndjson production --replace",
+    "typegen": "pnpm --filter studio typegen",
+    "pretypecheck": "pnpm run typegen",
+    "typecheck": "pnpm -r typecheck",
+    "validate": "sanity-template-validate"
+  },
+  "devDependencies": {
+    "@sanity/template-validator": "^3.0.0",
+    "@starter/eslint-config": "workspace:*",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.3",
+    "oxfmt": "^0.36.0"
+  },
+  "engines": {
+    "node": ">=20.19 <22 || >=22.12"
+  },
+  "packageManager": "pnpm@10.34.5"
+}
