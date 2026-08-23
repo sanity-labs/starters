@@ -42,6 +42,32 @@ inventory, variants, tags, media) ─▶│  1. product by handle (tags)      �
                                                   PDP in the browser
 ```
 
+## Relationship to Sanity Connect
+
+[Sanity Connect](https://www.sanity.io/docs/sanity-connect-for-shopify) syncs your
+Shopify catalog into Sanity — each product becomes a Sanity document kept in step by
+webhooks. It's **complementary** to this starter, not an alternative, and worth
+adding when you want a richer authoring experience.
+
+- **What Connect adds (authoring):** real product documents editors can search,
+  browse, and reference in Studio, with live titles, imagery, variants, and
+  availability visible while they work. If you want that, add Connect and point
+  `skuEnrichment` and rule matching at the synced product documents instead of the
+  built-in live picker.
+- **What this starter does by default (runtime):** enrichment is deliberately
+  **pull-only and keyed by tag / SKU / handle**, so it works against any Shopify
+  store with no sync to set up, no product documents to keep in step, and no drift
+  when the catalog changes. Studio ships a lightweight `ProductPicker` that searches
+  your live Shopify catalog for the same find-and-attach flow, and Shopify stays
+  canonical for title, price, inventory, variants, and media.
+
+The two layer together: Connect governs how much product context lives in Studio,
+while the render-time resolver stays pull-only either way — Sanity owns only the
+editorial layer (`attributeRule`, `controlPlane`, `skuEnrichment`, `brandVoice`),
+and a product with no matching enrichment renders as pure Shopify. Start with the
+built-in picker for a zero-setup overlay; reach for Sanity Connect when editors want
+the full catalog as searchable, referenceable documents.
+
 ## Prerequisites
 
 - Node `>=20.19 <22 || >=22.12` and pnpm `10.x`
