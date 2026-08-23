@@ -1,0 +1,55 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+/*
+ * Sanity Swag Store — brutalist, monospace, high-contrast color blocks.
+ * Palette pulls from the Sanity brand (warm near-black #0b0b0b, brand orange
+ * #ff560a) plus the swag-store poster colors: vivid yellow, blue, and gray.
+ */
+@theme {
+  --color-swag-yellow: #f5df00;
+  --color-swag-orange: #ff560a;
+  --color-swag-blue: #2540ff;
+  --color-swag-black: #0b0b0b;
+  --color-swag-gray: #7c7c7c;
+  --color-swag-paper: #ffffff;
+
+  --font-mono: var(--font-plex-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sharp: 0px;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-swag-paper);
+  color: var(--color-swag-black);
+}
+
+/* Poster-style metadata label: black chip, mono, uppercase. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: var(--color-swag-black);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+}
+
+/* Halftone dot texture used behind color blocks. */
+.halftone {
+  background-image: radial-gradient(rgba(11, 11, 11, 0.18) 1px, transparent 1.2px);
+  background-size: 6px 6px;
+}
+
+.hairline {
+  border: 1px solid var(--color-swag-black);
+}
