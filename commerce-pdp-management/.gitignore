@@ -35,6 +35,10 @@ next-env.d.ts
 # Generated Sanity artifacts
 schema.json
 sanity.types.ts
+# ...except the @starter/sanity-types entry, which must be committed so the
+# frontend resolves it on Vercel (Vercel builds the frontend without running
+# `typegen`). Regenerate with `pnpm --filter studio run typegen`.
+!packages/@starter/sanity-types/sanity.types.ts
 
 # Claude Code
 .claude/
