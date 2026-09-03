@@ -25,7 +25,6 @@ Then customize — see [CONTRIBUTING.md](../CONTRIBUTING.md) for the full checkl
 | **Bootstrap**      | One-command setup: deploy blueprint, deploy schema, extract types, seed sample data                     |
 | **CI**             | GitHub Actions workflow for type-checking, template validation, and function bundle verification        |
 | **Agent context**  | `AGENT.md` + `CLAUDE.md` symlink for AI-assisted development                                            |
-| **Skills**         | Placeholder for Claude Code skills                                                                      |
 
 ## Running the scaffold locally
 

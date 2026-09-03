@@ -918,9 +918,9 @@ defineField({
       <div className="mt-16 rounded-[var(--radius-md)] border border-[var(--color-accent)]/20 bg-[var(--color-accent-subtle)] p-6">
         <h3 className="text-lg font-semibold mb-2">Add this to your project</h3>
         <p className="text-sm text-[var(--color-text-secondary)] mb-4">
-          This starter includes an agent skill that walks Claude through adding the full
-          localization setup to any existing Sanity project. Studio-side and frontend-side, step by
-          step.
+          The Studio-side and frontend-side pieces of this setup are documented in the starter
+          repository, so you can port the full localization workflow to an existing Sanity project
+          step by step.
         </p>
         <a
           href="https://github.com/sanity-labs/starters/tree/main/agentic-localization"

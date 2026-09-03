@@ -109,16 +109,6 @@ app/src/app/
     └── [slug]/page.tsx           # Product detail page
 ```
 
-### Skills
-
-```
-skills/add-sanity-chatbot/
-├── SKILL.md                      # Skill definition and workflow
-└── references/
-    ├── chat-implementation.md    # Chat UI and API route reference
-    └── studio-setup.md           # Studio plugin setup reference
-```
-
 ## Key Patterns
 
 ### MCP Connection

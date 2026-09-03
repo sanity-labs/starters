@@ -33,7 +33,7 @@ Always `cd` into the starter directory first. Each has its own pnpm workspace, l
 
 ## Conventions
 
-All starters should follow the patterns documented in the `starter` skill. Run `/starter` or read `.agents/skills/starter/SKILL.md` before creating or modifying a starter.
+All starters should follow the patterns documented in the [Conventions](./CONTRIBUTING.md#conventions) section of `CONTRIBUTING.md`. Read it before creating or modifying a starter.
 
 ## Adding a New Starter
 

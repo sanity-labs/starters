@@ -27,7 +27,6 @@ An ecommerce storefront with an AI shopping assistant that operates directly on 
 - **Next.js storefront**: Product listing, filtering, detail pages, and a floating chat widget
 - **The Sanity Studio**: Content management with product schemas, agent configuration, and an insights dashboard
 - **AI shopping assistant**: Claude-powered chatbot that queries the Content Lake to search products, answer questions, and apply filters
-- **Claude Code skill**: A reusable skill for adding the chatbot to your own existing projects
 
 ## Prerequisites
 
@@ -118,8 +117,6 @@ ai-shopping-assistant/
 ├── functions/
 │   └── agent-conversation/           # Sanity Function for auto-classifying chats
 ├── sanity.blueprint.ts               # Function triggers (delta filters)
-├── skills/
-│   └── add-sanity-chatbot/           # Claude Code skill for adding chatbot to other projects
 ├── package.json                      # Root workspace scripts
 ├── pnpm-workspace.yaml               # pnpm workspace config
 └── CLAUDE.md                         # AI assistant context for this project
@@ -215,24 +212,6 @@ A custom Studio tool that provides an analytics dashboard for monitoring chatbot
 | `SANITY_CONTEXT_SLUG`           | No       | Slug of the Sanity Context document in Studio. Defaults to `default`                                            |
 | `SANITY_AGENT_CONFIG_SLUG`      | No       | Slug of the Agent Config document in Studio. Defaults to `default`                                              |
 | `ANTHROPIC_API_KEY`             | Yes      | Your Anthropic API key from [console.anthropic.com](https://console.anthropic.com)                              |
-
-## Adding a Chatbot to Your Own Project
-
-Already have a Next.js + Sanity project? Use the included Claude Code skill to add the AI chatbot to your site. It walks you through dependencies, API route, chat UI components, and Studio plugin setup.
-
-Install the skill directly from GitHub:
-
-```bash
-npx skills add https://github.com/sanity-labs/starters/tree/main/ai-shopping-assistant --skill add-sanity-chatbot
-```
-
-Or, if you've cloned this repo locally:
-
-```bash
-npx skills add ./skills/add-sanity-chatbot
-```
-
-See [`skills/add-sanity-chatbot/SKILL.md`](skills/add-sanity-chatbot/SKILL.md) for the full workflow and reference docs.
 
 ## Learn More
 

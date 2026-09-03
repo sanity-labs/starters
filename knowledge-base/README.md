@@ -58,7 +58,6 @@ knowledge-base/
 ├── dashboard-server/      # Chat proxy holding the internal token (App SDK is browser-only)
 ├── functions/             # Sanity Functions
 ├── packages/@starter/     # Shared eslint / tsconfig / generated types
-├── skills/                # Claude Code skills for this starter
 ├── sanity.blueprint.ts    # Function registrations
 ├── pnpm-workspace.yaml    # Workspaces + dependency catalog
 └── package.json           # Root scripts

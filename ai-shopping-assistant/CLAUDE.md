@@ -61,5 +61,4 @@ Two main directories: `app/` (Next.js frontend) and `studio/` (Sanity Studio). T
   - `studio/agent-insights-tool/` - Custom Studio tool for viewing chat analytics
 - `functions/agent-conversation/` - Sanity Function for auto-classifying conversations
 - `sanity.blueprint.ts` - Function triggers (delta filters)
-- `skills/add-sanity-chatbot/` - Claude Code skill for adding chatbot to existing projects
 - `studio/seed/` - Sample dataset for import

@@ -19,7 +19,6 @@ pnpm install && pnpm run bootstrap && pnpm dev
 - `apps/astro/` — Astro 7: HTML pages + `.md` endpoints + `Accept` middleware (server output)
 - `packages/schema/` — document types (section, article, code, callout)
 - `packages/agent-markdown/` — Portable Text serializers, document builders, GROQ queries. Everything defining the markdown output lives here; the apps contribute routing only.
-- `skills/agent-ready-content/` — skill for porting the pattern onto an existing project
 
 ## Code style
 
