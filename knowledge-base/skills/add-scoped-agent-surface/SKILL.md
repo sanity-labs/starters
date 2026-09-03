@@ -27,12 +27,15 @@ Add it to the seed generator (`studio/scripts/generate-seed.ts`) or create it di
   version: '1',
   name: 'Partner Portal',
   slug: {_type: 'slug', current: 'partner-portal'},
-  groqFilter: '_type in ["helpArticle", "faq", "playbook", "product", "topic"]',
+  groqFilter:
+    '_type in ["helpArticle", "faq", "playbook", "product", "topic"] && (_type in ["product", "topic"] || status == "published")',
   instructions: PARTNER_INSTRUCTIONS,
 }
 ```
 
 - `groqFilter` is the access boundary — only matching documents are visible through this surface. It can filter on any field, not just `_type` (e.g. `audience` arrays, `status == "published"`).
+- Enforce workflow status in the filter, not in `instructions`. The model treats instructions as advice; only the filter is guaranteed. Types without a `status` field (taxonomy like `product`, `topic`) need the `_type in [...] ||` escape hatch above, or a status clause silently hides them.
+- Context MCP queries the `published` perspective by default, so Sanity drafts (`drafts.*`) are already excluded — the `status` clause is about the workflow field on published documents.
 - `instructions` is a system-prompt addendum the MCP serves to the agent: describe the content model, which types answer which questions, and how documents reference each other. Copy the structure of `EXTERNAL_INSTRUCTIONS` / `INTERNAL_INSTRUCTIONS` in the seed generator.
 
 Publish the document (seed import publishes it; a draft is invisible to MCP).
@@ -60,7 +63,7 @@ The token is in the `.key` field of the JSON output. Put it in the env file of w
 Pick the host based on where the UI lives:
 
 - **UI in a server-backed app (Next.js):** copy `app/app/api/chat/route.ts` — `createMCPClient` (http transport, Bearer token) + `streamText` + a `displayCards` UI tool, capped with `stepCountIs(8)`.
-- **UI in a browser-only app (App SDK, SPA):** copy `dashboard-server/src/index.ts` — same pattern behind a small Hono proxy with CORS locked to the UI origin. The App SDK has no server and cannot hold secrets; the proxy is the secret boundary.
+- **UI in a browser-only app (App SDK, SPA):** copy `dashboard-server/src/index.ts` — same pattern behind a small Hono proxy with CORS locked to the UI origin and a shared-secret bearer token (`DASHBOARD_API_TOKEN`) required on the chat route. The App SDK has no server and cannot hold Sanity tokens; the proxy is the secret boundary. The bearer secret is a minimal gate against anonymous callers — a real deployment should front the proxy with its own auth.
 
 Point the endpoint at the new surface via env:
 

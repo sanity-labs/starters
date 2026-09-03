@@ -30,8 +30,9 @@ pnpm install && pnpm run bootstrap && pnpm dev
 
 - The dataset is **private**; read tokens live server-side only (Next API route, Hono proxy). Nothing secret in `NEXT_PUBLIC_*` / `SANITY_APP_*` vars — those are browser-bundled.
 - The App SDK app (`dashboard/`) has no server, so its chat goes through `dashboard-server/`. Browsing there needs no token (logged-in user session).
+- `dashboard-server/` `/api/chat` requires `Authorization: Bearer <DASHBOARD_API_TOKEN>` (401 otherwise, 500 fail-closed when unset) and CORS is pinned to `DASHBOARD_ORIGIN` (localhost:3333 fallback in dev only, never `*`). The dashboard sends the same value from `SANITY_APP_DASHBOARD_API_TOKEN` — bundled into the browser on purpose; it is a shared secret gating the proxy, not a Sanity token. Bootstrap generates both.
 - Agent Context MCP requires a **deployed Studio** — deployed schema alone returns `-32004`.
-- Scoping is the `sanity.agentContext` document's `groqFilter`, not the token. New document types must be added to the filters and instructions (seeded from `studio/scripts/generate-seed.ts`).
+- Scoping is the `sanity.agentContext` document's `groqFilter`, not the token. New document types must be added to the filters and instructions (seeded from `studio/scripts/generate-seed.ts`). The `customer-support` filter also requires `status == "published"` on types that carry a `status` field — a new external type with a status must be added to that clause, not just the `_type` list.
 - Hybrid search (`app/sanity/search.ts`): `text::semanticSimilarity()` only inside `score()`, needs Dataset Embeddings enabled, keyword `match` fallback on error.
 - Agent Insights (opt-in at bootstrap): both chat backends save conversations via `sanityInsightsIntegration` (new instance per request, Editor write token `SANITY_INSIGHTS_WRITE_TOKEN`, skipped when unset). The scheduled `classify-conversations` function (hourly, blueprint robot token, `ANTHROPIC_API_KEY` function env) fills in the Studio dashboard metrics; without the write token it deploys but idles.
 

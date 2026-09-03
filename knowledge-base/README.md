@@ -23,9 +23,11 @@ One Sanity dataset feeds two AI surfaces through two scoped [Agent Context](http
 ### Security model
 
 - Dataset is **private** — no API access without a server-side token.
-- The external surface uses a read token scoped (via its Agent Context GROQ filter) to external content types only.
-- The internal surface uses a separate read token scoped to all types.
-- **No token ever reaches the browser** on either surface.
+- The external surface uses a read token scoped (via its Agent Context GROQ filter) to external content types only — and, for `helpArticle` and `faq`, only documents whose `status` is `published`. Draft and archived content is invisible to the customer-facing agent, matching the help center's own search.
+- The internal surface uses a separate read token scoped to all types and every status (staff see drafts and archived content, with the agent warning when content is stale).
+- **No Sanity token ever reaches the browser** on either surface.
+- The internal chat proxy (`dashboard-server/`) is gated by a shared secret: the dashboard sends `DASHBOARD_API_TOKEN` as a bearer token on `/api/chat`, unauthenticated requests get `401`, and the proxy fails closed if the secret is unset. CORS is never a wildcard — `DASHBOARD_ORIGIN` must name the dashboard's origin in production. Bootstrap generates the secret and writes it to both `dashboard-server/.env.local` and (as `SANITY_APP_DASHBOARD_API_TOKEN`) `dashboard/.env.local`.
+  - This secret is bundled into the browser-only dashboard, so it is visible to anyone who can load the dashboard — staff signed in to Sanity, which is the intended audience. It stops anonymous callers, not dashboard users. It is a minimal gate for a starter: a real deployment should put the proxy behind its own SSO / auth (or verify the caller's Sanity session) instead.
 
 ### Agent Insights (opt-in)
 
@@ -67,6 +69,8 @@ knowledge-base/
 ## Environment variables
 
 Each workspace manages its own `.env` — no cascading from root. Copy each `.env.example` to `.env`. See each file for required values.
+
+The dashboard and its chat proxy share one secret: `DASHBOARD_API_TOKEN` (`dashboard-server/`) must equal `SANITY_APP_DASHBOARD_API_TOKEN` (`dashboard/`). `pnpm bootstrap` generates it; to set it by hand use `openssl rand -hex 32`. When deploying the proxy, also set `DASHBOARD_ORIGIN` to the deployed dashboard's origin — it only defaults to `http://localhost:3333` in development.
 
 ## Available scripts
 
