@@ -1,7 +1,8 @@
-import {useCallback, useMemo, useState} from 'react'
+import {useCallback, useMemo} from 'react'
 import {set, unset, type ObjectInputProps} from 'sanity'
 import {Autocomplete, Box, Button, Card, Flex, Stack, Text} from '@sanity/ui'
 import {SearchIcon, TrashIcon} from '@sanity/icons'
+import {useDebouncedSearch} from '../hooks/useDebouncedSearch'
 
 /**
  * Object-level input that searches the Shopify catalog by name and stores the
@@ -39,7 +40,7 @@ const SEARCH_QUERY = /* GraphQL */ `
   }
 `
 
-async function searchShopify(term: string): Promise<Suggestion[]> {
+async function searchShopify(term: string, signal: AbortSignal): Promise<Suggestion[]> {
   if (!DOMAIN || !TOKEN) return []
   const res = await fetch(`https://${DOMAIN}/api/${API_VERSION}/graphql.json`, {
     method: 'POST',
@@ -51,6 +52,7 @@ async function searchShopify(term: string): Promise<Suggestion[]> {
       query: SEARCH_QUERY,
       variables: {query: term ? `title:*${term}*` : '', first: 10},
     }),
+    signal,
   })
   if (!res.ok) return []
   const json = await res.json()
@@ -65,19 +67,9 @@ async function searchShopify(term: string): Promise<Suggestion[]> {
 
 export function ProductPickerInput(props: ObjectInputProps<ProductValue>) {
   const {value, onChange, schemaType} = props
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
-  const [loading, setLoading] = useState(false)
+  const {results: suggestions, loading, search} = useDebouncedSearch(searchShopify)
 
   const configured = Boolean(DOMAIN && TOKEN)
-
-  const handleSearch = useCallback(async (term: string) => {
-    setLoading(true)
-    try {
-      setSuggestions(await searchShopify(term))
-    } finally {
-      setLoading(false)
-    }
-  }, [])
 
   const handleSelect = useCallback(
     (gid: string) => {
@@ -143,7 +135,7 @@ export function ProductPickerInput(props: ObjectInputProps<ProductValue>) {
           options={options}
           placeholder="Search products by name…"
           filterOption={() => true}
-          onQueryChange={(q) => handleSearch(q ?? '')}
+          onQueryChange={(q) => search(q ?? '')}
           onSelect={handleSelect}
           renderOption={(option) => (
             <Card as="button" padding={3} radius={2}>

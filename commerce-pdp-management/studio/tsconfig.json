@@ -5,6 +5,7 @@
     "schemaTypes/**/*.tsx",
     "components/**/*.ts",
     "components/**/*.tsx",
+    "hooks/**/*.ts",
     "lib/**/*.ts",
     "scripts/**/*.ts",
     "structure.ts",
