@@ -7,7 +7,7 @@ packages:
 
 catalog:
   sanity: '^6.5.0'
-  '@sanity/client': '^7.24.0'
+  '@sanity/client': '^8.4.0'
   '@sanity/vision': '^6.5.0'
   '@sanity/image-url': '^2.1.1'
   '@portabletext/types': '^4.0.2'
