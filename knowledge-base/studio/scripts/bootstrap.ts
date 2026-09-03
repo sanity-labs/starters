@@ -13,7 +13,8 @@
  *  7. Make the dataset private (security model: no API access without a token)
  *  8. Enable Dataset Embeddings (powers hybrid semantic retrieval)
  *  9. Create the external + internal read tokens and write their Agent Context MCP URLs,
- *     plus the Agent Insights write token shared by both chat surfaces (if enabled)
+ *     plus the Agent Insights write token shared by both chat surfaces (if enabled),
+ *     plus the shared secret the dashboard uses to authenticate to its chat proxy
  * 10. Import seed data (ndjson)
  * 11. Restore dependencies (blueprint deploy can disrupt node_modules)
  * 12. Generate types (schema extract + typegen) so `pnpm dev` works out of the box
@@ -23,6 +24,7 @@
  */
 
 import {execFileSync} from 'node:child_process'
+import {randomBytes} from 'node:crypto'
 import {copyFileSync, existsSync, readFileSync, writeFileSync} from 'node:fs'
 import {resolve} from 'node:path'
 import {getCliClient} from 'sanity/cli'
@@ -406,7 +408,8 @@ try {
 // ── 9. External read token + MCP URL ─────────────────────────────────────────
 // A Viewer token, used server-side by the help center to call its Agent Context
 // MCP endpoint. Never exposed to the browser. The external/internal boundary is
-// the MCP slug (customer-support) + groqFilter, not the token's role.
+// the MCP slug (customer-support) + groqFilter (external types, published
+// status only), not the token's role.
 
 heading('External read token')
 try {
@@ -545,6 +548,34 @@ if (!insightsEnabled) {
       'cd studio && npx sanity tokens add "KB Insights" --role editor  # then add SANITY_INSIGHTS_WRITE_TOKEN to app/.env.local and dashboard-server/.env.local',
     )
   }
+}
+
+// ── 9d. Dashboard API token ──────────────────────────────────────────────────
+// A shared secret the dashboard presents to dashboard-server on /api/chat, so
+// the internal chat proxy is not open to anyone who can reach it. Generated
+// locally (no Sanity call) and written to both sides. Minimal gate — a real
+// deployment should put the proxy behind its own auth (see README).
+
+heading('Dashboard API token')
+try {
+  const existingToken = parseEnvFile(serverEnvLocal).DASHBOARD_API_TOKEN
+  const dashboardApiToken =
+    existingToken && isRealValue(existingToken) ? existingToken : randomBytes(32).toString('hex')
+  if (dashboardApiToken === existingToken) {
+    console.log('Dashboard API token already set — reusing')
+  } else {
+    patchEnvVar(serverEnvLocal, 'DASHBOARD_API_TOKEN', dashboardApiToken)
+    console.log('Generated dashboard API token')
+  }
+  patchEnvVar(dashboardEnvLocal, 'SANITY_APP_DASHBOARD_API_TOKEN', dashboardApiToken)
+  console.log('Wrote dashboard API token to dashboard and dashboard-server env')
+  success('Dashboard API token')
+} catch (err) {
+  failed(
+    'Dashboard API token',
+    err,
+    'openssl rand -hex 32  # then set DASHBOARD_API_TOKEN in dashboard-server/.env.local and SANITY_APP_DASHBOARD_API_TOKEN in dashboard/.env.local',
+  )
 }
 
 // ── 10. Import seed data ─────────────────────────────────────────────────────

@@ -6,9 +6,16 @@ import {ResultCards} from './result-cards'
 
 // Chat talks to the dashboard-server proxy, which holds the internal read token
 // and calls the internal Agent Context (Team KB) — the token never reaches here.
+// The proxy requires a shared secret as a bearer token so it is not open to
+// anyone who can reach it; that secret is not a Sanity token and is bundled
+// into this browser app by design (see dashboard/.env.example).
 export function ChatPanel() {
   const transport = useMemo(
-    () => new DefaultChatTransport({api: process.env.SANITY_APP_CHAT_PROXY_URL}),
+    () =>
+      new DefaultChatTransport({
+        api: process.env.SANITY_APP_CHAT_PROXY_URL,
+        headers: {Authorization: `Bearer ${process.env.SANITY_APP_DASHBOARD_API_TOKEN}`},
+      }),
     [],
   )
   const {messages, sendMessage, status} = useChat({
