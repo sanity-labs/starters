@@ -1,6 +1,6 @@
 # Knowledge Base Starter
 
-Governed Sanity knowledge base feeding two AI surfaces from one private dataset, each scoped by its own Agent Context (hosted MCP) config: an external help center (`app/`, slug `customer-support`) and an internal staff tool (`dashboard/` + `dashboard-server/`, slug `team-kb`). See `README.md` for the full picture and `skills/add-scoped-agent-surface/` for adding more surfaces.
+Governed Sanity knowledge base feeding two AI surfaces from one private dataset, each scoped by its own Agent Context (hosted MCP) config: an external help center (`app/`, slug `customer-support`) and an internal staff tool (`dashboard/` + `dashboard-server/`, slug `team-kb`). See `README.md` for the full picture. To add another surface, mint a token, define a new `sanity.agentContext` document with its own `groqFilter` and instructions in `studio/scripts/generate-seed.ts`, and point the new client at its slug.
 
 ## Quick start
 

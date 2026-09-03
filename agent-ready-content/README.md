@@ -46,7 +46,6 @@ packages/
   schema/          section, article, code, callout document types
   agent-markdown/  Portable Text serializers, document builders, GROQ queries
 seed/              Sample content (Keplar, a fictional geospatial API)
-skills/            Claude Code skill for porting the pattern to existing projects
 ```
 
 ## How the markdown routes work
@@ -59,7 +58,7 @@ Everything that defines the markdown output lives in `packages/agent-markdown`. 
 
 ## Adopting the pattern in an existing project
 
-You don't need this starter's content model. [`skills/agent-ready-content/SKILL.md`](skills/agent-ready-content/SKILL.md) walks a coding agent through porting the pattern onto your existing schema: point the queries at your document types, map your custom blocks in the serializers, add the route files for your framework. By hand, budget roughly a day; the serializers for your custom blocks are the only part with real decisions in it.
+You don't need this starter's content model. Porting the pattern onto your existing schema comes down to three steps: point the queries in `packages/agent-markdown` at your document types, map your custom blocks in the serializers, and add the route files for your framework (see the Next.js and Astro apps here for both shapes). Budget roughly a day; the serializers for your custom blocks are the only part with real decisions in it.
 
 ## Type safety
 
