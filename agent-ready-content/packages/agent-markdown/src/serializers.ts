@@ -2,6 +2,7 @@ import {portableTextToMarkdown} from '@portabletext/markdown'
 import type {TypedObject} from '@portabletext/types'
 import imageUrlBuilder from '@sanity/image-url'
 import type {SanityClient} from '@sanity/client'
+import {fenceFor} from './fence'
 import type {CalloutBlock, CodeBlock, ImageBlock} from './types'
 
 /**
@@ -15,7 +16,9 @@ import type {CalloutBlock, CodeBlock, ImageBlock} from './types'
  *   the dialect agents see most in training data and working repos.
  * - Code fences carry the filename in the info string
  *   (```typescript:src/lib/example.ts), so structure modeled in the
- *   schema survives into the markdown.
+ *   schema survives into the markdown. The fence is sized to the code
+ *   (see fenceFor), so a snippet that itself contains ``` stays inside
+ *   the block.
  */
 export function createConverter(client: SanityClient) {
   const builder = imageUrlBuilder(client)
@@ -26,7 +29,8 @@ export function createConverter(client: SanityClient) {
         code: ({value}: {value: CodeBlock}) => {
           const {language = '', filename, code} = value
           const lang = filename ? `${language}:${filename}` : language
-          return `\`\`\`${lang}\n${code}\n\`\`\``
+          const fence = fenceFor(code)
+          return `${fence}${lang}\n${code}\n${fence}`
         },
         image: ({value}: {value: ImageBlock}) => {
           const url = builder.image(value.asset).url()
