@@ -1,33 +1,38 @@
 /**
  * @starter/render-email
  *
- * Platform-agnostic MJML rendering, streaming, sanitization, and ESP stub handling
- * for email preview pipelines.
+ * Platform-agnostic MJML rendering, sanitization, escaping, and ESP stub handling
+ * for email preview and dispatch.
  *
  * ## Usage
  *
  * Local render (content ops):
  * ```ts
- * import { renderPromotionLocal } from '@starter/render-email'
+ * import {renderPromotionLocal} from '@starter/render-email'
  * const html = await renderPromotionLocal(promotion, previewContext)
  * ```
  *
- * Streaming render (preview service):
+ * Klaviyo render, sanitized for a browser preview:
  * ```ts
- * import { renderMjmlStream, sanitizeStream, StubReplacerStream } from '@starter/render-email/streaming'
- * const stream = renderMjmlStream(mjml)
- *   .pipe(sanitizeStream())
- *   .pipe(new StubReplacerStream())
+ * import {renderPromotionKlaviyo} from '@starter/render-email'
+ * import {sanitizeEmailHtml} from '@starter/render-email/sanitize'
+ * const html = sanitizeEmailHtml(await renderPromotionKlaviyo(promotion))
+ * ```
+ *
+ * Streaming helpers (async iterables, not Node streams):
+ * ```ts
+ * import {renderMjmlStream, stubReplacer, streamToString} from '@starter/render-email/streaming'
+ * const html = await streamToString(stubReplacer(renderMjmlStream(mjml), {coupon_code: 'SAVE10'}))
  * ```
  *
  * Stubs & accuracy metadata:
  * ```ts
- * import { buildPreviewStatus, stubKlaviyoTags } from '@starter/render-email/stubs'
+ * import {buildPreviewStatus, stubKlaviyoTags} from '@starter/render-email/stubs'
  * ```
  *
- * Sanitization:
+ * Escaping helpers, dependency-free so a Sanity Function can bundle them:
  * ```ts
- * import { createEmailSanitizer } from '@starter/render-email/sanitize'
+ * import {escapeHtml, safeHttpUrl} from '@starter/render-email/escape'
  * ```
  */
 
