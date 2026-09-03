@@ -1,6 +1,6 @@
 import {createClient, defineQuery} from 'next-sanity'
 import {ApiKeySession, TemplatesApi} from 'klaviyo-api'
-import {verifyPreviewSecret, PREVIEW_SECURITY_HEADERS} from '../../_auth'
+import {verifyPreviewSecret, previewAuthErrorResponse, PREVIEW_SECURITY_HEADERS} from '../../_auth'
 import 'sanity-types'
 
 async function createKlaviyoTemplate(apiKey: string, name: string, html: string): Promise<string> {
@@ -103,9 +103,8 @@ export async function GET(
   request: Request,
   {params}: {params: Promise<{id: string}>},
 ): Promise<Response> {
-  if (!verifyPreviewSecret(request)) {
-    return new Response('Unauthorized', {status: 401})
-  }
+  const auth = verifyPreviewSecret(request)
+  if (auth !== 'ok') return previewAuthErrorResponse(auth)
 
   const {id: rawId} = await params
   const id = rawId.replace(/^drafts\./, '')
