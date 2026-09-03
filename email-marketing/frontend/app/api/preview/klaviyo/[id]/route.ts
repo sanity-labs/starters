@@ -120,6 +120,7 @@ export async function GET(
   if (!promotion) return new Response('Not Found', {status: 404})
 
   const {renderPromotionKlaviyo} = await import('@starter/render-email')
+  const {sanitizeEmailHtml} = await import('@starter/render-email/sanitize')
   const klaviyoHtml = await renderPromotionKlaviyo(promotion)
   const contextKeys = (promotion.previewContext ?? []).map((t) => t.key ?? '').filter(Boolean)
 
@@ -144,10 +145,14 @@ export async function GET(
     }
   }
 
-  const {header, body} = buildPreviewStatus(klaviyoHtml, renderedHtml, contextKeys)
+  // Sanitize the whole document once before it reaches a browser. Fields are
+  // escaped at render time, but this HTML may also have round-tripped through
+  // Klaviyo's render API, so the final document is treated as untrusted.
+  const safeHtml = sanitizeEmailHtml(renderedHtml)
+  const {header, body} = buildPreviewStatus(klaviyoHtml, safeHtml, contextKeys)
 
   if (wantsJson) {
-    return new Response(JSON.stringify({html: renderedHtml, previewStatus: body}), {
+    return new Response(JSON.stringify({html: safeHtml, previewStatus: body}), {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
@@ -156,7 +161,7 @@ export async function GET(
     })
   }
 
-  return new Response(renderedHtml, {
+  return new Response(safeHtml, {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'X-Preview-Status': header,
