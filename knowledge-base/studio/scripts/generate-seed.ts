@@ -629,7 +629,7 @@ const EXTERNAL_INSTRUCTIONS = `# Customer Support context
 - Hybrid retrieval: \`*[_type in ["helpArticle","faq"]] | score(text::semanticSimilarity("content", $query)) | order(_score desc)[0...5]\`.
 
 ## Content filter
-Scoped to external types only — internal playbooks and policies are never visible here.`
+Scoped to published external content only — help articles and FAQs still in draft or archived status, and all internal playbooks and policies, are never visible here.`
 
 const INTERNAL_INSTRUCTIONS = `# Team KB context
 
@@ -729,13 +729,20 @@ const emitInternal = (type: 'playbook' | 'policy', items: Internal[]) => {
 emitInternal('playbook', playbooks)
 emitInternal('policy', policies)
 
+// The filter is the enforced boundary; the instructions only advise. Content
+// types carry a workflow `status` (helpArticle, faq) and must be published to
+// be visible externally; taxonomy types (product, topic) have no status and
+// stay visible. Context MCP already queries the published perspective, so
+// Sanity drafts are excluded without a separate clause. Kept as a top-level
+// `&&` so it composes safely with whatever the agent's own query adds.
 docs.push({
   _id: 'agentContext.external',
   _type: 'sanity.agentContext',
   version: '1',
   name: 'Customer Support',
   slug: {_type: 'slug', current: 'customer-support'},
-  groqFilter: '_type in ["helpArticle", "faq", "product", "topic"]',
+  groqFilter:
+    '_type in ["helpArticle", "faq", "product", "topic"] && (_type in ["product", "topic"] || status == "published")',
   instructions: EXTERNAL_INSTRUCTIONS,
 })
 docs.push({

@@ -6,6 +6,7 @@ import {serve} from '@hono/node-server'
 import {convertToModelMessages, stepCountIs, streamText, tool, type ToolSet, zodSchema} from 'ai'
 import {Hono} from 'hono'
 import {cors} from 'hono/cors'
+import {timingSafeEqual} from 'node:crypto'
 import {z} from 'zod'
 
 import {MODEL_ID, SYSTEM_PROMPT} from './constants'
@@ -61,16 +62,63 @@ function insightsTelemetry(threadId: string) {
   }
 }
 
+// ── Access control ───────────────────────────────────────────────────────────
+// This proxy fronts the internal knowledge base (policies, playbooks, HR,
+// security), so it must not be callable by anyone who can reach the port. The
+// dashboard presents a shared secret as a bearer token; requests without it
+// get 401, and the proxy fails closed (500) if the secret was never configured.
+// This is a minimal gate for a starter — a real deployment should sit behind
+// its own SSO / auth layer (or verify the caller's Sanity session) instead.
+
+const isProduction = process.env.NODE_ENV === 'production'
+const apiToken = process.env.DASHBOARD_API_TOKEN
+
+if (!apiToken) {
+  console.error(
+    'DASHBOARD_API_TOKEN is not set — /api/chat will refuse every request.\n' +
+      '  Run `pnpm bootstrap`, or set DASHBOARD_API_TOKEN in dashboard-server/.env.local and\n' +
+      '  the same value as SANITY_APP_DASHBOARD_API_TOKEN in dashboard/.env.local.',
+  )
+}
+
+// CORS is never a wildcard. Production must name the dashboard's origin; dev
+// falls back to the local App SDK dev server.
+const allowedOrigins = process.env.DASHBOARD_ORIGIN
+  ? [process.env.DASHBOARD_ORIGIN]
+  : isProduction
+    ? []
+    : ['http://localhost:3333']
+
+if (allowedOrigins.length === 0) {
+  console.error(
+    'DASHBOARD_ORIGIN is not set — browsers will be blocked by CORS. Set it to the deployed dashboard origin.',
+  )
+}
+
+const isAuthorized = (authorizationHeader: string | undefined): boolean => {
+  if (!apiToken || !authorizationHeader?.startsWith('Bearer ')) return false
+  const presented = Buffer.from(authorizationHeader.slice('Bearer '.length))
+  const expected = Buffer.from(apiToken)
+  return presented.length === expected.length && timingSafeEqual(presented, expected)
+}
+
 const app = new Hono()
 
 app.use(
   '/api/*',
   cors({
-    origin: process.env.DASHBOARD_ORIGIN ?? '*',
-    allowHeaders: ['Content-Type'],
+    origin: allowedOrigins,
+    allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['POST', 'OPTIONS'],
   }),
 )
+
+// Runs after cors() so preflight requests still get their headers.
+app.use('/api/*', async (c, next) => {
+  if (!apiToken) return c.json({error: 'DASHBOARD_API_TOKEN is not set'}, 500)
+  if (!isAuthorized(c.req.header('Authorization'))) return c.json({error: 'Unauthorized'}, 401)
+  await next()
+})
 
 app.post('/api/chat', async (c) => {
   // `id` is the chat id — the AI SDK's default transport sends it with every
