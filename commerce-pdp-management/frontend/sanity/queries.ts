@@ -19,13 +19,16 @@ const RULE = `{
  * The control plane singleton: the prioritized list of active attribute rules.
  * References resolve to approved rules in array (priority) order. A null result
  * means no rules are active — every product renders as pure Shopify.
+ *
+ * Product-type scopes dereference their own rules too, so a rule that only
+ * appears in a scope (not in the global list) still reaches the resolver.
  */
 export const controlPlaneQuery = defineQuery(`
   *[_type == "controlPlane" && _id == "controlPlane"][0]{
     "priorityList": priorityList[]->${RULE},
     "productTypeScopes": productTypeScopes[]{
       productType,
-      "ruleIds": priorityList[]._ref
+      "priorityList": priorityList[]->${RULE}
     }
   }
 `)

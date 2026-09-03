@@ -313,7 +313,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../frontend/sanity/queries.ts
 // Variable: controlPlaneQuery
-// Query: *[_type == "controlPlane" && _id == "controlPlane"][0]{    "priorityList": priorityList[]->{  _id,  name,  category,  description,  "iconUrl": icon.asset->url,  "tags": coalesce(tags, []),  "excludedTags": coalesce(excludedTags, []),  language,  "order": coalesce(order, 0),  status},    "productTypeScopes": productTypeScopes[]{      productType,      "ruleIds": priorityList[]._ref    }  }
+// Query: *[_type == "controlPlane" && _id == "controlPlane"][0]{    "priorityList": priorityList[]->{  _id,  name,  category,  description,  "iconUrl": icon.asset->url,  "tags": coalesce(tags, []),  "excludedTags": coalesce(excludedTags, []),  language,  "order": coalesce(order, 0),  status},    "productTypeScopes": productTypeScopes[]{      productType,      "priorityList": priorityList[]->{  _id,  name,  category,  description,  "iconUrl": icon.asset->url,  "tags": coalesce(tags, []),  "excludedTags": coalesce(excludedTags, []),  language,  "order": coalesce(order, 0),  status}    }  }
 export type ControlPlaneQueryResult = {
   priorityList: Array<{
     _id: string
@@ -329,7 +329,18 @@ export type ControlPlaneQueryResult = {
   }> | null
   productTypeScopes: Array<{
     productType: string | null
-    ruleIds: Array<string> | null
+    priorityList: Array<{
+      _id: string
+      name: string | null
+      category: 'care' | 'fit' | 'launch' | 'lifestyle' | 'spec' | null
+      description: BlockContent | null
+      iconUrl: string | null
+      tags: Array<string> | Array<never>
+      excludedTags: Array<string> | Array<never>
+      language: string | null
+      order: number | 0
+      status: 'approved' | 'draft' | 'in-review' | null
+    }> | null
   }> | null
 } | null
 
@@ -370,7 +381,7 @@ export type RULE_QUERY_RESULT =
 import '@sanity/client'
 declare module '@sanity/client' {
   interface SanityQueries {
-    '\n  *[_type == "controlPlane" && _id == "controlPlane"][0]{\n    "priorityList": priorityList[]->{\n  _id,\n  name,\n  category,\n  description,\n  "iconUrl": icon.asset->url,\n  "tags": coalesce(tags, []),\n  "excludedTags": coalesce(excludedTags, []),\n  language,\n  "order": coalesce(order, 0),\n  status\n},\n    "productTypeScopes": productTypeScopes[]{\n      productType,\n      "ruleIds": priorityList[]._ref\n    }\n  }\n': ControlPlaneQueryResult
+    '\n  *[_type == "controlPlane" && _id == "controlPlane"][0]{\n    "priorityList": priorityList[]->{\n  _id,\n  name,\n  category,\n  description,\n  "iconUrl": icon.asset->url,\n  "tags": coalesce(tags, []),\n  "excludedTags": coalesce(excludedTags, []),\n  language,\n  "order": coalesce(order, 0),\n  status\n},\n    "productTypeScopes": productTypeScopes[]{\n      productType,\n      "priorityList": priorityList[]->{\n  _id,\n  name,\n  category,\n  description,\n  "iconUrl": icon.asset->url,\n  "tags": coalesce(tags, []),\n  "excludedTags": coalesce(excludedTags, []),\n  language,\n  "order": coalesce(order, 0),\n  status\n}\n    }\n  }\n': ControlPlaneQueryResult
     '\n  *[_type == "skuEnrichment" && status == "approved" && product.productGid == $gid][0]{\n    "productGid": product.productGid,\n    headline,\n    editorialCopy,\n    "lifestyleImages": lifestyleImages[]{\n      "url": asset->url,\n      "altText": asset->altText\n    },\n    launchBadge,\n    status\n  }\n': SkuEnrichmentByGidQueryResult
     '*[_id == $id][0]{status, "reviewedAt": aiEnrichment.reviewedAt}': RULE_QUERY_RESULT
   }
