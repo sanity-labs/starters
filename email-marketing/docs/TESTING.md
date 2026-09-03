@@ -4,40 +4,31 @@
 
 ### Unit Tests (Base)
 
-**Render pipeline:**
+**Render pipeline** (`packages/render-email/src/**/*.test.ts`, run with `pnpm test`):
 
-- `renderMjmlStream(promotion)` produces valid HTML
-- `sanitizeStream()` removes scripts while preserving email markup
-- `StubReplacerStream` handles Handlebars tags across chunk boundaries
+- `renderPromotionLocal` / `renderPromotionKlaviyo` produce HTML containing every block's content, resolve preview-context tokens, and keep Klaviyo tokens for the send path
+- `output escaping`: hostile field values (`<script>`, attribute-breaking quotes, `javascript:`/`data:` URLs) never reach the output unescaped
+- `escapeHtml` / `safeHttpUrl`: the escaping table and the http(s)-only URL rule
+- `sanitizeEmailHtml`: strips scripts, event handlers, forms, and non-http(s) URLs from a whole document while preserving `<html>/<head>/<style>`, tables, and Handlebars tokens; includes the regression for a `>` inside a quoted attribute that defeated chunk-wise sanitizing
+- `stubKlaviyoTags` / `resolvePreviewContext` / `buildPreviewStatus`: stub replacement and accuracy metadata
 
 **Example:**
 
 ```typescript
-import {renderMjmlStream} from '@starter/render-email'
+import {renderPromotionKlaviyo} from '@starter/render-email'
+import {sanitizeEmailHtml} from '@starter/render-email/sanitize'
 
-describe('renderMjmlStream', () => {
-  it('produces valid HTML from MJML input', async () => {
-    const promotion = {
-      /* ... */
-    }
-    const chunks = []
-
-    renderMjmlStream(promotion)
-      .on('data', (chunk) => chunks.push(chunk))
-      .on('end', () => {
-        const html = Buffer.concat(chunks).toString()
-        expect(html).toContain('<html')
-        expect(html).toContain('</html>')
-      })
+describe('preview HTML', () => {
+  it('never ships authored markup', async () => {
+    const html = await renderPromotionKlaviyo({
+      emailSlots: [{_type: 'emailSection', headline: '<script>alert(1)</script>'}],
+    })
+    expect(html).not.toContain('<script>')
   })
 
-  it('sanitizes script tags', async () => {
-    const malicious = '<script>alert("xss")</script><p>Safe</p>'
-    const sanitized = DOMPurify.sanitize(malicious, {
-      /* ... */
-    })
-    expect(sanitized).not.toContain('script')
-    expect(sanitized).toContain('Safe')
+  it('sanitizes the whole document once', () => {
+    const out = sanitizeEmailHtml('<html><body><img src="x>y" onerror="alert(1)"></body></html>')
+    expect(out).not.toContain('onerror')
   })
 })
 ```
@@ -196,45 +187,30 @@ export default function () {
 - Verify `frame-ancestors` matches token claim
 - Test with CSP violation reporter enabled (collect violations, don't enforce)
 
-**SSRF prevention:**
+**URL scheme guard** (implemented, unit-tested in `escape.test.ts` and `index.test.ts`):
 
-- Attempt to reference `169.254.169.254` (AWS metadata) — expect 400
-- Attempt to reference internal hostname — expect 400
-- Verify allow-listed origins are accessible
+- `javascript:`, `data:`, `vbscript:`, and relative URLs in CTA, product, image, and logo fields are dropped together with the element that would use them
+- http(s) URLs pass through attribute-escaped (`&` becomes `&amp;`)
 
-**Example:**
+**SSRF host allow-listing** is not implemented; the frontend never fetches authored URLs server-side, so there is nothing to allow-list yet. If you add server-side fetching, add the allow-list and the tests below first:
 
 ```typescript
 describe('SSRF Prevention', () => {
-  it('blocks AWS metadata endpoint', async () => {
-    const maliciousPromo = {
-      emailSlots: [
-        {
-          asset: {url: 'http://169.254.169.254/latest/meta-data/'},
-        },
-      ],
-    }
-
-    // Create promotion with malicious URL
-    const response = await renderPromotion(maliciousPromo)
-    expect(response.status).toBe(400)
-    expect(response.body).toContain('Unsafe URL')
+  it('blocks the AWS metadata endpoint', () => {
+    expect(isAllowedAssetHost('http://169.254.169.254/latest/meta-data/')).toBe(false)
   })
 
-  it('allows configured DAM origins', async () => {
-    const safePromo = {
-      emailSlots: [
-        {
-          asset: {url: 'https://my-dam.aem.adobe.com/image.jpg'},
-        },
-      ],
-    }
-
-    const response = await renderPromotion(safePromo)
-    expect(response.status).toBe(200)
+  it('allows configured DAM origins', () => {
+    expect(isAllowedAssetHost('https://my-dam.aem.adobe.com/image.jpg')).toBe(true)
   })
 })
 ```
+
+**Preview auth** (not automated; verify manually):
+
+- With `SANITY_PREVIEW_SECRET` set: wrong or missing `?sanity-preview-secret=` returns 401
+- With it unset and `NODE_ENV=production`: every request returns 500 and the server logs the missing variable
+- With it unset in development: requests succeed and a warning is logged once
 
 **Auth tests:**
 
@@ -244,33 +220,28 @@ describe('SSRF Prevention', () => {
 
 ## Test Coverage Goals
 
-| Component                                                                  | Type               | Coverage                                                           |
-| :------------------------------------------------------------------------- | :----------------- | :----------------------------------------------------------------- |
-| `@starter/render-email` (at `packages/@starter/render-email/`)             | Unit               | 85%+ (streaming behavior is hard to mock; integration tests count) |
-| `@starter/esp-connector` (at `packages/@starter/esp-connector/`)           | Unit               | 90%+ (payload composition is deterministic)                        |
-| `@starter/preview-middleware` (at `packages/@starter/preview-middleware/`) | Unit + Integration | 95%+ (security-critical)                                           |
-| Preview service routes                                                     | Integration        | 90%+ (HTTP contract is essential)                                  |
-| Content Agent integration                                                  | Integration        | 80%+ (depends on content-agent external service)                   |
-| Functions (on-promotion-approved)                                          | Integration        | 85%+ (requires Sanity Functions runtime mock)                      |
+| Component                                                                  | Type               | Coverage                                         |
+| :------------------------------------------------------------------------- | :----------------- | :----------------------------------------------- |
+| `@starter/render-email` (at `packages/render-email/`)                      | Unit               | 85%+ (renderer, escaping, sanitizer, stubs)      |
+| `@starter/esp-connector` (at `packages/@starter/esp-connector/`)           | Unit               | 90%+ (payload composition is deterministic)      |
+| `@starter/preview-middleware` (at `packages/@starter/preview-middleware/`) | Unit + Integration | 95%+ (security-critical)                         |
+| Preview service routes                                                     | Integration        | 90%+ (HTTP contract is essential)                |
+| Content Agent integration                                                  | Integration        | 80%+ (depends on content-agent external service) |
+| Functions (on-promotion-approved)                                          | Integration        | 85%+ (requires Sanity Functions runtime mock)    |
 
 ## Running Tests
 
 ```bash
-# Unit tests
-pnpm test:unit
+# Unit tests (vitest projects: render-email, functions, studio)
+pnpm test
+pnpm test:watch
 
-# Integration tests (requires local Sanity instance + preview service running)
-pnpm test:integration
-
-# Security tests
-pnpm test:security
-
-# Load test (k6)
-k6 run tests/load-test.js
-
-# All tests with coverage
-pnpm test:coverage
+# End-to-end tests (Playwright; needs Studio + frontend running, see e2e/.env.example)
+pnpm e2e
+pnpm e2e:headed
 ```
+
+The integration, load, and coverage commands described elsewhere in this document are guidance for what to add, not scripts that exist in `package.json`.
 
 ## Continuous Integration
 

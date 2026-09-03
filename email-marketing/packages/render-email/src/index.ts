@@ -1,33 +1,38 @@
 /**
  * @starter/render-email
  *
- * Platform-agnostic MJML rendering, streaming, sanitization, and ESP stub handling
- * for email preview pipelines.
+ * Platform-agnostic MJML rendering, sanitization, escaping, and ESP stub handling
+ * for email preview and dispatch.
  *
  * ## Usage
  *
  * Local render (content ops):
  * ```ts
- * import { renderPromotionLocal } from '@starter/render-email'
+ * import {renderPromotionLocal} from '@starter/render-email'
  * const html = await renderPromotionLocal(promotion, previewContext)
  * ```
  *
- * Streaming render (preview service):
+ * Klaviyo render, sanitized for a browser preview:
  * ```ts
- * import { renderMjmlStream, sanitizeStream, StubReplacerStream } from '@starter/render-email/streaming'
- * const stream = renderMjmlStream(mjml)
- *   .pipe(sanitizeStream())
- *   .pipe(new StubReplacerStream())
+ * import {renderPromotionKlaviyo} from '@starter/render-email'
+ * import {sanitizeEmailHtml} from '@starter/render-email/sanitize'
+ * const html = sanitizeEmailHtml(await renderPromotionKlaviyo(promotion))
+ * ```
+ *
+ * Streaming helpers (async iterables, not Node streams):
+ * ```ts
+ * import {renderMjmlStream, stubReplacer, streamToString} from '@starter/render-email/streaming'
+ * const html = await streamToString(stubReplacer(renderMjmlStream(mjml), {coupon_code: 'SAVE10'}))
  * ```
  *
  * Stubs & accuracy metadata:
  * ```ts
- * import { buildPreviewStatus, stubKlaviyoTags } from '@starter/render-email/stubs'
+ * import {buildPreviewStatus, stubKlaviyoTags} from '@starter/render-email/stubs'
  * ```
  *
- * Sanitization:
+ * Escaping helpers, dependency-free so a Sanity Function can bundle them:
  * ```ts
- * import { createEmailSanitizer } from '@starter/render-email/sanitize'
+ * import {escapeHtml, safeHttpUrl} from '@starter/render-email/escape'
  * ```
  */
 
@@ -47,6 +52,7 @@ export type {
 
 import mjml from 'mjml'
 import {stubKlaviyoTags} from './stubs'
+import {escapeHtml, safeHttpUrl} from './escape'
 
 type Block = {
   _type?: string | null
@@ -74,24 +80,17 @@ type PromotionInput = {
   emailSlots?: Block[] | null
 }
 
-function esc(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
-
 function renderHeaderMjml(block: Block): string {
   const parts: string[] = []
-  if (block.logoImageUrl) {
+  const logoUrl = safeHttpUrl(block.logoImageUrl)
+  if (logoUrl) {
     parts.push(
-      `<mj-image src="${esc(block.logoImageUrl)}" alt="${esc(block.brandName ?? '')}" width="150px" padding="16px 0" />`,
+      `<mj-image src="${escapeHtml(logoUrl)}" alt="${escapeHtml(block.brandName)}" width="150px" padding="16px 0" />`,
     )
   }
-  if (block.brandName && !block.logoImageUrl) {
+  if (block.brandName && !logoUrl) {
     parts.push(
-      `<mj-text font-size="18px" font-weight="bold" color="#111111" align="center">${esc(block.brandName)}</mj-text>`,
+      `<mj-text font-size="18px" font-weight="bold" color="#111111" align="center">${escapeHtml(block.brandName)}</mj-text>`,
     )
   }
   if (parts.length === 0) return ''
@@ -103,10 +102,11 @@ function renderHeaderMjml(block: Block): string {
 function renderSectionMjml(block: Block): string {
   const parts: string[] = []
 
-  if (block.imageUrl) {
+  const imageUrl = safeHttpUrl(block.imageUrl)
+  if (imageUrl) {
     parts.push(`<mj-section padding="0">
       <mj-column>
-        <mj-image src="${esc(block.imageUrl)}" alt="" width="600px" padding="0" />
+        <mj-image src="${escapeHtml(imageUrl)}" alt="" width="600px" padding="0" />
       </mj-column>
     </mj-section>`)
   }
@@ -114,12 +114,12 @@ function renderSectionMjml(block: Block): string {
   const textParts: string[] = []
   if (block.headline) {
     textParts.push(
-      `<mj-text font-size="22px" font-weight="bold" color="#111111" padding-bottom="8px">${esc(block.headline)}</mj-text>`,
+      `<mj-text font-size="22px" font-weight="bold" color="#111111" padding-bottom="8px">${escapeHtml(block.headline)}</mj-text>`,
     )
   }
   if (block.body) {
     textParts.push(
-      `<mj-text font-size="15px" color="#555555" line-height="1.6" padding-bottom="16px">${esc(block.body)}</mj-text>`,
+      `<mj-text font-size="15px" color="#555555" line-height="1.6" padding-bottom="16px">${escapeHtml(block.body)}</mj-text>`,
     )
   }
   if (textParts.length > 0) {
@@ -133,22 +133,24 @@ function renderSectionMjml(block: Block): string {
     const productCols = products
       .map((p) => {
         const col: string[] = []
-        if (p.imageUrl) {
+        const productImageUrl = safeHttpUrl(p.imageUrl)
+        const productUrl = safeHttpUrl(p.url)
+        if (productImageUrl) {
           col.push(
-            `<mj-image src="${esc(p.imageUrl)}" alt="${esc(p.title ?? '')}" width="250px" padding-bottom="8px" />`,
+            `<mj-image src="${escapeHtml(productImageUrl)}" alt="${escapeHtml(p.title)}" width="250px" padding-bottom="8px" />`,
           )
         }
         if (p.title) {
           col.push(
-            `<mj-text font-size="14px" font-weight="bold" color="#111111">${esc(p.title)}</mj-text>`,
+            `<mj-text font-size="14px" font-weight="bold" color="#111111">${escapeHtml(p.title)}</mj-text>`,
           )
         }
         if (p.price != null) {
           col.push(`<mj-text font-size="13px" color="#555555">$${p.price.toFixed(2)}</mj-text>`)
         }
-        if (p.url) {
+        if (productUrl) {
           col.push(
-            `<mj-button background-color="#111111" color="#ffffff" href="${esc(p.url)}" font-size="12px" border-radius="4px" inner-padding="8px 16px">View</mj-button>`,
+            `<mj-button background-color="#111111" color="#ffffff" href="${escapeHtml(productUrl)}" font-size="12px" border-radius="4px" inner-padding="8px 16px">View</mj-button>`,
           )
         }
         return `<mj-column>${col.join('\n        ')}</mj-column>`
@@ -163,13 +165,14 @@ function renderSectionMjml(block: Block): string {
 }
 
 function renderCTAMjml(block: Block): string {
-  if (!block.text || !block.url) return ''
+  const url = safeHttpUrl(block.url)
+  if (!block.text || !url) return ''
   const bg = block.style === 'secondary' ? '#ffffff' : '#111111'
   const fg = block.style === 'secondary' ? '#111111' : '#ffffff'
   const border = block.style === 'secondary' ? 'border="1px solid #111111"' : ''
   return `<mj-section padding="16px 32px" background-color="#ffffff">
       <mj-column>
-        <mj-button background-color="${bg}" color="${fg}" ${border} href="${esc(block.url)}" font-size="14px" border-radius="4px" inner-padding="12px 24px">${esc(block.text)}</mj-button>
+        <mj-button background-color="${bg}" color="${fg}" ${border} href="${escapeHtml(url)}" font-size="14px" border-radius="4px" inner-padding="12px 24px">${escapeHtml(block.text)}</mj-button>
       </mj-column>
     </mj-section>`
 }
@@ -184,12 +187,12 @@ function renderFooterMjml(block: Block): string {
   const parts: string[] = []
   if (block.legalText) {
     parts.push(
-      `<mj-text font-size="11px" color="#aaaaaa" align="center" padding-bottom="8px">${esc(block.legalText)}</mj-text>`,
+      `<mj-text font-size="11px" color="#aaaaaa" align="center" padding-bottom="8px">${escapeHtml(block.legalText)}</mj-text>`,
     )
   }
   const unsubText = block.unsubscribeText ?? 'Unsubscribe'
   parts.push(`<mj-text font-size="11px" color="#aaaaaa" align="center">
-          <a href="{{ unsubscribe_url }}" style="color:#aaaaaa;text-decoration:none;">${esc(unsubText)}</a>
+          <a href="{{ unsubscribe_url }}" style="color:#aaaaaa;text-decoration:none;">${escapeHtml(unsubText)}</a>
         </mj-text>`)
   return `<mj-section background-color="#ffffff" padding="24px">
       <mj-column>${parts.join('\n        ')}</mj-column>
@@ -231,7 +234,7 @@ function buildMjml(promotion: PromotionInput): string {
       promotion.disruptor
         ? `<mj-section background-color="#111111" padding="8px 0">
       <mj-column>
-        <mj-text color="#ffffff" font-size="11px" font-weight="bold" letter-spacing="3px" align="center">${esc(promotion.disruptor)}</mj-text>
+        <mj-text color="#ffffff" font-size="11px" font-weight="bold" letter-spacing="3px" align="center">${escapeHtml(promotion.disruptor)}</mj-text>
       </mj-column>
     </mj-section>`
         : ''

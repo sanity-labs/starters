@@ -120,6 +120,54 @@ describe('renderPromotionLocal', () => {
   })
 })
 
+describe('output escaping', () => {
+  const HOSTILE_PROMOTION = {
+    disruptor: '<img src=x onerror=alert(1)>',
+    emailSlots: [
+      {
+        _type: 'emailHeader' as const,
+        brandName: 'Brand" onmouseover="alert(1)',
+        logoImageUrl: 'javascript:alert(1)',
+      },
+      {
+        _type: 'emailSection' as const,
+        headline: '<script>alert(1)</script>',
+        body: 'Save 50% & more',
+        imageUrl: 'data:text/html,<script>alert(1)</script>',
+        products: [
+          {title: 'Widget', url: 'javascript:alert(1)', imageUrl: 'https://cdn.sanity.io/p.jpg'},
+        ],
+      },
+      {_type: 'emailCTA' as const, text: 'Go', url: 'javascript:alert(1)'},
+    ],
+  }
+
+  it('drops non-http(s) URLs from src and href attributes', async () => {
+    const html = await renderPromotionKlaviyo(HOSTILE_PROMOTION)
+    expect(html).not.toContain('javascript:')
+    expect(html).not.toContain('data:text/html')
+    expect(html).toContain('https://cdn.sanity.io/p.jpg')
+  })
+
+  it('escapes tags, quotes, and ampersands in every text field', async () => {
+    const html = await renderPromotionKlaviyo(HOSTILE_PROMOTION)
+    expect(html).not.toContain('<img src=x')
+    expect(html).not.toContain('<script>')
+    expect(html).not.toContain('onmouseover="alert')
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;')
+    expect(html).toContain('Save 50% &amp; more')
+  })
+
+  it('keeps a valid http(s) CTA', async () => {
+    const html = await renderPromotionKlaviyo({
+      emailSlots: [
+        {_type: 'emailCTA' as const, text: 'Shop', url: 'https://example.com/sale?a=1&b=2'},
+      ],
+    })
+    expect(html).toContain('https://example.com/sale?a=1&amp;b=2')
+  })
+})
+
 describe('renderPromotionKlaviyo', () => {
   it('returns an HTML string', async () => {
     const html = await renderPromotionKlaviyo(BASE_PROMOTION)

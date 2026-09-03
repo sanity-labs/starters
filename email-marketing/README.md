@@ -57,8 +57,8 @@ Six workflows move content from ideation to engagement tracking, all triggered f
 
 Shared packages live in `packages/`:
 
-- **`@starter/render-email`** (at `packages/render-email/`) — MJML compilation, streaming HTML output, DOMPurify sanitization, Handlebars stub replacement
-  - Exports: `./streaming` (MJML to Readable stream), `./stubs` (token replacement), `./sanitize` (email-safe config), `./types`
+- **`@starter/render-email`** (at `packages/render-email/`) — MJML compilation, whole-document DOMPurify sanitization for previews, HTML escaping helpers shared with the send Function, Klaviyo stub handling
+  - Exports: `.` (`renderPromotionLocal`, `renderPromotionKlaviyo`), `./sanitize` (`sanitizeEmailHtml`), `./escape` (`escapeHtml`, `safeHttpUrl`, dependency-free), `./stubs` (token replacement), `./streaming` (async-iterable helpers), `./types`
 - **`@starter/eslint-config`** — Shared ESLint configuration
 - **`@starter/sanity-types`** — Generated TypeGen types (output of `pnpm typegen`)
 - **`@starter/tsconfig`** — Shared TypeScript base configs
@@ -79,20 +79,18 @@ Shared packages live in `packages/`:
 
 Engagement tracking is handled by a Next.js webhook route at `frontend/app/api/webhooks/engagement/route.ts`, not a Sanity Function.
 
-### Preview Service (Separate Next.js App)
+### Preview (Next.js frontend)
 
-Renders email HTML with four modes and strict authentication:
+Two preview surfaces live in `frontend/`:
 
-| Mode                  | Consumer                      | Input                        | Auth                         | Output                          |
-| :-------------------- | :---------------------------- | :--------------------------- | :--------------------------- | :------------------------------ |
-| Grid tile             | Studio Structure Builder      | Batch of promotion IDs (SSE) | Studio OAuth                 | Local MJML per tile             |
-| 1:1 preview           | Content ops lead              | Single promotion ID          | Studio OAuth + preview token | Local MJML + accuracy badge     |
-| Klaviyo verification  | CRM manager                   | Promotion ID                 | Preview token                | Klaviyo API render with stubs   |
-| Shareable review link | External reviewer (no Studio) | Promotion ID + signed token  | Time-boxed PASETO/JWT        | Local or Klaviyo MJML in iframe |
+| Surface                     | Route                       | Auth                                             | Output                                                      |
+| :-------------------------- | :-------------------------- | :----------------------------------------------- | :---------------------------------------------------------- |
+| React preview page          | `/promotions/[id]`          | Draft mode via the Presentation tool             | Blocks rendered as React components, tokens sample-resolved |
+| Klaviyo verification render | `/api/preview/klaviyo/[id]` | `SANITY_PREVIEW_SECRET` (required in production) | Full email HTML, sanitized, with `X-Preview-Status` header  |
 
-**Streaming pipeline:** MJML render → DOMPurify sanitize → Handlebars stub replacement → TextEncoder → response body
+**Klaviyo route pipeline:** fetch promotion → `renderPromotionKlaviyo` (MJML, fields escaped) → optional Klaviyo template render when `KLAVIYO_API_KEY` is set → `sanitizeEmailHtml` (DOMPurify over the whole document) → response with strict CSP headers
 
-**Accuracy badge** (X-Preview-Status header): Counts resolved sample values vs. send-time-only tags vs. unresolved variables
+**Accuracy badge** (`X-Preview-Status` header): Counts resolved sample values vs. send-time-only tags
 
 ## What's Included
 
@@ -111,14 +109,14 @@ Renders email HTML with four modes and strict authentication:
 
 **Preview & Dispatch**
 
-- **Streaming preview** — MJML to HTML with DOMPurify sanitization, Handlebars stubs, accuracy badges (X-Preview-Status)
+- **Klaviyo preview route** — MJML to HTML, optional Klaviyo render, DOMPurify sanitization, accuracy header (X-Preview-Status)
 - **Klaviyo integration** — dispatch promotions to Klaviyo with template creation and campaign sending
 - **Engagement feedback** — inbound Klaviyo webhooks update promotion.campaignPerformance metrics
 
 **Platform & Security**
 
-- **Package architecture** — semantic exports (`@starter/render-email`) with zero-dependency subpaths for tree-shaking
-- **Security** — 7-layer defense: HTTPS+HSTS, auth (Studio session + preview tokens + webhook signatures), rate limiting, CSP headers, audit logging
+- **Package architecture** — semantic exports (`@starter/render-email`) with a dependency-free `./escape` subpath the send Function can bundle
+- **Security** — content escaped at render time in both the preview renderer and the live send, whole-document DOMPurify sanitization and strict CSP on previews, shared-secret preview auth that fails closed in production, HMAC-verified engagement webhooks
 
 ## Prerequisites
 
@@ -190,7 +188,7 @@ email-marketing/
 │   ├── import-klaviyo/         # Syncs lists & segments from Klaviyo (on-demand)
 │   └── scheduled-import-klaviyo/ # Triggers import-klaviyo every 12h (midnight & noon PT)
 ├── packages/                    # Shared packages
-│   ├── render-email/           # @starter/render-email (MJML, streaming, sanitization)
+│   ├── render-email/           # @starter/render-email (MJML, sanitization, escaping)
 │   ├── eslint-config/          # @starter/eslint-config
 │   ├── sanity-types/           # @starter/sanity-types (TypeGen output)
 │   └── tsconfig/               # @starter/tsconfig
@@ -260,21 +258,20 @@ You need **at least one List** in your Klaviyo account before using this starter
 
 ## Security
 
-This starter implements a **7-layer security posture** for the preview service:
+What the code does today:
 
-1. **Transport** — HTTPS + HSTS
-2. **Authentication (3 paths)** — Studio session cookie, @sanity/preview-url-secret tokens, Klaviyo webhook signatures
-3. **Input validation** — Whitelist document IDs, enum values, content-type enforcement
-4. **Render-time** — DOMPurify sanitization, MJML validation, Handlebars syntax preserved (not eval'd)
-5. **Output headers** — CSP, X-Content-Type-Options, X-Frame-Options, Permissions-Policy
-6. **Rate limiting** — Per-IP token bucket (100 req/min default, configurable)
-7. **Audit logging** — Timestamp, method, path, status, IP, duration (redacted for PII)
+- **Output escaping** — every authored field and URL is escaped (`escapeHtml`) and URL-scheme-checked (`safeHttpUrl`) in both the MJML preview renderer and the `on-promotion-approved` send Function, so HTML in content never ships to subscribers
+- **Preview sanitization** — the Klaviyo preview route runs the whole rendered document through DOMPurify once and serves it with a strict CSP (`default-src 'none'`), `X-Frame-Options`, `nosniff`, HSTS, and `Permissions-Policy`
+- **Preview auth** — `SANITY_PREVIEW_SECRET` gates `/api/preview/klaviyo/[id]`; in production the route refuses requests (HTTP 500 + server log) when the secret is unset instead of falling open
+- **Webhook signatures** — the engagement webhook verifies Klaviyo's HMAC-SHA256 when `KLAVIYO_WEBHOOK_SECRET` is set (it accepts unsigned requests when unset; set it before exposing the route)
 
-See [SECURITY.md](./docs/SECURITY.md) for the full threat model, configuration checklist, and mitigation strategies.
+Not implemented, and worth adding before production: per-link expiring preview tokens (`@sanity/preview-url-secret`), rate limiting, audit logging, and host allow-listing if you ever fetch authored URLs server-side.
+
+See [SECURITY.md](./docs/SECURITY.md) for the threat model, where each control lives, and the configuration checklist.
 
 ## Testing
 
-Unit tests for streaming pipelines, middleware, and connectors; integration tests for preview routes; load testing guidance.
+Unit tests (`pnpm test`) cover the MJML renderer, output escaping, the preview sanitizer, and Klaviyo stub handling; Playwright end-to-end tests live in `e2e/`.
 
 See [TESTING.md](./docs/TESTING.md) for test examples and strategy.
 
@@ -289,12 +286,13 @@ See [TESTING.md](./docs/TESTING.md) for test examples and strategy.
 
 ### Frontend `.env`
 
-| Variable                        | Description                                                                 |
-| ------------------------------- | --------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SANITY_PROJECT_ID` | Your Sanity project ID                                                      |
-| `NEXT_PUBLIC_SANITY_DATASET`    | Dataset name (defaults to `production`)                                     |
-| `SANITY_API_READ_TOKEN`         | Sanity API token with Viewer permissions (read-only)                        |
-| `KLAVIYO_API_KEY`               | Klaviyo private API key for the preview route (`/api/preview/klaviyo/[id]`) |
+| Variable                        | Description                                                                                                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_SANITY_PROJECT_ID` | Your Sanity project ID                                                                                                                                       |
+| `NEXT_PUBLIC_SANITY_DATASET`    | Dataset name (defaults to `production`)                                                                                                                      |
+| `SANITY_API_READ_TOKEN`         | Sanity API token with Viewer permissions (read-only)                                                                                                         |
+| `SANITY_PREVIEW_SECRET`         | Shared secret for the preview route, passed as `?sanity-preview-secret=`. Required in production (the route returns 500 without it); optional in development |
+| `KLAVIYO_API_KEY`               | Klaviyo private API key for the preview route (`/api/preview/klaviyo/[id]`)                                                                                  |
 
 ### Function Runtime
 
