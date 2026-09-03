@@ -1,4 +1,4 @@
-import {portableTextToMarkdown} from '@portabletext/markdown'
+import {portableTextToMarkdown, type PortableTextRenderers} from '@portabletext/markdown'
 import type {TypedObject} from '@portabletext/types'
 import imageUrlBuilder from '@sanity/image-url'
 import type {SanityClient} from '@sanity/client'
@@ -23,26 +23,30 @@ import type {CalloutBlock, CodeBlock, ImageBlock} from './types'
 export function createConverter(client: SanityClient) {
   const builder = imageUrlBuilder(client)
 
-  return function convertToMarkdown(blocks: TypedObject[]): string {
-    return portableTextToMarkdown(blocks, {
-      types: {
-        code: ({value}: {value: CodeBlock}) => {
-          const {language = '', filename, code} = value
-          const lang = filename ? `${language}:${filename}` : language
-          const fence = fenceFor(code)
-          return `${fence}${lang}\n${code}\n${fence}`
-        },
-        image: ({value}: {value: ImageBlock}) => {
-          const url = builder.image(value.asset).url()
-          const caption = value.caption ? `\n\n*${value.caption}*` : ''
-          return `![${value.alt || ''}](${url})${caption}`
-        },
-        callout: ({value}: {value: CalloutBlock}) => {
-          const style = value.style || 'note'
-          const content = portableTextToMarkdown(value.content)
-          return `> [!${style.toUpperCase()}]\n> ${content.replace(/\n/g, '\n> ')}`
-        },
+  const renderers: Partial<PortableTextRenderers> = {
+    types: {
+      code: ({value}: {value: CodeBlock}) => {
+        const {language = '', filename, code} = value
+        const lang = filename ? `${language}:${filename}` : language
+        const fence = fenceFor(code)
+        return `${fence}${lang}\n${code}\n${fence}`
       },
-    })
+      image: ({value}: {value: ImageBlock}) => {
+        const url = builder.image(value.asset).url()
+        const caption = value.caption ? `\n\n*${value.caption}*` : ''
+        return `![${value.alt || ''}](${url})${caption}`
+      },
+      callout: ({value}: {value: CalloutBlock}) => {
+        const style = value.style || 'note'
+        // Recurse with the same renderers so blocks nested in the callout
+        // keep their custom output instead of falling back to the defaults.
+        const content = portableTextToMarkdown(value.content, renderers)
+        return `> [!${style.toUpperCase()}]\n> ${content.replace(/\n/g, '\n> ')}`
+      },
+    },
+  }
+
+  return function convertToMarkdown(blocks: TypedObject[]): string {
+    return portableTextToMarkdown(blocks, renderers)
   }
 }
