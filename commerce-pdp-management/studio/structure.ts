@@ -18,9 +18,10 @@ const CATEGORIES = [
 ] as const
 
 /**
- * Content-team-first Structure. The Review Queue spans both enrichment types
- * (in-review), the control plane and brand voice are pinned singletons, and
- * attribute rules are browsable by category for large rule sets.
+ * Content-team-first Structure. The Review Queue is everything not yet approved
+ * across both enrichment types — so a rule sent back to draft after approval
+ * lands in the queue again — the control plane and brand voice are pinned
+ * singletons, and attribute rules are browsable by category for large rule sets.
  */
 export const structure: StructureResolver = (S) =>
   S.list()
@@ -32,9 +33,7 @@ export const structure: StructureResolver = (S) =>
         .child(
           S.documentList()
             .title('Review queue')
-            .filter(
-              '(_type == "attributeRule" && status == "in-review") || (_type == "skuEnrichment" && status == "draft")',
-            )
+            .filter('_type in ["attributeRule", "skuEnrichment"] && status != "approved"')
             .defaultOrdering([{field: '_updatedAt', direction: 'desc'}]),
         ),
 

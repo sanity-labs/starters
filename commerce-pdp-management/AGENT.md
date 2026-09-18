@@ -14,7 +14,8 @@ written back to Shopify.
 - **Frontend** — Next.js 16 + React 19 + Tailwind v4 (`frontend/`): the Sanity
   Swag Store PDP with a pull-only resolver + merge.
 - **Functions** — Sanity Functions (`functions/`): `cache-revalidate` (invalidate
-  the storefront CDN on publish) + `review-stamp` (stamp `reviewedAt` on approval).
+  the storefront CDN on publish) + `review-stamp` (stamp `reviewedAt` on approval,
+  clear it when a rule leaves `approved`).
 - **Shared logic** — framework-agnostic package (`packages/@starter/commerce/`):
   Shopify Storefront adapter, the attribute-rule resolver, and the merge. Imported
   by both the frontend and the Functions.
@@ -69,13 +70,19 @@ cp frontend/.env.example frontend/.env
   the org-level Content Agent prompt at setup.
 - **Separate types over a unified enrichment type** — rules (1:many) and SKU
   enrichment (1:1) have different workflows and Studio surfaces. The Review Queue
-  spans both via a `status` filter.
+  spans both via a `status != "approved"` filter.
+- **Status flow** — `draft` → `in-review` → `approved` for rules, `draft` →
+  `approved` for SKU enrichment. Only `approved` reaches the storefront; anything
+  else is in the Review Queue, including a rule sent back to `draft` after approval.
 
 ## The resolver + merge (heart of the storefront)
 
 `packages/@starter/commerce/src/resolvePdp.ts` → `resolveAttributeRules`:
 
-1. Pick the priority list (a matching `productTypeScope` overrides the global list).
+1. Pick the priority list (a matching `productTypeScope` overrides the global list:
+   the scope's rules first — including rules only in the scope — then the rest of
+   the global list). Dangling or unpublished references are skipped with a
+   `console.warn` naming the list they came from.
 2. Walk in priority order; a rule matches when ALL `tags` are present and NO
    `excludedTags` are.
 3. First-match wins within a `category`.
@@ -96,7 +103,8 @@ by handle, then the control plane + SKU enrichment (GROQ) in parallel, then merg
   / `skuEnrichment`, POST the storefront `/api/revalidate` endpoint (secret-guarded)
   so cached PDPs re-pull from Sanity's CDN. No push to Shopify.
 - `functions/review-stamp/` — on `attributeRule` approval, stamp
-  `aiEnrichment.reviewedAt` (only when missing, so it does not loop).
+  `aiEnrichment.reviewedAt` (only when missing); when a rule leaves `approved`,
+  clear it so re-approval gets a fresh stamp. Neither patch re-fires itself.
 
 ## Deploying functions
 
@@ -112,10 +120,12 @@ the root `.env`.
 
 ## Studio surfaces
 
-- **Review queue** — spans `attributeRule` (in-review) and `skuEnrichment` (draft).
+- **Review queue** — every `attributeRule` and `skuEnrichment` whose `status` is
+  not `approved` (draft and in-review alike).
 - **Attribute rules** — browsable by category for large rule sets.
 - **Control plane / Brand voice** — pinned singletons (can't be created/deleted).
 - **Product picker** (`ProductPickerInput`) — searches Shopify by name via the
-  public Storefront token; stores the GID for `skuEnrichment`.
+  public Storefront token; stores the GID for `skuEnrichment`. Type-ahead goes
+  through `hooks/useDebouncedSearch` (debounced + only the latest request lands).
 - **Content Agent** — AI generation writes drafts (`aiGenerated: true`,
   `status: in-review`) governed by the `brandVoice` context prompt.

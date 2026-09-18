@@ -1,4 +1,4 @@
-import type {AttributeRule, ControlPlane, ResolvedAttribute} from './types'
+import type {AttributeRule, ControlPlane, PriorityList, ResolvedAttribute} from './types'
 
 export type ResolveInput = {
   /** Shopify product tags — the matching input. */
@@ -65,26 +65,51 @@ function ruleMatches(rule: AttributeRule, productTags: Set<string>): boolean {
 
 /**
  * Choose the effective priority list. If the product's type matches a
- * `productTypeScope`, reorder the global rules by that scope's `ruleIds`
- * (rules absent from the scope are appended in their global order).
+ * `productTypeScope`, that scope's rules come first in the scope's order —
+ * including rules that only appear in the scope — followed by any global rules
+ * the scope did not mention, in their global order.
  */
 function selectPriorityList(
   controlPlane: ControlPlane,
   productType: string | null | undefined,
 ): AttributeRule[] {
+  const globalRules = compactPriorityList(controlPlane.priorityList, 'controlPlane.priorityList')
+
   const scope = productType
     ? controlPlane.productTypeScopes?.find((s) => s.productType === productType)
     : undefined
-  if (!scope?.ruleIds?.length) return controlPlane.priorityList
+  if (!scope) return globalRules
 
-  const byId = new Map(controlPlane.priorityList.map((rule) => [rule._id, rule]))
-  const scoped: AttributeRule[] = []
-  for (const id of scope.ruleIds) {
-    const rule = byId.get(id)
-    if (rule) {
-      scoped.push(rule)
-      byId.delete(id)
-    }
+  const scopedRules = compactPriorityList(
+    scope.priorityList,
+    `productTypeScope "${scope.productType}"`,
+  )
+  if (scopedRules.length === 0) return globalRules
+
+  const scopedIds = new Set(scopedRules.map((rule) => rule._id))
+  const unscopedGlobalRules = globalRules.filter((rule) => !scopedIds.has(rule._id))
+  return [...scopedRules, ...unscopedGlobalRules]
+}
+
+/**
+ * Drop unresolvable entries from a dereferenced priority list and say so. A
+ * `null` here means the control plane references a rule that no longer exists
+ * or is not published, so the merchandiser can fix the reference instead of
+ * wondering why a rule never renders.
+ */
+function compactPriorityList(
+  list: PriorityList | null | undefined,
+  source: string,
+): AttributeRule[] {
+  const entries = list ?? []
+  const rules = entries.filter((rule): rule is AttributeRule => rule != null)
+
+  const unresolvedCount = entries.length - rules.length
+  if (unresolvedCount > 0) {
+    console.warn(
+      `[@starter/commerce] ${source} references ${unresolvedCount} attribute rule(s) that could not be resolved (deleted or unpublished). They were skipped.`,
+    )
   }
-  return [...scoped, ...byId.values()]
+
+  return rules
 }

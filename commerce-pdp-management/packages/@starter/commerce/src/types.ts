@@ -95,10 +95,19 @@ export type AttributeRule = {
   status: ReviewStatus
 }
 
+/**
+ * A dereferenced priority list as GROQ returns it: a reference to a rule that
+ * was deleted or never published resolves to `null` rather than being omitted.
+ */
+export type PriorityList = Array<AttributeRule | null>
+
 export type ProductTypeScope = {
   productType: string
-  /** Ordered rule ids overriding the global priority for this product type. */
-  ruleIds: string[]
+  /**
+   * Rules overriding the global priority for this product type, dereferenced in
+   * resolution order. May include rules that are not in the global list.
+   */
+  priorityList?: PriorityList | null
 }
 
 /**
@@ -107,7 +116,7 @@ export type ProductTypeScope = {
  */
 export type ControlPlane = {
   /** Approved attribute rules, in resolution priority order. */
-  priorityList: AttributeRule[]
+  priorityList?: PriorityList | null
   productTypeScopes?: ProductTypeScope[] | null
 }
 
