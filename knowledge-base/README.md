@@ -39,6 +39,7 @@ Seed content is **Beacon**, a fictional customer-engagement SaaS. Typed document
 - Chat uses an **organization** token with Context Viewer. A project token is refused (`403 contextGrantRequired`).
 - Tokens and MCP URLs never reach the browser.
 - `groqFilter` is the GROQ-mode boundary. Knowledge Base mode is scoped by which Knowledge Bases the MCP serves.
+- `/chat` and `/internal` are both unauthenticated demo agents. Ops is a second Beacon story (fake runbooks and policies), not a staff trust boundary. Either route spends your Anthropic quota. If you later point the ops MCPs at real internal sources, add auth before you deploy.
 
 ## Prerequisites
 
