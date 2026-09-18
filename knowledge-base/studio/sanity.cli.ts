@@ -27,5 +27,6 @@ export default defineCliConfig({
       '../functions/*/index.ts',
     ],
     generates: '../packages/@starter/sanity-types/sanity.types.ts',
+    overloadClientMethods: true,
   },
 })

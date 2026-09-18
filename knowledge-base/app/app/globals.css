@@ -1,2 +1,23 @@
 @import 'tailwindcss';
+@import './tokens.css';
 @plugin '@tailwindcss/typography';
+
+@theme inline {
+  --font-sans: var(--font-geist), 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html {
+  background: var(--color-bg-base);
+  color: var(--color-fg-base);
+}
+
+body {
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+}
+
+.dot-grid {
+  background-image: radial-gradient(circle, var(--color-gray-200) 1px, transparent 1px);
+  background-size: 16px 16px;
+}

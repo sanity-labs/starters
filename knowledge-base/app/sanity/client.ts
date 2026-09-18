@@ -7,17 +7,15 @@ export const client = createClient({
   useCdn: true,
   // The dataset is private, so even published reads need auth. This stays
   // server-only: the var is not NEXT_PUBLIC_, so it is undefined in the browser.
-  token: process.env.SANITY_READ_TOKEN_EXTERNAL,
+  token: process.env.SANITY_API_READ_TOKEN,
   requestTagPrefix: 'frontend.knowledge-base',
   stega: {
     studioUrl: process.env.NEXT_PUBLIC_SANITY_STUDIO_URL || '/studio',
   },
 })
 
-export const token = process.env.SANITY_READ_TOKEN_EXTERNAL
+export const token = process.env.SANITY_API_READ_TOKEN
 
-// Server-only client for authenticated reads against the private dataset
-// (e.g. search). The token never reaches the browser.
 export const serverClient = client.withConfig({
   token,
   useCdn: false,

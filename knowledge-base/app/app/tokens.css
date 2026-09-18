@@ -1,0 +1,240 @@
+/*
+ * Sanity Design Tokens - Tailwind v4
+ *
+ * Drop this file next to your globals.css and import it:
+ *
+ *   @import "tailwindcss";
+ *   @import "./tokens.css";
+ *
+ * Values are sourced from sanity.io production CSS and @sanity/color.
+ * Palette names follow Sanity's role/tone/shade convention where possible.
+ *
+ * Fonts: Geist (display + body, open substitute for the licensed
+ * KMR Waldenburg) and IBM Plex Mono (code + metadata).
+ * Inter is kept in the stack as a fallback behind Geist.
+ * Load them via next/font or a <link> tag - see references/typography.md.
+ */
+
+@theme {
+  /* ---------- Brand ---------- */
+  --color-brand: #ff560a;
+  --color-brand-hover: #e64a00;
+  --color-brand-pressed: #cc4200;
+  --color-brand-subtle: #fff1ea;
+
+  /* ---------- Neutrals (warm) ---------- */
+  --color-black: #0b0b0b;
+  --color-white: #ffffff;
+
+  --color-gray-50: #f7f7f7;
+  --color-gray-100: #ededed;
+  --color-gray-200: #d6d6d6;
+  --color-gray-300: #b9b9b9;
+  --color-gray-400: #9a9a9a;
+  --color-gray-500: #797979;
+  --color-gray-600: #5f5f5f;
+  --color-gray-700: #4a4a4a;
+  --color-gray-800: #353535;
+  --color-gray-900: #212121;
+  --color-gray-950: #141414;
+
+  /* ---------- Semantic accents (marketing site) ---------- */
+  --color-blue-100: #afe3ff;
+  --color-blue-300: #55beff;
+  --color-blue-500: #0084f8;
+  --color-blue-700: #0052ef;
+
+  --color-green-100: #96ff6f;
+  --color-green-300: #45ff00;
+  --color-green-500: #00fe00;
+  --color-green-700: #19d600;
+
+  --color-yellow-500: #fdfe00;
+  --color-magenta-500: #ff23fc;
+
+  /* ---------- Role tokens (light) ----------
+   * Use these in components. They switch automatically
+   * under [data-theme="dark"] below.
+   */
+  --color-bg-base: #ffffff;
+  --color-bg-subtle: #f7f7f7;
+  --color-bg-card: #ffffff;
+  --color-bg-inverse: #0b0b0b;
+  --color-bg-accent: #ff560a;
+  --color-bg-accent-subtle: #fff1ea;
+
+  --color-fg-base: #0b0b0b;
+  --color-fg-muted: #4a4a4a;
+  --color-fg-subtle: #797979;
+  --color-fg-inverse: #ffffff;
+  --color-fg-accent: #ff560a;
+  --color-fg-error: #dd0000;
+  --color-fg-success: #19d600;
+
+  --color-border-base: #d6d6d6;
+  --color-border-faint: #ededed;
+  --color-border-strong: #b9b9b9;
+  --color-border-focus: #ff560a;
+
+  /* ---------- Typography ---------- */
+  --font-sans:
+    'Geist', 'Geist Fallback', 'Inter', 'Inter Fallback', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono:
+    'IBM Plex Mono', 'IBM Plex Mono Fallback', ui-monospace, SFMono-Regular, Menlo, Monaco,
+    'Courier New', monospace;
+
+  /* Display scale - matches sanity.io text-page-heading tokens */
+  --text-display-2xl: 7rem; /* 112px - hero on desktop */
+  --text-display-2xl--line-height: 1;
+  --text-display-2xl--letter-spacing: -0.02em;
+  --text-display-2xl--font-weight: 600;
+
+  --text-display-xl: 4.5rem; /* 72px */
+  --text-display-xl--line-height: 1.05;
+  --text-display-xl--letter-spacing: -0.02em;
+  --text-display-xl--font-weight: 600;
+
+  --text-display-lg: 3.75rem; /* 60px - hero on mobile */
+  --text-display-lg--line-height: 1.05;
+  --text-display-lg--letter-spacing: -0.015em;
+  --text-display-lg--font-weight: 600;
+
+  --text-display-md: 3rem; /* 48px */
+  --text-display-md--line-height: 1.1;
+  --text-display-md--letter-spacing: -0.01em;
+  --text-display-md--font-weight: 600;
+
+  --text-display-sm: 2.25rem; /* 36px */
+  --text-display-sm--line-height: 1.15;
+  --text-display-sm--letter-spacing: -0.01em;
+  --text-display-sm--font-weight: 600;
+
+  /* Body scale - matches sanity.io text1..text6 */
+  --text-body-lg: 1.25rem; /* 20px */
+  --text-body-lg--line-height: 2rem; /* 32px */
+
+  --text-body-md: 1.125rem; /* 18px */
+  --text-body-md--line-height: 1.75rem; /* 28px */
+
+  --text-body: 1rem; /* 16px - default */
+  --text-body--line-height: 1.5rem; /* 24px */
+
+  --text-body-sm: 0.875rem; /* 14px */
+  --text-body-sm--line-height: 1.25rem; /* 20px */
+
+  --text-caption: 0.8125rem; /* 13px */
+  --text-caption--line-height: 1rem; /* 16px */
+
+  --text-micro: 0.75rem; /* 12px */
+  --text-micro--line-height: 1rem;
+
+  /* ---------- Radius ---------- */
+  --radius-none: 0;
+  --radius-xs: 2px;
+  --radius-sm: 3px; /* Sanity base - use this for most cards/buttons */
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ---------- Shadows ---------- */
+  --shadow-xs: 0 1px 2px 0 #14171f0d;
+  --shadow-sm: 0 1px 3px 0 #14171f14, 0 1px 2px -1px #14171f0f;
+  --shadow-md: 0 4px 6px -1px #14171f14, 0 2px 4px -2px #14171f0f;
+  --shadow-pop: 0 15px 11px 0 #14171f0d, 0 9px 46px 0 #14171f0f;
+  --shadow-lg: 0 20px 25px -5px #14171f14, 0 8px 10px -6px #14171f0f;
+
+  /* ---------- Motion ---------- */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  --duration-instant: 75ms;
+  --duration-fast: 150ms; /* Sanity default */
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+
+  /* ---------- Layout ---------- */
+  --container-content: 1248px; /* sanity.io max content width */
+  --container-wide: 1440px;
+  --container-prose: 720px;
+
+  --spacing-section-x: 1.5rem; /* 24px */
+  --spacing-section-y: 4.5rem; /* 72px */
+  --spacing-section-y-lg: 8rem; /* 128px */
+  --spacing-gutter: 1.5rem; /* 24px */
+}
+
+/* ---------- Dark theme ----------
+ * Apply by setting data-theme="dark" on <html> or <body>.
+ * Only role tokens flip - raw palette values stay stable.
+ */
+[data-theme='dark'] {
+  --color-bg-base: #0b0b0b;
+  --color-bg-subtle: #141414;
+  --color-bg-card: #212121;
+  --color-bg-inverse: #ffffff;
+  --color-bg-accent: #ff560a;
+  --color-bg-accent-subtle: #2a1407;
+
+  --color-fg-base: #ededed;
+  --color-fg-muted: #b9b9b9;
+  --color-fg-subtle: #797979;
+  --color-fg-inverse: #0b0b0b;
+  --color-fg-accent: #ff560a;
+  --color-fg-error: #ff2222;
+  --color-fg-success: #45ff00;
+
+  --color-border-base: #353535;
+  --color-border-faint: #212121;
+  --color-border-strong: #4a4a4a;
+  --color-border-focus: #ff560a;
+}
+
+/* Optional: respect user preference when no data-theme is set */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-bg-base: #0b0b0b;
+    --color-bg-subtle: #141414;
+    --color-bg-card: #212121;
+    --color-bg-inverse: #ffffff;
+    --color-bg-accent: #ff560a;
+    --color-bg-accent-subtle: #2a1407;
+
+    --color-fg-base: #ededed;
+    --color-fg-muted: #b9b9b9;
+    --color-fg-subtle: #797979;
+    --color-fg-inverse: #0b0b0b;
+    --color-fg-accent: #ff560a;
+    --color-fg-error: #ff2222;
+    --color-fg-success: #45ff00;
+
+    --color-border-base: #353535;
+    --color-border-faint: #212121;
+    --color-border-strong: #4a4a4a;
+    --color-border-focus: #ff560a;
+  }
+}
+
+/* ---------- Base element resets ---------- */
+html {
+  font-family: var(--font-sans);
+  color: var(--color-fg-base);
+  background: var(--color-bg-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-mono);
+}
+
+::selection {
+  background: var(--color-brand);
+  color: var(--color-white);
+}

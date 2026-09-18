@@ -1,11 +1,9 @@
-import {agentContextPlugin} from '@sanity/agent-context/studio'
 import {createClient} from '@sanity/client'
 import {visionTool} from '@sanity/vision'
 import {defineConfig} from 'sanity'
 import {defineDocuments, presentationTool} from 'sanity/presentation'
 import {structureTool} from 'sanity/structure'
 
-import {contentHealthTool} from './plugins/contentHealth'
 import {schemaTypes} from './schemaTypes'
 import {structure} from './structure'
 
@@ -44,10 +42,6 @@ export default defineConfig({
         ]),
       },
     }),
-    // Exposes content to agents through a hosted, schema-aware MCP endpoint.
-    // Configure two contexts (external + internal) as documents in Studio.
-    agentContextPlugin(),
-    contentHealthTool(),
     visionTool(),
   ],
 

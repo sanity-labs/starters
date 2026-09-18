@@ -1,9 +1,10 @@
 import {HelpCircleIcon} from '@sanity/icons'
 import {defineField, defineType} from 'sanity'
 
-import {audienceField, reviewByDateField, statusField, taxonomyFields} from '../shared'
+import {audienceField, statusField, taxonomyFields} from '../shared'
 
-// External Q&A pairs — each document is a tight semantic unit for embeddings.
+// Structured Q&A for GROQ mode. Exact facts belong here; long-form how-to
+// belongs on helpArticle (and the Knowledge Base that indexes it).
 export const faq = defineType({
   name: 'faq',
   title: 'FAQ',
@@ -25,9 +26,6 @@ export const faq = defineType({
     audienceField,
     ...taxonomyFields,
     statusField,
-    // FAQs carry the review clock but skip owner/lastReviewedAt — they're small
-    // enough to re-verify in place.
-    reviewByDateField,
   ],
   preview: {
     select: {title: 'question', status: 'status'},

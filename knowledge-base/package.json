@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n studio,app,proxy,functions -c '#f03e2f,#8b5cf6,#22c55e,#f5a623' 'pnpm --filter studio dev' 'pnpm --filter app dev' 'pnpm --filter dashboard-server dev' 'pnpm --filter @starter/functions build && sanity functions dev'",
+    "dev": "concurrently -n studio,app,functions -c '#f03e2f,#8b5cf6,#f5a623' 'pnpm --filter studio dev' 'pnpm --filter app dev' 'pnpm --filter @starter/functions build && sanity functions dev'",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "lint": "eslint --cache --cache-location node_modules/.cache/eslint/ .",

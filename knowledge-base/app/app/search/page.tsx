@@ -17,14 +17,14 @@ export default async function SearchPage({searchParams}: Props) {
         <input
           name="q"
           defaultValue={query}
-          placeholder="Search the knowledge base…"
-          className="w-full rounded-full border border-gray-300 px-4 py-2 text-sm outline-none focus:border-gray-500"
+          placeholder="Search published articles and FAQs"
+          className="w-full rounded-sm border border-border-base bg-bg-card px-4 py-2 text-sm outline-none focus:border-border-focus"
         />
       </form>
 
       {query && (
-        <p className="mb-6 text-sm text-gray-500">
-          {results.length} result{results.length === 1 ? '' : 's'} for “{query}”
+        <p className="mb-6 font-mono text-micro uppercase tracking-wide text-fg-subtle">
+          {results.length} result{results.length === 1 ? '' : 's'} for {query}
         </p>
       )}
 
@@ -33,11 +33,11 @@ export default async function SearchPage({searchParams}: Props) {
           const title = hit.title ?? hit.question ?? 'Untitled'
           const inner = (
             <>
-              <span className="text-lg font-medium text-blue-600 hover:underline">{title}</span>
-              <span className="ml-2 text-xs uppercase tracking-wide text-gray-400">
+              <span className="text-lg font-medium text-fg-base hover:text-brand">{title}</span>
+              <span className="ml-2 font-mono text-micro uppercase tracking-wide text-fg-subtle">
                 {hit._type === 'faq' ? 'FAQ' : 'Article'}
               </span>
-              {hit.summary && <p className="mt-1 text-gray-600">{hit.summary}</p>}
+              {hit.summary && <p className="mt-1 text-fg-muted">{hit.summary}</p>}
             </>
           )
           return (
