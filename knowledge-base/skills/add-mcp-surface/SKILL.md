@@ -15,15 +15,16 @@ An MCP serves one source type. If you attach a dataset source and Knowledge Base
 
 1. **Decide the question types.** Structured filters (plans, prices, review dates, FAQ facts) go on a GROQ MCP. Grounded prose (how-to, runbooks, PDFs) goes on a Knowledge Base MCP.
 2. **Create or reuse a Knowledge Base** in the Context app. Write a one-to-two-sentence purpose. Attach dataset / website / file sources. Build. Resolve Issues.
-3. **Create two MCPs** in the Context app:
+3. **Write the config as files first** under `context/knowledge-bases/<name>.md` and `context/mcp/<name>.md`, following the existing ones: purpose, source query, `groqFilter`, and the full instructions text. Then paste into the Context app.
+4. **Create two MCPs** in the Context app:
    - GROQ: dataset source `PROJECT.DATASET`, a `groqFilter` predicate (not a full query), instructions for field meanings and hybrid search.
    - KB: only Knowledge Base sources. No `groqFilter`.
-4. **Add env vars** in `app/.env.example` and `app/.env.local`:
+5. **Add env vars** in `app/.env.example` and `app/.env.local`:
    - `SANITY_MCP_<SURFACE>_GROQ_URL`
    - `SANITY_MCP_<SURFACE>_KB_URL`
-5. **Add a chat route** that calls `handleChat` from `app/lib/chat-handler.ts`, or extend that helper with a new `Surface`. Rename generic tools so GROQ and KB do not collide (`groq_query` vs `knowledge_base_read` both exist; `initial_context` exists in both modes — inline it instead of merging the tool).
-6. **Write a routing table** in the system prompt: which tool owns which facts.
-7. **Verify** with `tools/list`. GROQ should not list `knowledge_base_read`. KB should not list `groq_query`.
+6. **Add a chat route** that calls `handleChat` from `app/lib/chat-handler.ts`, or extend that helper with a new `Surface`. Rename generic tools so GROQ and KB do not collide (`groq_query` vs `knowledge_base_read` both exist; `initial_context` exists in both modes — inline it instead of merging the tool). A surface runs with whichever of its two URLs is set.
+7. **Write a routing table** in the system prompt: which tool owns which facts.
+8. **Verify** with `tools/list`. GROQ should not list `knowledge_base_read`. KB should not list `groq_query`.
 
 ## Auth
 

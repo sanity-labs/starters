@@ -38,8 +38,16 @@ function pt(paras: Para[]): Block[] {
   })
 }
 
-const OVERDUE = ['2026-01-15', '2026-02-20', '2026-03-10']
-const FRESH = ['2026-10-15', '2026-11-01', '2026-12-01']
+// Review dates are relative to generation time so the Needs Review queue and
+// the "overdue policies" demo stay meaningful. Bootstrap regenerates this file
+// before importing, so a fresh clone seeds against today, not the commit date.
+const daysFromNow = (days: number) => {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+const OVERDUE = [daysFromNow(-240), daysFromNow(-205), daysFromNow(-190)]
+const FRESH = [daysFromNow(30), daysFromNow(45), daysFromNow(75)]
 const at = (d: string) => `${d}T00:00:00Z`
 
 const products = [

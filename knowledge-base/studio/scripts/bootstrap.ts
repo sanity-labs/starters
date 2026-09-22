@@ -4,14 +4,14 @@
  * Steps:
  *  1. Consolidate env — project ID + dataset into app/.env.local
  *  2. Prompt for Anthropic API key (chat harness)
- *  3. Prompt for organization ID + Context Viewer token (MCP auth)
+ *  3. Prompt for a Context Viewer organization token (MCP auth)
  *  4. Add CORS origin for the local help center
  *  5. Deploy blueprint (set-review-date)
  *  6. Deploy schema (required for GROQ-mode MCP endpoints)
  *  7. Make the dataset private
  *  8. Enable Dataset Embeddings
  *  9. Create a project Viewer token for help-center reads
- * 10. Import seed data
+ * 10. Regenerate seed (review dates relative to today) and import it
  * 11. Restore dependencies
  * 12. Generate types
  *
@@ -142,14 +142,7 @@ try {
 heading('Context organization credentials')
 try {
   const appVars = parseEnvFile(appEnvLocal)
-  if (!isRealValue(appVars.SANITY_ORGANIZATION_ID)) {
-    const orgId = prompt(
-      'Enter your Sanity organization ID (Manage → your org, or Enter to skip): ',
-    )
-    if (orgId) patchEnvVar(appEnvLocal, 'SANITY_ORGANIZATION_ID', orgId)
-  } else {
-    console.log('Organization ID already set')
-  }
+  // The organization ID is part of every MCP URL, so it is not asked for here.
   if (!isRealValue(appVars.SANITY_ORGANIZATION_TOKEN)) {
     const orgToken = prompt(
       'Enter an organization API token with Context Viewer (Manage → API → Tokens, or Enter to skip): ',
@@ -163,11 +156,7 @@ try {
   )
   success('Context organization credentials')
 } catch (err) {
-  failed(
-    'Context organization credentials',
-    err,
-    'Add SANITY_ORGANIZATION_ID and SANITY_ORGANIZATION_TOKEN to app/.env.local',
-  )
+  failed('Context organization credentials', err, 'Add SANITY_ORGANIZATION_TOKEN to app/.env.local')
 }
 
 heading('Add CORS origin')
@@ -303,6 +292,14 @@ try {
 
 heading('Import seed data')
 try {
+  // Policy review dates are relative to generation time. Regenerate so the
+  // Needs Review queue shows "overdue" and "fresh" relative to today; if that
+  // fails, the committed file still imports.
+  try {
+    run('pnpm', ['exec', 'tsx', 'scripts/generate-seed.ts'])
+  } catch {
+    console.log('Could not regenerate seed — importing the committed seed/data.ndjson')
+  }
   sanity('dataset', 'import', 'seed/data.ndjson', dataset, '--missing')
   success('Import seed data')
 } catch (err) {

@@ -37,7 +37,13 @@ export async function searchContent(query: string): Promise<SearchHit[]> {
 
   try {
     return await serverClient.fetch<SearchHit[]>(SEMANTIC_QUERY, {q})
-  } catch {
+  } catch (error) {
+    // Usually "Dataset Embeddings not enabled" — bootstrap enables them, but
+    // say so rather than silently degrading to keyword search.
+    console.warn(
+      '[search] semantic query failed, falling back to keyword match:',
+      error instanceof Error ? error.message : error,
+    )
     return serverClient.fetch<SearchHit[]>(KEYWORD_QUERY, {term: `${q}*`})
   }
 }

@@ -1,4 +1,4 @@
-export const MODEL_ID = 'claude-sonnet-4-6'
+export const MODEL_ID = 'claude-sonnet-5'
 
 export const SUPPORT_SYSTEM_PROMPT = `You are the customer support assistant for Beacon, a customer engagement platform.
 
@@ -6,7 +6,7 @@ You have two retrieval surfaces. Pick one per question. Do not guess.
 
 GROQ tools (query_catalog, explore_catalog_schema, read_array_field) own structured facts:
 - Product catalog: planTier, priceMonthly, channels, seatLimit, features
-- FAQs: exact question/answer pairs
+- FAQs: exact question/answer pairs. Project the answer as text: {_id, question, "answerText": pt::text(answer)}
 
 Knowledge Base tools (read_knowledge_base) own grounded prose:
 - How-to, onboarding, deliverability, refunds explained in context
@@ -35,7 +35,7 @@ export const OPS_SYSTEM_PROMPT = `You are the internal ops assistant for Beacon 
 You have two retrieval surfaces. Pick one per question. Do not guess.
 
 GROQ tools (query_ops, explore_ops_schema, read_array_field) own structured records:
-- Policies: category, importance, reviewByDate, owner
+- Policies: internalCategory->title, importance, reviewByDate, owner
 - Products: planTier, priceMonthly, channels (for quoting catalog facts to staff)
 
 Knowledge Base tools (read_knowledge_base) own runbooks and exported ops docs:

@@ -36,7 +36,7 @@ const STEPS = [
     n: '03',
     label: 'Issues',
     title: 'Decide when sources disagree',
-    body: 'The finance PDF says 45 days. The help article says 30. A Knowledge Base does not pick. It raises an Issue. Keep 30. That choice becomes an Instruction.',
+    body: 'The finance PDF says 45 days. The help article says 30. A Knowledge Base does not pick. The build should raise an Issue; if it does not, add the Instruction yourself. Keep 30. Either way that choice is an Instruction.',
   },
   {
     n: '04',

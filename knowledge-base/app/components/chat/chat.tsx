@@ -69,6 +69,16 @@ function modeForTool(name: string): 'GROQ' | 'KB' | null {
   return null
 }
 
+// The chat routes answer configuration and upstream failures with a JSON
+// {error} body. The transport surfaces that body as the Error message.
+function describeError(error: Error): string {
+  try {
+    const parsed = JSON.parse(error.message) as {error?: unknown}
+    if (typeof parsed.error === 'string') return parsed.error
+  } catch {}
+  return error.message || 'Something went wrong.'
+}
+
 function ModeBadge({mode}: {mode: 'GROQ' | 'KB'}) {
   return (
     <span className="inline-flex items-center rounded-sm border border-border-faint px-1.5 py-0.5 font-mono text-micro uppercase tracking-wide text-fg-subtle">
@@ -80,7 +90,7 @@ function ModeBadge({mode}: {mode: 'GROQ' | 'KB'}) {
 export function Chat({surface}: {surface: Surface}) {
   const copy = COPY[surface]
   const transport = useMemo(() => new DefaultChatTransport({api: copy.api}), [copy.api])
-  const {messages, sendMessage, status, stop, setMessages} = useChat({
+  const {messages, sendMessage, status, stop, setMessages, error, clearError} = useChat({
     transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
   })
@@ -170,6 +180,11 @@ export function Chat({surface}: {surface: Surface}) {
           ))
         )}
         {status === 'submitted' && <p className="text-sm text-fg-subtle">Retrieving…</p>}
+        {error && (
+          <p role="alert" className="text-sm text-fg-error">
+            {describeError(error)}
+          </p>
+        )}
       </div>
 
       <form
@@ -205,7 +220,10 @@ export function Chat({surface}: {surface: Surface}) {
         {messages.length > 0 && (
           <button
             type="button"
-            onClick={() => setMessages([])}
+            onClick={() => {
+              setMessages([])
+              clearError()
+            }}
             className="text-sm text-fg-subtle hover:text-fg-base"
           >
             Clear
