@@ -9,8 +9,8 @@ import {
   InitialContextError,
   mergeToolSets,
   mcpUrls,
+  omitTools,
   organizationToken,
-  renameTools,
   type Surface,
 } from '@/lib/mcp'
 
@@ -73,46 +73,11 @@ export async function handleChat(req: Request, surface: Surface) {
       urls.kb ? fetchInitialContext(urls.kb, token) : '',
     ])
 
-    const groqRenamed =
-      surface === 'support'
-        ? renameTools(groqTools, {
-            groq_query: {
-              name: 'query_catalog',
-              description:
-                'Query the Beacon product catalog and FAQs in Sanity. Use for prices, plan tiers, channels, seat limits, and exact FAQ facts. Not for runbooks or long-form how-to.',
-            },
-            schema_explorer: {
-              name: 'explore_catalog_schema',
-              description: 'Inspect product or faq fields before writing a GROQ query.',
-            },
-            array_field_reader: {
-              name: 'read_array_field',
-              description: 'Read a large array or Portable Text field from one catalog document.',
-            },
-          })
-        : renameTools(groqTools, {
-            groq_query: {
-              name: 'query_ops',
-              description:
-                'Query internal policies and the product catalog in Sanity. Use for review dates, importance, owners, and catalog facts staff need to quote. Not for runbooks.',
-            },
-            schema_explorer: {
-              name: 'explore_ops_schema',
-              description: 'Inspect policy or product fields before writing a GROQ query.',
-            },
-            array_field_reader: {
-              name: 'read_array_field',
-              description: 'Read a large array or Portable Text field from one ops document.',
-            },
-          })
-
-    const kbRenamed = renameTools(kbTools, {
-      knowledge_base_read: {
-        name: 'read_knowledge_base',
-        description:
-          'Read grounded Knowledge Base entries by path from the outline. Use for how-to, deliverability, runbooks, and policy explained in prose. Not for filtering products by price or channel.',
-      },
-    })
+    // initial_context is inlined below, so drop the tool. Everything else keeps
+    // its name: GROQ mode and Knowledge Base mode expose disjoint tool sets, and
+    // initial context refers to tools by their original names.
+    const groqToolSet = omitTools(groqTools, ['initial_context'])
+    const kbToolSet = omitTools(kbTools, ['initial_context'])
 
     const basePrompt = surface === 'support' ? SUPPORT_SYSTEM_PROMPT : OPS_SYSTEM_PROMPT
     const system = [
@@ -136,7 +101,7 @@ export async function handleChat(req: Request, surface: Surface) {
       model: anthropic(MODEL_ID),
       system,
       messages: await convertToModelMessages(messages),
-      tools: mergeToolSets(groqRenamed, kbRenamed, {displayCards}) as ToolSet,
+      tools: mergeToolSets(groqToolSet, kbToolSet, {displayCards}) as ToolSet,
       stopWhen: stepCountIs(8),
       // onFinish does not fire when the model errors before its first step
       // completes (for example a bad ANTHROPIC_API_KEY), so close on every path.

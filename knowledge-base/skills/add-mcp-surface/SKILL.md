@@ -22,8 +22,8 @@ An MCP serves one source type. If you attach a dataset source and Knowledge Base
 5. **Add env vars** in `app/.env.example` and `app/.env.local`:
    - `SANITY_MCP_<SURFACE>_GROQ_URL`
    - `SANITY_MCP_<SURFACE>_KB_URL`
-6. **Add a chat route** that calls `handleChat` from `app/lib/chat-handler.ts`, or extend that helper with a new `Surface`. Rename generic tools so GROQ and KB do not collide (`groq_query` vs `knowledge_base_read` both exist; `initial_context` exists in both modes — inline it instead of merging the tool). A surface runs with whichever of its two URLs is set.
-7. **Write a routing table** in the system prompt: which tool owns which facts.
+6. **Add a chat route** that calls `handleChat` from `app/lib/chat-handler.ts`, or extend that helper with a new `Surface`. Keep the MCP tool names as served — initial context refers to them by name. Only `initial_context` is dropped, because its payload is inlined into the system prompt. GROQ and KB modes expose disjoint tool sets, so they merge without collisions. A surface runs with whichever of its two URLs is set.
+7. **Write the ownership rule** in the system prompt: which surface (GROQ or Knowledge Base) owns which kinds of facts, plus voice and boundaries. No tool names, query syntax, or content values — the MCP's instructions field carries retrieval tips, and the dataset carries the facts.
 8. **Verify** with `tools/list`. GROQ should not list `knowledge_base_read`. KB should not list `groq_query`.
 
 ## Auth

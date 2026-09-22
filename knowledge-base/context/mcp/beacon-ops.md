@@ -45,5 +45,5 @@ Query patterns:
 - Policy search with hybrid ranking (text::semanticSimilarity() only inside score()):
   *[_type == "policy" && importance == "critical"] | score(boost([title, summary] match text::query($query), 2), text::semanticSimilarity($query)) | order(_score desc)[0...5]{_id, title, importance, owner, reviewByDate, summary}
 
-Approval thresholds live on policy documents (for example: credits under $500 may be approved by support; above that needs Finance). Quote them from the document; never invent one. The customer-facing refund window is 30 days from the original invoice date.
+Approval thresholds (who may approve a credit or refund, and up to what amount) and the customer-facing refund window live on the refund-policy document. Query it and quote the values it holds; never state one from memory.
 ```

@@ -25,7 +25,7 @@ This endpoint serves the Beacon Customer Support Knowledge Base: grounded, custo
 
 Use the outline from initial context to pick entry paths, then read only the entries you need. Entries already cite their sources; keep those citations in the answer.
 
-The refund window is 30 days from the original invoice date. A finance PDF in this Knowledge Base says 45 days from the charge date; it is out of date and an Instruction records that. Do not quote 45 days.
+Where sources in this Knowledge Base disagree (for example the refund window in a finance PDF versus the help article), an Instruction on the Knowledge Base records which claim is correct. Follow it; do not quote the superseded value.
 
 Exact catalog facts (prices, plan tiers, channels, seat limits) and single-sentence FAQ answers are served by a separate GROQ endpoint. If a question is only about those, say the catalog is the better source rather than paraphrasing a number from prose.
 

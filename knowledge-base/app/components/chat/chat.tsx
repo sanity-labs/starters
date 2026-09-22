@@ -8,28 +8,17 @@ import remarkGfm from 'remark-gfm'
 
 import {ResultCards, type CardType} from './result-cards'
 
-const GROQ_TOOLS = new Set([
-  'query_catalog',
-  'query_ops',
-  'explore_catalog_schema',
-  'explore_ops_schema',
-  'read_array_field',
-  'groq_query',
-  'schema_explorer',
-])
+// Context MCP tool names, as served. GROQ mode and Knowledge Base mode expose
+// disjoint sets, so the mode badge follows straight from the tool name.
+const GROQ_TOOLS = new Set(['groq_query', 'schema_explorer', 'array_field_reader'])
 
-const KB_TOOLS = new Set(['read_knowledge_base', 'knowledge_base_read'])
+const KB_TOOLS = new Set(['knowledge_base_read'])
 
 const TOOL_LABELS: Record<string, string> = {
-  query_catalog: 'Filtering the catalog',
-  query_ops: 'Querying policies',
-  explore_catalog_schema: 'Checking catalog fields',
-  explore_ops_schema: 'Checking policy fields',
-  read_array_field: 'Reading document content',
-  read_knowledge_base: 'Reading Knowledge Base entries',
   groq_query: 'Running a GROQ query',
-  knowledge_base_read: 'Reading Knowledge Base entries',
   schema_explorer: 'Checking schema',
+  array_field_reader: 'Reading document content',
+  knowledge_base_read: 'Reading Knowledge Base entries',
 }
 
 type Surface = 'support' | 'ops'

@@ -54,8 +54,11 @@ export async function fetchInitialContext(url: string, token: string): Promise<s
   const cached = initialContextCache.get(url)
   if (cached && cached.expires > Date.now()) return cached.value
 
-  // The endpoint returns text/plain (Markdown), per the docs.
-  const response = await fetch(`${url.replace(/\/$/, '')}/initial-context`, {
+  // Append to the pathname rather than the string so query params on the MCP
+  // URL (for example ?workspace=) survive. The endpoint returns text/plain.
+  const target = new URL(url)
+  target.pathname = `${target.pathname.replace(/\/$/, '')}/initial-context`
+  const response = await fetch(target, {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'text/plain',
@@ -77,17 +80,12 @@ function asToolSet(value: unknown): ToolSet {
   return (value ?? {}) as ToolSet
 }
 
-export function renameTools(
-  tools: ToolSet,
-  names: Record<string, {name: string; description: string}>,
-): ToolSet {
-  const next: ToolSet = {}
-  for (const [key, tool] of Object.entries(tools)) {
-    const mapped = names[key]
-    if (!mapped) continue
-    next[mapped.name] = {...tool, description: mapped.description}
-  }
-  return next
+// Tools keep their original names and descriptions: initial context refers to
+// them by those names. Only initial_context itself is dropped, because its
+// payload is already inlined into the system prompt.
+export function omitTools(tools: ToolSet, names: string[]): ToolSet {
+  const omit = new Set(names)
+  return Object.fromEntries(Object.entries(tools).filter(([key]) => !omit.has(key)))
 }
 
 export function mergeToolSets(...sets: ToolSet[]): ToolSet {
