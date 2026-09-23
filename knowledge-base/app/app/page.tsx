@@ -1,5 +1,11 @@
+import type {
+  ArticlesQueryResult,
+  ProductsQueryResult,
+  TopicsQueryResult,
+} from '@starter/sanity-types'
 import Link from 'next/link'
 
+import {HomeStory} from '@/components/home-story'
 import {sanityFetch} from '@/sanity/live'
 import {articlesQuery, productsQuery, topicsQuery} from '@/sanity/queries'
 
@@ -31,13 +37,13 @@ function FilterGroup({
   }
   return (
     <div className="space-y-1">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{label}</p>
+      <p className="font-mono text-micro uppercase tracking-wide text-fg-subtle">{label}</p>
       <Link
         href={href()}
         className={
           !active
-            ? 'block text-sm font-medium text-blue-600'
-            : 'block text-sm text-gray-600 hover:text-gray-900'
+            ? 'block text-sm font-medium text-brand'
+            : 'block text-sm text-fg-muted hover:text-fg-base'
         }
       >
         All
@@ -48,8 +54,8 @@ function FilterGroup({
           href={href(t.slug ?? undefined)}
           className={
             active === t.slug
-              ? 'block text-sm font-medium text-blue-600'
-              : 'block text-sm text-gray-600 hover:text-gray-900'
+              ? 'block text-sm font-medium text-brand'
+              : 'block text-sm text-fg-muted hover:text-fg-base'
           }
         >
           {t.title}
@@ -67,63 +73,67 @@ export default async function HomePage({searchParams}: Props) {
     sanityFetch({query: productsQuery}),
     sanityFetch({query: topicsQuery}),
   ])
+  const articleList = articles.data as ArticlesQueryResult
+  const productList = products.data as ProductsQueryResult
+  const topicList = topics.data as TopicsQueryResult
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="mb-2 text-3xl font-bold text-gray-900">Help Center</h1>
-      <p className="mb-8 text-gray-600">
-        Browse articles, or{' '}
-        <Link href="/chat" className="text-blue-600 hover:underline">
-          ask the AI assistant
-        </Link>
-        .
-      </p>
+    <main>
+      <HomeStory />
 
-      <form action="/search" className="mb-8">
-        <input
-          name="q"
-          placeholder="Search the knowledge base…"
-          className="w-full rounded-full border border-gray-300 px-4 py-2 text-sm outline-none focus:border-gray-500"
-        />
-      </form>
-
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-[12rem_1fr]">
-        <aside className="space-y-6">
-          <FilterGroup
-            label="Product"
-            terms={products.data}
-            param="product"
-            active={product}
-            other={{key: 'topic', value: topic}}
+      <div className="mx-auto max-w-5xl px-4 py-12">
+        <div className="mb-8 flex items-baseline justify-between gap-4">
+          <h2 className="text-display-sm font-semibold text-fg-base">Published help articles</h2>
+          <span className="font-mono text-caption uppercase tracking-wider text-fg-subtle">
+            Browse
+          </span>
+        </div>
+        <form action="/search" className="mb-8">
+          <input
+            name="q"
+            placeholder="Search published articles and FAQs"
+            className="w-full rounded-sm border border-border-base bg-bg-card px-4 py-2 text-sm outline-none focus:border-border-focus"
           />
-          <FilterGroup
-            label="Topic"
-            terms={topics.data}
-            param="topic"
-            active={topic}
-            other={{key: 'product', value: product}}
-          />
-        </aside>
+        </form>
 
-        <section>
-          {articles.data.length === 0 ? (
-            <p className="text-gray-500">No articles match these filters.</p>
-          ) : (
-            <ul className="space-y-6">
-              {articles.data.map((article) => (
-                <li key={article._id}>
-                  <Link
-                    href={`/articles/${article.slug}`}
-                    className="text-lg font-medium text-blue-600 hover:underline"
-                  >
-                    {article.title}
-                  </Link>
-                  {article.summary && <p className="mt-1 text-gray-600">{article.summary}</p>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-[12rem_1fr]">
+          <aside className="space-y-6">
+            <FilterGroup
+              label="Product"
+              terms={productList}
+              param="product"
+              active={product}
+              other={{key: 'topic', value: topic}}
+            />
+            <FilterGroup
+              label="Topic"
+              terms={topicList}
+              param="topic"
+              active={topic}
+              other={{key: 'product', value: product}}
+            />
+          </aside>
+
+          <section>
+            {articleList.length === 0 ? (
+              <p className="text-fg-subtle">No articles match these filters.</p>
+            ) : (
+              <ul className="space-y-6">
+                {articleList.map((article) => (
+                  <li key={article._id}>
+                    <Link
+                      href={`/articles/${article.slug}`}
+                      className="text-lg font-medium text-fg-base hover:text-brand"
+                    >
+                      {article.title}
+                    </Link>
+                    {article.summary && <p className="mt-1 text-fg-muted">{article.summary}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
       </div>
     </main>
   )

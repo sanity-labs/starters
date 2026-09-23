@@ -32,6 +32,8 @@ jobs:
           SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET }}
       - name: Validate template
         run: pnpm run validate
+      - name: Build functions
+        run: pnpm --filter @starter/functions build
       - name: Manifest extract
         run: pnpm --filter studio exec sanity manifest extract
         env:

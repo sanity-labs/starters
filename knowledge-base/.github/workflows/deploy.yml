@@ -1,0 +1,82 @@
+name: Deploy
+
+# Deploys the Sanity-hosted surfaces on push to main. The Next.js help center is
+# deployed by Vercel (see "Deploying" in the README) — this workflow only builds
+# it as a guard. Knowledge Bases and MCP endpoints live in the Context app and
+# are not deployed from here.
+#
+# Requires these GitHub Environment values (Settings → Environments):
+#   vars:    SANITY_PROJECT_ID, SANITY_DATASET, SANITY_STACK_ID
+#   secrets: SANITY_AUTH_TOKEN, SANITY_API_READ_TOKEN
+# The dataset is private, so the app build needs the project Viewer token to
+# prerender article pages (generateStaticParams).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'studio/**'
+      - 'packages/@starter/**'
+      - 'functions/**'
+      - 'sanity.blueprint.ts'
+      - 'app/**'
+
+jobs:
+  studio:
+    name: Deploy Studio
+    runs-on: ubuntu-latest
+    environment: knowledge-base
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter studio run deploy
+        env:
+          SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
+          SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET }}
+          SANITY_AUTH_TOKEN: ${{ secrets.SANITY_AUTH_TOKEN }}
+
+  blueprint:
+    name: Deploy Blueprint
+    runs-on: ubuntu-latest
+    environment: knowledge-base
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @starter/functions run build
+      - name: Deploy blueprints
+        uses: sanity-io/blueprints-actions/deploy@deploy-v3
+        with:
+          sanity-token: ${{ secrets.SANITY_AUTH_TOKEN }}
+          stack-id: ${{ vars.SANITY_STACK_ID }}
+          project-id: ${{ vars.SANITY_PROJECT_ID }}
+        env:
+          SANITY_STUDIO_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
+          SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET }}
+
+  app:
+    name: Build App
+    runs-on: ubuntu-latest
+    environment: knowledge-base
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter app build
+        env:
+          NEXT_PUBLIC_SANITY_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
+          NEXT_PUBLIC_SANITY_DATASET: ${{ vars.SANITY_DATASET }}
+          SANITY_API_READ_TOKEN: ${{ secrets.SANITY_API_READ_TOKEN }}

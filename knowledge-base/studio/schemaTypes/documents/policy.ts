@@ -1,18 +1,9 @@
 import {LockIcon} from '@sanity/icons'
 import {defineField, defineType} from 'sanity'
 
-import {
-  audienceField,
-  governanceFields,
-  importanceField,
-  statusField,
-  summaryField,
-  taxonomyFields,
-} from '../shared'
+import {governanceFields, importanceField, statusField, summaryField} from '../shared'
 
-// Internal rules and governance: HR policies, compliance procedures, security
-// guidelines. Compliance-sensitive changes are staged through a Content Release
-// before they enter the agent-visible published dataset.
+// Internal rules. Review dates are content governance, upstream of any index.
 export const policy = defineType({
   name: 'policy',
   title: 'Policy',
@@ -38,8 +29,6 @@ export const policy = defineType({
       title: 'Content',
       type: 'blockContent',
     }),
-    audienceField,
-    ...taxonomyFields,
     defineField({
       name: 'internalCategory',
       title: 'Internal category',
@@ -57,7 +46,7 @@ export const policy = defineType({
       const overdue = reviewByDate && new Date(reviewByDate) < new Date()
       return {
         title,
-        subtitle: [importance, overdue && '⚠ review overdue'].filter(Boolean).join(' · '),
+        subtitle: [importance, overdue && 'review overdue'].filter(Boolean).join(' · '),
       }
     },
   },

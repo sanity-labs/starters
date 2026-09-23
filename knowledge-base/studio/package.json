@@ -9,11 +9,11 @@
     "deploy": "sanity deploy",
     "typegen": "sanity schema extract && sanity typegen generate",
     "seed:generate": "tsx scripts/generate-seed.ts",
+    "seed:files": "tsx scripts/generate-pdfs.ts",
     "bootstrap": "sanity exec scripts/bootstrap.ts --with-user-token",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sanity/agent-context": "catalog:",
     "@sanity/icons": "catalog:",
     "@sanity/ui": "catalog:",
     "@sanity/vision": "catalog:",

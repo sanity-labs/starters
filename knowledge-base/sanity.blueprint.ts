@@ -1,9 +1,4 @@
-import {
-  defineBlueprint,
-  defineDocumentFunction,
-  defineRobotToken,
-  defineScheduledFunction,
-} from '@sanity/blueprints'
+import {defineBlueprint, defineDocumentFunction} from '@sanity/blueprints'
 
 // Load env — jiti (which loads this file) doesn't support process.loadEnvFile,
 // so we parse studio/.env manually. import.meta.dirname is synthesized by jiti.
@@ -36,38 +31,10 @@ export default defineBlueprint({
       src: 'functions/dist/set-review-date',
       event: {
         on: ['create', 'update'],
-        // Scope to reviewable content and skip docs that already have a clock —
-        // this also stops the function's own patch from re-triggering it.
-        filter: '_type in ["helpArticle", "faq", "playbook", "policy"] && !defined(reviewByDate)',
+        // Policy review clocks are content governance, upstream of any Knowledge
+        // Base. Skip docs that already have a date so the patch does not re-fire.
+        filter: '_type == "policy" && !defined(reviewByDate)',
         projection: '{_id, _type}',
-      },
-    }),
-
-    // ── Agent Insights classification ────────────────────────────────
-    // Robot token (Editor) used by the scheduled classifier to read
-    // conversations and write classification results back.
-    defineRobotToken({
-      name: 'kb-insights-robot',
-      label: 'Knowledge Base Insights Robot',
-      memberships: [
-        {resourceType: 'project', resourceId: SANITY_STUDIO_PROJECT_ID, roleNames: ['editor']},
-      ],
-    }),
-    // Hourly pass over unclassified conversations (the package applies a
-    // 10-minute cooldown so in-flight chats are left alone). Needs an
-    // ANTHROPIC_API_KEY function env var — bootstrap sets it, or:
-    //   npx sanity functions env add classify-conversations ANTHROPIC_API_KEY <key>
-    defineScheduledFunction({
-      name: 'classify-conversations',
-      src: 'functions/dist/classify-conversations',
-      event: {expression: '0 * * * *'},
-      timezone: 'Etc/UTC',
-      robotToken: '$.resources.kb-insights-robot.token',
-      // Scheduled functions have no triggering document, so project ID and
-      // dataset are injected here at deploy time.
-      env: {
-        SANITY_STUDIO_PROJECT_ID,
-        SANITY_STUDIO_DATASET,
       },
     }),
   ],

@@ -6,8 +6,6 @@ export const internalCategory = defineType({
   title: 'Internal Category',
   type: 'document',
   icon: FolderIcon,
-  // Organizes internal content (playbooks, policies). Safe to include in the
-  // external agent context for retrieval precision — it carries no sensitive data.
   fields: [
     defineField({
       name: 'title',

@@ -1,9 +1,10 @@
 import {DocumentTextIcon} from '@sanity/icons'
 import {defineField, defineType} from 'sanity'
 
-import {audienceField, governanceFields, statusField, summaryField, taxonomyFields} from '../shared'
+import {audienceField, statusField, summaryField, taxonomyFields} from '../shared'
 
-// External, customer-facing procedural help content.
+// Customer-facing procedural help. Reaches the customer Knowledge Base as a
+// dataset source. Fix the article here; the next KB build inherits the change.
 export const helpArticle = defineType({
   name: 'helpArticle',
   title: 'Help Article',
@@ -32,16 +33,11 @@ export const helpArticle = defineType({
     audienceField,
     ...taxonomyFields,
     statusField,
-    ...governanceFields,
   ],
   preview: {
-    select: {title: 'title', status: 'status', reviewByDate: 'reviewByDate'},
-    prepare({title, status, reviewByDate}) {
-      const overdue = reviewByDate && new Date(reviewByDate) < new Date()
-      return {
-        title,
-        subtitle: [status, overdue && '⚠ review overdue'].filter(Boolean).join(' · '),
-      }
+    select: {title: 'title', status: 'status'},
+    prepare({title, status}) {
+      return {title, subtitle: status}
     },
   },
 })

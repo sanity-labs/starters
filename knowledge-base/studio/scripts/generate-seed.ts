@@ -1,6 +1,5 @@
-// Generates studio/seed/data.ndjson for the fictional "Beacon" customer
+// Generates studio/seed/data.ndjson for the fictional Beacon customer
 // engagement platform. Run: pnpm --filter studio seed:generate
-// Edit the content arrays below and re-run to extend the sample dataset.
 import {writeFileSync} from 'node:fs'
 import {fileURLToPath} from 'node:url'
 
@@ -20,8 +19,6 @@ type Block = {
 
 type Para = string | {style?: string; text: string} | {bullet: string}
 
-// Minimal Portable Text builder: strings become normal blocks, {bullet} become
-// bulleted list items, {style} sets a heading/quote style.
 function pt(paras: Para[]): Block[] {
   return paras.map((p) => {
     const spec =
@@ -41,21 +38,79 @@ function pt(paras: Para[]): Block[] {
   })
 }
 
-// Dates relative to the demo "today" of 2026-06-02. Deliberate fresh/overdue mix
-// so the Needs Review queue and Content Health dashboard light up on first open.
-const OVERDUE = ['2026-01-15', '2026-02-20', '2026-03-10', '2026-04-05', '2026-05-01', '2026-05-22']
-const FRESH = ['2026-07-15', '2026-08-01', '2026-08-20', '2026-09-10', '2026-09-30']
+// Review dates are relative to generation time so the Needs Review queue and
+// the "overdue policies" demo stay meaningful. Bootstrap regenerates this file
+// before importing, so a fresh clone seeds against today, not the commit date.
+const daysFromNow = (days: number) => {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+const OVERDUE = [daysFromNow(-240), daysFromNow(-205), daysFromNow(-190)]
+const FRESH = [daysFromNow(30), daysFromNow(45), daysFromNow(75)]
 const at = (d: string) => `${d}T00:00:00Z`
 
-// --- Taxonomy -------------------------------------------------------------
-
 const products = [
-  ['campaigns', 'Campaigns', 'Design, schedule, and send multi-channel campaigns.'],
-  ['segments', 'Segments', 'Group contacts with live, rule-based audience segments.'],
-  ['channels', 'Channels', 'Email, push, SMS, and in-app message delivery.'],
-  ['analytics', 'Analytics', 'Engagement, conversion, and deliverability reporting.'],
-  ['workflows', 'Workflows', 'Automated, event-triggered messaging journeys.'],
-  ['api', 'Developer API', 'REST API, webhooks, and event streaming.'],
+  {
+    slug: 'campaigns',
+    title: 'Campaigns',
+    description: 'Design, schedule, and send multi-channel campaigns from one audience model.',
+    planTier: 'growth',
+    priceMonthly: 149,
+    channels: ['email', 'sms', 'push'],
+    seatLimit: 10,
+    features: ['A/B tests', 'local send time', 'preview inbox'],
+  },
+  {
+    slug: 'segments',
+    title: 'Segments',
+    description: 'Live, rule-based audience segments that update as contact data changes.',
+    planTier: 'starter',
+    priceMonthly: 49,
+    channels: ['email'],
+    seatLimit: 5,
+    features: ['Attribute filters', 'CSV import', 'consent fields'],
+  },
+  {
+    slug: 'channels',
+    title: 'Channels',
+    description: 'Email, SMS, push, and in-app delivery with shared authentication.',
+    planTier: 'growth',
+    priceMonthly: 199,
+    channels: ['email', 'sms', 'push', 'in-app'],
+    seatLimit: 15,
+    features: ['SPF/DKIM/DMARC wizard', 'delivery logs', 'suppression lists'],
+  },
+  {
+    slug: 'analytics',
+    title: 'Analytics',
+    description: 'Engagement, conversion, and deliverability reporting across campaigns.',
+    planTier: 'enterprise',
+    priceMonthly: 399,
+    channels: ['email', 'sms', 'push', 'in-app'],
+    seatLimit: 50,
+    features: ['Conversion goals', 'cohort compare', 'CSV and API export'],
+  },
+  {
+    slug: 'workflows',
+    title: 'Workflows',
+    description: 'Event-triggered journeys with delays, splits, and multi-channel steps.',
+    planTier: 'growth',
+    priceMonthly: 179,
+    channels: ['email', 'sms', 'push', 'in-app'],
+    seatLimit: 20,
+    features: ['Event triggers', 'conditional splits', 'wait steps'],
+  },
+  {
+    slug: 'api',
+    title: 'Developer API',
+    description: 'REST API, webhooks, and event streaming for contacts and metrics.',
+    planTier: 'enterprise',
+    priceMonthly: 299,
+    channels: ['email', 'sms', 'push'],
+    seatLimit: 0,
+    features: ['100 rps default', 'signed webhooks', 'scoped API keys'],
+  },
 ]
 
 const topics = [
@@ -81,8 +136,6 @@ const productId = (s: string) => `product.${s}`
 const topicId = (s: string) => `topic.${s}`
 const icId = (s: string) => `internalCategory.${s}`
 
-// --- Content --------------------------------------------------------------
-
 type Article = {
   id: string
   title: string
@@ -92,7 +145,6 @@ type Article = {
   topics?: string[]
   audience?: string[]
   status?: string
-  review?: string | null
 }
 
 const helpArticles: Article[] = [
@@ -106,8 +158,6 @@ const helpArticles: Article[] = [
       'After signing up, verify your sending domain and invite teammates from the Administration panel. You can send a test message before connecting any production data.',
     ],
     topics: ['getting-started'],
-    audience: [],
-    review: at(OVERDUE[0]),
   },
   {
     id: 'first-campaign',
@@ -122,7 +172,6 @@ const helpArticles: Article[] = [
     products: ['campaigns'],
     topics: ['getting-started'],
     audience: ['end-user'],
-    review: at(FRESH[0]),
   },
   {
     id: 'building-segments',
@@ -136,7 +185,6 @@ const helpArticles: Article[] = [
     products: ['segments'],
     topics: ['administration'],
     audience: ['admin'],
-    review: at(OVERDUE[1]),
   },
   {
     id: 'connecting-email',
@@ -150,7 +198,6 @@ const helpArticles: Article[] = [
     products: ['channels'],
     topics: ['integrations'],
     audience: ['admin'],
-    review: at(FRESH[1]),
   },
   {
     id: 'push-setup',
@@ -163,7 +210,6 @@ const helpArticles: Article[] = [
     products: ['channels'],
     topics: ['integrations'],
     audience: ['admin'],
-    review: null,
   },
   {
     id: 'campaign-analytics',
@@ -176,7 +222,6 @@ const helpArticles: Article[] = [
     products: ['analytics'],
     topics: ['getting-started'],
     audience: ['end-user'],
-    review: at(FRESH[2]),
   },
   {
     id: 'workflows-intro',
@@ -190,7 +235,28 @@ const helpArticles: Article[] = [
     products: ['workflows'],
     topics: ['administration'],
     audience: ['admin'],
-    review: at(OVERDUE[2]),
+  },
+  {
+    id: 'paused-workflow-billing',
+    title: 'Billing for paused campaigns and workflows',
+    summary:
+      'What happens to audience membership and usage when you pause a campaign or a workflow.',
+    body: [
+      {
+        style: 'h2',
+        text: 'Paused campaigns',
+      },
+      'Pausing a scheduled campaign stops the remaining send. Contacts already delivered stay in reporting. Contacts not yet sent are not billed for that send.',
+      {
+        style: 'h2',
+        text: 'Paused workflows',
+      },
+      'A paused workflow keeps enrolled contacts in place. Those contacts still count toward your included audience while the workflow is paused. They are not billed for messages that the pause prevented.',
+      'Resume the workflow to continue from each contact’s last completed step. Restarting a workflow from the beginning is a separate action and may re-bill message volume.',
+    ],
+    products: ['campaigns', 'workflows'],
+    topics: ['billing'],
+    audience: ['admin'],
   },
   {
     id: 'api-quickstart',
@@ -203,7 +269,6 @@ const helpArticles: Article[] = [
     products: ['api'],
     topics: ['api'],
     audience: ['developer'],
-    review: at(FRESH[3]),
   },
   {
     id: 'api-keys',
@@ -217,7 +282,6 @@ const helpArticles: Article[] = [
     products: ['api'],
     topics: ['security'],
     audience: ['developer'],
-    review: at(OVERDUE[3]),
   },
   {
     id: 'team-roles',
@@ -229,7 +293,6 @@ const helpArticles: Article[] = [
     ],
     topics: ['administration'],
     audience: ['admin'],
-    review: at(FRESH[4]),
   },
   {
     id: 'billing-overview',
@@ -241,7 +304,18 @@ const helpArticles: Article[] = [
     ],
     topics: ['billing'],
     audience: ['admin'],
-    review: at(OVERDUE[4]),
+  },
+  {
+    id: 'refunds-and-credits',
+    title: 'Refunds and credits',
+    summary: 'When Beacon issues refunds or account credits, and the 30-day request window.',
+    body: [
+      'You can request a refund or account credit within 30 days of the original invoice date.',
+      'Qualifying charges include unused prepaid volume and billing errors. Message volume already delivered is not refundable.',
+      'Refunds return to the original payment method within ten business days. Credits apply to the next invoice.',
+    ],
+    topics: ['billing'],
+    audience: ['admin'],
   },
   {
     id: 'delivery-troubleshooting',
@@ -255,7 +329,6 @@ const helpArticles: Article[] = [
     products: ['channels'],
     topics: ['troubleshooting'],
     audience: ['end-user'],
-    review: null,
   },
   {
     id: 'importing-contacts',
@@ -269,7 +342,6 @@ const helpArticles: Article[] = [
     products: ['segments'],
     topics: ['getting-started'],
     audience: ['admin'],
-    review: at(FRESH[0]),
   },
   {
     id: 'webhooks',
@@ -283,7 +355,6 @@ const helpArticles: Article[] = [
     products: ['api'],
     topics: ['integrations'],
     audience: ['developer'],
-    review: at(OVERDUE[5]),
   },
   {
     id: 'data-exports',
@@ -296,7 +367,6 @@ const helpArticles: Article[] = [
     topics: ['security', 'administration'],
     audience: ['admin'],
     status: 'draft',
-    review: null,
   },
 ]
 
@@ -308,10 +378,18 @@ type Faq = {
   topics?: string[]
   audience?: string[]
   status?: string
-  review?: string | null
 }
 
 const faqs: Faq[] = [
+  {
+    id: 'refund-window',
+    question: 'What is the refund window?',
+    answer: [
+      'Beacon issues refunds for qualifying charges within 30 days of the original invoice date. Delivered message volume is not refundable.',
+    ],
+    topics: ['billing'],
+    audience: ['admin'],
+  },
   {
     id: 'reset-password',
     question: 'How do I reset my password?',
@@ -320,7 +398,6 @@ const faqs: Faq[] = [
     ],
     topics: ['security'],
     audience: ['end-user'],
-    review: at(FRESH[0]),
   },
   {
     id: 'emails-spam',
@@ -331,7 +408,6 @@ const faqs: Faq[] = [
     products: ['channels'],
     topics: ['troubleshooting'],
     audience: ['end-user'],
-    review: at(OVERDUE[0]),
   },
   {
     id: 'segment-vs-list',
@@ -342,7 +418,6 @@ const faqs: Faq[] = [
     products: ['segments'],
     topics: ['administration'],
     audience: ['end-user'],
-    review: at(FRESH[1]),
   },
   {
     id: 'billing-calculated',
@@ -352,7 +427,6 @@ const faqs: Faq[] = [
     ],
     topics: ['billing'],
     audience: ['admin'],
-    review: at(OVERDUE[1]),
   },
   {
     id: 'schedule-campaigns',
@@ -363,7 +437,6 @@ const faqs: Faq[] = [
     products: ['campaigns'],
     topics: ['getting-started'],
     audience: ['end-user'],
-    review: at(FRESH[2]),
   },
   {
     id: 'rate-limits',
@@ -374,7 +447,6 @@ const faqs: Faq[] = [
     products: ['api'],
     topics: ['api'],
     audience: ['developer'],
-    review: at(OVERDUE[2]),
   },
   {
     id: 'enable-2fa',
@@ -383,8 +455,6 @@ const faqs: Faq[] = [
       'Open your profile settings and choose Security → Two-factor authentication. Authenticator apps and SMS codes are both supported.',
     ],
     topics: ['security'],
-    audience: [],
-    review: at(FRESH[3]),
   },
   {
     id: 'supported-integrations',
@@ -394,7 +464,6 @@ const faqs: Faq[] = [
     ],
     topics: ['integrations'],
     audience: ['admin'],
-    review: null,
   },
   {
     id: 'export-analytics',
@@ -405,7 +474,6 @@ const faqs: Faq[] = [
     products: ['analytics'],
     topics: ['administration'],
     audience: ['admin'],
-    review: at(FRESH[4]),
   },
   {
     id: 'downgrade-plan',
@@ -415,135 +483,21 @@ const faqs: Faq[] = [
     ],
     topics: ['billing'],
     audience: ['admin'],
-    review: at(OVERDUE[3]),
   },
 ]
 
-type Internal = {
+type Policy = {
   id: string
   title: string
   summary: string
   body: Para[]
   category: string
   importance: 'standard' | 'critical'
-  products?: string[]
-  topics?: string[]
-  audience?: string[]
-  status?: string
+  owner: string
   review?: string | null
 }
 
-const playbooks: Internal[] = [
-  {
-    id: 'billing-dispute',
-    title: 'Tier 1 billing dispute escalation',
-    summary:
-      'How support reps handle a customer disputing a charge, and when to escalate to Finance.',
-    body: [
-      'Confirm the disputed invoice and the usage that drove it before responding. Reference the customer-facing billing article for the calculation.',
-      {bullet: 'If the dispute is under $500 and clearly an error, issue a credit and log it.'},
-      {
-        bullet:
-          'If over $500 or contested, escalate to Finance with the invoice ID and account notes.',
-      },
-    ],
-    category: 'customer-success',
-    importance: 'critical',
-    topics: ['billing'],
-    review: at(OVERDUE[0]),
-  },
-  {
-    id: 'onboarding-motion',
-    title: 'New customer onboarding motion',
-    summary: 'The standard 30-day onboarding sequence for new mid-market accounts.',
-    body: [
-      'Onboarding spans three milestones: domain authentication, first campaign sent, and first workflow live.',
-      'Schedule a kickoff within 48 hours of close and a check-in at day 14.',
-    ],
-    category: 'customer-success',
-    importance: 'standard',
-    review: at(FRESH[0]),
-  },
-  {
-    id: 'deliverability-complaint',
-    title: 'Handling a deliverability complaint',
-    summary: 'Steps to diagnose and respond when a customer reports poor inbox placement.',
-    body: [
-      'Pull the customer’s recent sending stats and authentication status before responding.',
-      'Most complaints trace to missing DMARC or an un-warmed domain; provide the remediation steps and offer a deliverability review for enterprise accounts.',
-    ],
-    category: 'customer-success',
-    importance: 'standard',
-    products: ['channels'],
-    review: at(OVERDUE[1]),
-  },
-  {
-    id: 'competitive-esp',
-    title: 'Competitive response: vs. legacy ESPs',
-    summary:
-      'Positioning and proof points when a prospect is evaluating Beacon against a legacy email service provider.',
-    body: [
-      'Lead with the unified audience model: legacy ESPs treat email in isolation, while Beacon coordinates email, push, SMS, and in-app from one segment.',
-      'Avoid disparaging competitors; anchor on the cost of maintaining separate tools and lists.',
-    ],
-    category: 'sales',
-    importance: 'standard',
-    review: at(FRESH[1]),
-  },
-  {
-    id: 'objection-pricing',
-    title: 'Objection handling: pricing',
-    summary: 'Common pricing objections and the framing that reframes cost as consolidated value.',
-    body: [
-      'When price comes up, reframe around tools replaced and headcount saved on list maintenance.',
-      'Offer an annual commitment for a volume discount rather than discounting the monthly rate.',
-    ],
-    category: 'sales',
-    importance: 'standard',
-    review: null,
-  },
-  {
-    id: 'security-incident',
-    title: 'Security incident triage runbook',
-    summary: 'First-responder steps for engineers when a potential security incident is reported.',
-    body: [
-      'Acknowledge the report, open an incident channel, and assign an incident lead within 15 minutes.',
-      {bullet: 'Contain: revoke affected credentials and isolate impacted systems.'},
-      {bullet: 'Notify Security & Compliance; do not communicate externally until cleared.'},
-    ],
-    category: 'engineering',
-    importance: 'critical',
-    topics: ['security'],
-    review: at(OVERDUE[2]),
-  },
-  {
-    id: 'enterprise-demo',
-    title: 'Enterprise demo script',
-    summary: 'The reference demo flow for enterprise prospects, emphasizing governance and scale.',
-    body: [
-      'Open with the unified audience, then show a cross-channel workflow and the analytics that tie back to revenue.',
-      'For enterprise, spend time on roles, audit logging, and data residency.',
-    ],
-    category: 'sales',
-    importance: 'standard',
-    review: at(FRESH[2]),
-  },
-  {
-    id: 'churn-save',
-    title: 'Churn-risk save play',
-    summary:
-      'How CSMs respond to an at-risk account showing declining usage or a cancellation signal.',
-    body: [
-      'Trigger this play when usage drops more than 40% month over month or a cancellation is requested.',
-      'Lead with a value review tied to the customer’s original goals, and bring a tailored workflow recommendation.',
-    ],
-    category: 'customer-success',
-    importance: 'critical',
-    review: at(FRESH[3]),
-  },
-]
-
-const policies: Internal[] = [
+const policies: Policy[] = [
   {
     id: 'data-privacy',
     title: 'Data processing and privacy policy',
@@ -555,7 +509,7 @@ const policies: Internal[] = [
     ],
     category: 'security-compliance',
     importance: 'critical',
-    topics: ['security'],
+    owner: 'Security & Compliance',
     review: at(OVERDUE[0]),
   },
   {
@@ -563,12 +517,13 @@ const policies: Internal[] = [
     title: 'Refund and credit policy',
     summary: 'When refunds and account credits are issued, and the approval thresholds for each.',
     body: [
+      'The customer-facing refund window is 30 days from the original invoice date. That is ground truth if a file or article disagrees.',
       'Credits under $500 may be approved by support. Refunds and credits above that require Finance approval.',
       'Refunds are issued to the original payment method within ten business days.',
     ],
     category: 'finance',
     importance: 'critical',
-    topics: ['billing'],
+    owner: 'Finance',
     review: at(FRESH[0]),
   },
   {
@@ -582,6 +537,7 @@ const policies: Internal[] = [
     ],
     category: 'security-compliance',
     importance: 'standard',
+    owner: 'Security & Compliance',
     review: at(OVERDUE[1]),
   },
   {
@@ -594,6 +550,7 @@ const policies: Internal[] = [
     ],
     category: 'hr',
     importance: 'standard',
+    owner: 'People',
     review: at(FRESH[1]),
   },
   {
@@ -606,63 +563,26 @@ const policies: Internal[] = [
     ],
     category: 'security-compliance',
     importance: 'critical',
+    owner: 'Security & Compliance',
     review: null,
   },
 ]
 
-// --- Agent Context configs ------------------------------------------------
-
-const EXTERNAL_INSTRUCTIONS = `# Customer Support context
-
-## Rules
-- Answer only from published help articles and FAQs. If the content does not cover a question, say so and suggest contacting support.
-- Never speculate about account-specific data (invoices, usage, personal details) — direct the user to their account or support.
-- Prefer the most recently reviewed content when answers conflict.
-
-## Schema notes
-- helpArticle: procedural help. Use \`summary\` for cards and \`pt::text(content)\` for the full body.
-- faq: a tight question/answer pair. Use \`pt::text(answer)\` for the body.
-- product and topic: taxonomy you can use to scope or label results.
-
-## Query patterns
-- Route by audience when relevant: \`*[_type in ["helpArticle","faq"] && $audience in audience[]]\`.
-- Hybrid retrieval: \`*[_type in ["helpArticle","faq"]] | score(text::semanticSimilarity("content", $query)) | order(_score desc)[0...5]\`.
-
-## Content filter
-Scoped to external types only — internal playbooks and policies are never visible here.`
-
-const INTERNAL_INSTRUCTIONS = `# Team KB context
-
-## Rules
-- You can see both customer-facing content (helpArticle, faq) and internal content (playbook, policy). In one answer, give the customer-facing fact and the internal procedure together.
-- Surface \`importance == "critical"\` playbooks and policies first.
-- Warn when content is overdue for review (\`reviewByDate < now()\`) so staff know it may be stale.
-
-## Schema notes
-- playbook: internal how-to for customer-facing teams; has \`importance\` and an \`internalCategory\` reference.
-- policy: internal rules and governance; \`importance == "critical"\` matters most.
-- internalCategory: organizes internal content (HR, Security & Compliance, Sales, etc.).
-
-## Query patterns
-- Cross-context answer: query both external and internal types for the same topic and combine.
-- Traverse categories: \`*[_type == "playbook" && internalCategory->slug.current == $category]\`.
-- Hybrid retrieval works across all types via \`score(text::semanticSimilarity(...))\`.
-
-## Content filter
-Scoped to all content and taxonomy types — this is the internal, staff-only context.`
-
-// --- Emit -----------------------------------------------------------------
-
 type Doc = Record<string, unknown>
 const docs: Doc[] = []
 
-for (const [slug, title, description] of products) {
+for (const product of products) {
   docs.push({
-    _id: productId(slug),
+    _id: productId(product.slug),
     _type: 'product',
-    title,
-    slug: {_type: 'slug', current: slug},
-    description,
+    title: product.title,
+    slug: {_type: 'slug', current: product.slug},
+    description: product.description,
+    planTier: product.planTier,
+    priceMonthly: product.priceMonthly,
+    channels: product.channels,
+    seatLimit: product.seatLimit,
+    features: product.features,
   })
 }
 for (const [slug, title] of topics) {
@@ -689,7 +609,6 @@ for (const a of helpArticles) {
     products: (a.products ?? []).map((s) => ({_key: key(), ...ref(productId(s))})),
     topics: (a.topics ?? []).map((s) => ({_key: key(), ...ref(topicId(s))})),
     status: a.status ?? 'published',
-    ...(a.review ? {reviewByDate: a.review} : {}),
   })
 }
 
@@ -703,51 +622,24 @@ for (const f of faqs) {
     products: (f.products ?? []).map((s) => ({_key: key(), ...ref(productId(s))})),
     topics: (f.topics ?? []).map((s) => ({_key: key(), ...ref(topicId(s))})),
     status: f.status ?? 'published',
-    ...(f.review ? {reviewByDate: f.review} : {}),
   })
 }
 
-const emitInternal = (type: 'playbook' | 'policy', items: Internal[]) => {
-  for (const it of items) {
-    docs.push({
-      _id: `${type}.${it.id}`,
-      _type: type,
-      title: it.title,
-      slug: {_type: 'slug', current: it.id},
-      summary: it.summary,
-      content: pt(it.body),
-      audience: it.audience ?? [],
-      products: (it.products ?? []).map((s) => ({_key: key(), ...ref(productId(s))})),
-      topics: (it.topics ?? []).map((s) => ({_key: key(), ...ref(topicId(s))})),
-      internalCategory: ref(icId(it.category)),
-      importance: it.importance,
-      status: it.status ?? 'published',
-      ...(it.review ? {reviewByDate: it.review} : {}),
-    })
-  }
+for (const it of policies) {
+  docs.push({
+    _id: `policy.${it.id}`,
+    _type: 'policy',
+    title: it.title,
+    slug: {_type: 'slug', current: it.id},
+    summary: it.summary,
+    content: pt(it.body),
+    internalCategory: ref(icId(it.category)),
+    importance: it.importance,
+    status: 'published',
+    owner: it.owner,
+    ...(it.review ? {reviewByDate: it.review} : {}),
+  })
 }
-emitInternal('playbook', playbooks)
-emitInternal('policy', policies)
-
-docs.push({
-  _id: 'agentContext.external',
-  _type: 'sanity.agentContext',
-  version: '1',
-  name: 'Customer Support',
-  slug: {_type: 'slug', current: 'customer-support'},
-  groqFilter: '_type in ["helpArticle", "faq", "product", "topic"]',
-  instructions: EXTERNAL_INSTRUCTIONS,
-})
-docs.push({
-  _id: 'agentContext.internal',
-  _type: 'sanity.agentContext',
-  version: '1',
-  name: 'Team KB',
-  slug: {_type: 'slug', current: 'team-kb'},
-  groqFilter:
-    '_type in ["helpArticle", "faq", "playbook", "policy", "product", "topic", "internalCategory"]',
-  instructions: INTERNAL_INSTRUCTIONS,
-})
 
 const out = fileURLToPath(new URL('../seed/data.ndjson', import.meta.url))
 writeFileSync(out, docs.map((d) => JSON.stringify(d)).join('\n') + '\n')

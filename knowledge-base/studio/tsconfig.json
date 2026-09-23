@@ -1,6 +1,7 @@
 {
   "extends": "@starter/tsconfig/base.json",
   "include": ["schemaTypes/**/*.ts", "scripts/**/*.ts"],
+  "exclude": ["scripts/generate-pdfs.ts"],
   "compilerOptions": {
     "noEmit": true
   }

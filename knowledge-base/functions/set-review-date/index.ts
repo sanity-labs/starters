@@ -1,9 +1,10 @@
 import {createClient} from '@sanity/client'
 import {documentEventHandler} from '@sanity/functions'
 
-// On publish, give every reviewable document a 90-day review clock if it lacks
-// one. The blueprint filter (`!defined(reviewByDate)`) both scopes this to
-// content that needs a clock and prevents the patch from re-triggering itself.
+// On create/update, give a policy a 90-day review clock if it lacks one.
+// The blueprint filter (`_type == "policy" && !defined(reviewByDate)`) both
+// scopes this to policies that need a clock and prevents the patch from
+// re-triggering itself.
 const REVIEW_PERIOD_DAYS = 90
 
 interface ReviewableDocument {

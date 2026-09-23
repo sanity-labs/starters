@@ -1,9 +1,0 @@
-{
-  "extends": "@starter/tsconfig/base.json",
-  "compilerOptions": {
-    "lib": ["es2024", "dom", "dom.iterable"],
-    "jsx": "react-jsx"
-  },
-  "include": ["src", "sanity.cli.ts"],
-  "exclude": ["node_modules"]
-}

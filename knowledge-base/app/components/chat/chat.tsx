@@ -1,28 +1,86 @@
 'use client'
 
 import {useChat} from '@ai-sdk/react'
-import {lastAssistantMessageIsCompleteWithToolCalls} from 'ai'
-import {useState} from 'react'
+import {DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls} from 'ai'
+import {useMemo, useState} from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-import {ResultCards} from './result-cards'
+import {ResultCards, type CardType} from './result-cards'
+
+// Context MCP tool names, as served. GROQ mode and Knowledge Base mode expose
+// disjoint sets, so the mode badge follows straight from the tool name.
+const GROQ_TOOLS = new Set(['groq_query', 'schema_explorer', 'array_field_reader'])
+
+const KB_TOOLS = new Set(['knowledge_base_read'])
 
 const TOOL_LABELS: Record<string, string> = {
-  initial_context: 'Reading the knowledge base structure',
-  groq_query: 'Searching the knowledge base',
-  schema_explorer: 'Checking content details',
-  array_field_reader: 'Reading content',
+  groq_query: 'Running a GROQ query',
+  schema_explorer: 'Checking schema',
+  array_field_reader: 'Reading document content',
+  knowledge_base_read: 'Reading Knowledge Base entries',
 }
 
-const SUGGESTIONS = [
-  'How do I authenticate my sending domain?',
-  'What is the difference between a segment and a list?',
-  'How is billing calculated?',
-]
+type Surface = 'support' | 'ops'
 
-export function Chat() {
-  const {messages, sendMessage, status, stop, setMessages} = useChat({
+const COPY: Record<
+  Surface,
+  {
+    title: string
+    body: string
+    api: string
+    suggestions: {label: string; mode: 'GROQ' | 'KB'; text: string}[]
+  }
+> = {
+  support: {
+    title: 'Customer support',
+    body: 'GROQ answers structured facts. The Knowledge Base answers grounded prose. The agent picks one per question.',
+    api: '/api/chat',
+    suggestions: [
+      {label: 'GROQ', text: 'Which plan includes SMS under $200/mo?', mode: 'GROQ'},
+      {label: 'KB', text: "Is a paused campaign's audience still billed?", mode: 'KB'},
+    ],
+  },
+  ops: {
+    title: 'Internal ops',
+    body: 'Staff surface. Policies and catalog facts go through GROQ. Runbooks go through the internal Knowledge Base.',
+    api: '/api/chat/internal',
+    suggestions: [
+      {label: 'GROQ', text: 'Which critical policies are overdue for review?', mode: 'GROQ'},
+      {label: 'KB', text: 'What are the first 15 minutes of a SEV-1?', mode: 'KB'},
+    ],
+  },
+}
+
+function modeForTool(name: string): 'GROQ' | 'KB' | null {
+  if (GROQ_TOOLS.has(name)) return 'GROQ'
+  if (KB_TOOLS.has(name)) return 'KB'
+  return null
+}
+
+// The chat routes answer configuration and upstream failures with a JSON
+// {error} body. The transport surfaces that body as the Error message.
+function describeError(error: Error): string {
+  try {
+    const parsed = JSON.parse(error.message) as {error?: unknown}
+    if (typeof parsed.error === 'string') return parsed.error
+  } catch {}
+  return error.message || 'Something went wrong.'
+}
+
+function ModeBadge({mode}: {mode: 'GROQ' | 'KB'}) {
+  return (
+    <span className="inline-flex items-center rounded-sm border border-border-faint px-1.5 py-0.5 font-mono text-micro uppercase tracking-wide text-fg-subtle">
+      {mode}
+    </span>
+  )
+}
+
+export function Chat({surface}: {surface: Surface}) {
+  const copy = COPY[surface]
+  const transport = useMemo(() => new DefaultChatTransport({api: copy.api}), [copy.api])
+  const {messages, sendMessage, status, stop, setMessages, error, clearError} = useChat({
+    transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
   })
   const [input, setInput] = useState('')
@@ -39,17 +97,21 @@ export function Chat() {
     <div className="mx-auto flex h-[calc(100dvh-8rem)] max-w-3xl flex-col">
       <div className="flex-1 space-y-4 overflow-y-auto py-6">
         {messages.length === 0 ? (
-          <div className="space-y-4 pt-12 text-center">
-            <h2 className="text-2xl font-semibold text-gray-900">Ask the help center</h2>
-            <p className="text-gray-600">Answers come straight from the knowledge base.</p>
-            <div className="mx-auto flex max-w-md flex-col gap-2 pt-4">
-              {SUGGESTIONS.map((s) => (
+          <div className="space-y-4 pt-8">
+            <p className="font-mono text-micro uppercase tracking-wide text-fg-subtle">
+              {surface === 'support' ? 'SC02 · Support agent' : 'SC03 · Ops agent'}
+            </p>
+            <h2 className="text-display-sm text-fg-base">{copy.title}</h2>
+            <p className="text-fg-muted">{copy.body}</p>
+            <div className="grid gap-2 pt-2 sm:grid-cols-2">
+              {copy.suggestions.map((s) => (
                 <button
-                  key={s}
-                  onClick={() => send(s)}
-                  className="rounded-lg border border-gray-200 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                  key={s.text}
+                  onClick={() => send(s.text)}
+                  className="rounded-sm border border-border-faint bg-bg-card px-4 py-3 text-left hover:bg-bg-subtle duration-fast"
                 >
-                  {s}
+                  <ModeBadge mode={s.mode} />
+                  <p className="mt-2 text-sm text-fg-base">{s.text}</p>
                 </button>
               ))}
             </div>
@@ -66,36 +128,38 @@ export function Chat() {
                     return (
                       <div
                         key={i}
-                        className="max-w-[80%] whitespace-pre-wrap rounded-2xl bg-blue-600 px-4 py-2 text-sm text-white"
+                        className="max-w-[80%] whitespace-pre-wrap rounded-sm bg-bg-inverse px-4 py-2 text-sm text-fg-inverse"
                       >
                         {part.text}
                       </div>
                     )
                   }
                   return (
-                    <div key={i} className="prose prose-sm max-w-[80%] text-gray-900">
+                    <div key={i} className="prose prose-sm max-w-[80%] text-fg-base">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{part.text}</ReactMarkdown>
                     </div>
                   )
                 }
                 if (part.type === 'tool-displayCards' && part.state === 'output-available') {
                   const {type, items} = part.output as {
-                    type: 'articles' | 'faqs'
+                    type: CardType
                     items: Record<string, unknown>[]
                   }
                   return <ResultCards key={i} type={type} items={items} />
                 }
-                // Knowledge-base lookups (MCP tools) — show what the agent is doing
                 if (part.type === 'dynamic-tool' || part.type.startsWith('tool-')) {
                   const name =
                     part.type === 'dynamic-tool' ? part.toolName : part.type.slice('tool-'.length)
+                  if (name === 'displayCards') return null
                   const running = !('state' in part) || part.state !== 'output-available'
+                  const mode = modeForTool(name)
                   return (
                     <p
                       key={i}
-                      className={`text-xs text-gray-400 ${running ? 'animate-pulse' : ''}`}
+                      className={`flex items-center gap-2 text-xs text-fg-subtle ${running ? 'animate-pulse' : ''}`}
                     >
-                      {TOOL_LABELS[name] ?? 'Working'}…
+                      {mode && <ModeBadge mode={mode} />}
+                      {TOOL_LABELS[name] ?? 'Working'}
                     </p>
                   )
                 }
@@ -104,8 +168,11 @@ export function Chat() {
             </div>
           ))
         )}
-        {status === 'submitted' && (
-          <p className="text-sm text-gray-400">Searching the knowledge base…</p>
+        {status === 'submitted' && <p className="text-sm text-fg-subtle">Retrieving…</p>}
+        {error && (
+          <p role="alert" className="text-sm text-fg-error">
+            {describeError(error)}
+          </p>
         )}
       </div>
 
@@ -114,19 +181,19 @@ export function Chat() {
           e.preventDefault()
           send(input)
         }}
-        className="flex items-center gap-2 border-t border-gray-200 py-4"
+        className="flex items-center gap-2 border-t border-border-faint py-4"
       >
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a question…"
-          className="flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm outline-none focus:border-gray-500"
+          placeholder="Ask a question"
+          className="flex-1 rounded-sm border border-border-base bg-bg-card px-4 py-2 text-sm outline-none focus:border-border-focus"
         />
         {busy ? (
           <button
             type="button"
             onClick={stop}
-            className="rounded-full bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700"
+            className="rounded-sm bg-bg-subtle px-4 py-2 text-sm font-medium text-fg-base"
           >
             Stop
           </button>
@@ -134,7 +201,7 @@ export function Chat() {
           <button
             type="submit"
             disabled={!input.trim()}
-            className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+            className="rounded-sm bg-brand px-4 py-2 text-sm font-medium text-white disabled:opacity-40 hover:bg-brand-hover duration-fast"
           >
             Send
           </button>
@@ -142,8 +209,11 @@ export function Chat() {
         {messages.length > 0 && (
           <button
             type="button"
-            onClick={() => setMessages([])}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            onClick={() => {
+              setMessages([])
+              clearError()
+            }}
+            className="text-sm text-fg-subtle hover:text-fg-base"
           >
             Clear
           </button>

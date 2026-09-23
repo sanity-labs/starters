@@ -1,17 +1,11 @@
-import {defineField} from 'sanity'
-
-// Reusable fields shared across content types. Keeping them in one place means
-// the external (helpArticle, faq) and internal (playbook, policy) types stay
-// structurally aligned — the same taxonomy and governance shape everywhere.
+import {defineArrayMember, defineField} from 'sanity'
 
 export const summaryField = defineField({
   name: 'summary',
   title: 'Summary',
   type: 'text',
   rows: 3,
-  // Plain text, not Portable Text: used verbatim for agent card display and as a
-  // tight semantic unit. Keep it self-contained.
-  description: 'One-paragraph summary shown on cards and used for semantic retrieval.',
+  description: 'One-paragraph summary shown on cards and used for semantic ranking.',
   validation: (rule) => rule.required().max(320),
 })
 
@@ -19,7 +13,7 @@ export const audienceField = defineField({
   name: 'audience',
   title: 'Audience',
   type: 'array',
-  of: [{type: 'string'}],
+  of: [defineArrayMember({type: 'string'})],
   options: {
     list: [
       {title: 'Developer', value: 'developer'},
@@ -51,13 +45,13 @@ export const taxonomyFields = [
     name: 'products',
     title: 'Products',
     type: 'array',
-    of: [{type: 'reference', to: [{type: 'product'}]}],
+    of: [defineArrayMember({type: 'reference', to: [{type: 'product'}]})],
   }),
   defineField({
     name: 'topics',
     title: 'Topics',
     type: 'array',
-    of: [{type: 'reference', to: [{type: 'topic'}]}],
+    of: [defineArrayMember({type: 'reference', to: [{type: 'topic'}]})],
   }),
 ]
 
@@ -65,9 +59,8 @@ export const reviewByDateField = defineField({
   name: 'reviewByDate',
   title: 'Review by',
   type: 'datetime',
-  // Set to publish + 90 days by the set-review-date Function when unset.
   description:
-    'When this content next needs review. Overdue items surface in the Needs Review queue.',
+    'When this policy next needs editorial review. Overdue items surface in the Needs Review queue. Knowledge Base refresh is a separate, product-owned clock.',
 })
 
 export const governanceFields = [
@@ -97,6 +90,5 @@ export const importanceField = defineField({
     layout: 'radio',
   },
   initialValue: 'standard',
-  // Critical internal content is prioritized in agent responses.
-  description: 'Critical items are surfaced first in agent answers.',
+  description: 'Critical policies are the ones staff should check first.',
 })
