@@ -7,6 +7,7 @@
     "./streaming": "./src/streaming/index.ts",
     "./stubs": "./src/stubs/index.ts",
     "./sanitize": "./src/sanitize/index.ts",
+    "./escape": "./src/escape/index.ts",
     "./types": "./src/types/index.ts"
   },
   "scripts": {

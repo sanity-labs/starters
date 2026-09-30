@@ -1,384 +1,110 @@
-# Email Marketing Operations — Security Hardening
+# Email Marketing Operations — Security
 
-## Threat Model
+This document describes the security controls that exist in the code today, where they live, and what is deliberately left for you to add before running the starter with real subscribers. Anything in the "Not implemented" section is not wired up; do not rely on it.
 
-The preview service is attacker-adjacent by design: it renders Sanity-authored content and serves preview links to external reviewers. Threats:
+## Surfaces
 
-1. **XSS via Sanity content** — attacker controls promotion fields (via Studio breach or via API) and injects `<script>` tags
-2. **SSRF** — attacker references internal metadata endpoints via image URLs or asset refs
-3. **Unauthorized preview** — attacker crafts unsigned preview tokens to see content without permission
-4. **Rate-limit abuse** — attacker hammers Klavioy API (expensive) via preview renders
-5. **Webhook signature forgery** — attacker injects fake engagement metrics
-6. **CSP bypass** — attacker finds a way to load/execute scripts in preview context
-7. **Session hijacking** — attacker steals a Studio OAuth cookie and calls preview endpoints
+| Surface                     | Location                                         | Who reaches it                                          |
+| :-------------------------- | :----------------------------------------------- | :------------------------------------------------------ |
+| Klaviyo preview route       | `frontend/app/api/preview/klaviyo/[id]/route.ts` | Studio users and anyone holding a preview link          |
+| React preview page          | `frontend/app/promotions/[id]/page.tsx`          | Presentation tool iframe, draft mode                    |
+| Live send                   | `functions/on-promotion-approved/index.ts`       | Klaviyo, then every subscriber in the targeted segment  |
+| Engagement webhook          | `frontend/app/api/webhooks/engagement/route.ts`  | Klaviyo                                                 |
+| Shared renderer and helpers | `packages/render-email/`                         | Preview route (MJML render, sanitizer) and the Function |
 
-## Seven-Layer Defense
+## Threat model
 
-### 1. Transport: HTTPS + HSTS
+1. **HTML injection via Sanity content.** Promotion fields (`subjectLine`, `disruptor`, block `headline`/`body`/`legalText`, product titles, CTA and product URLs) are written by editors, by AI generation, and by anyone with a write token. Whatever reaches the dataset is rendered into HTML for previews and for the live send.
+2. **Unauthorized preview access.** Preview links are meant to be shared with reviewers; the route must not be readable by anyone who guesses a document ID.
+3. **Webhook forgery.** A forged engagement webhook could write fake metrics into `promotion.campaignPerformance`.
+4. **Dangerous link targets.** A `javascript:` or `data:` URL in a CTA would execute in a browser preview and be flagged by mail clients.
 
-**Configuration:**
+## What the code does
 
-```javascript
-// Express middleware
-app.use((req, res, next) => {
-  res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
-  next()
-})
+### Output escaping at render time (preview and send)
+
+`packages/render-email/src/escape/index.ts` exports two dependency-free helpers:
+
+- `escapeHtml(value)` escapes `& < > " '` so authored text can never open a tag or break out of an attribute.
+- `safeHttpUrl(value)` returns the URL only when it parses as absolute `http:` or `https:`; anything else (`javascript:`, `data:`, relative paths) is dropped along with the element that would have used it.
+
+Both renderers use them for every interpolated value:
+
+- The MJML renderer (`packages/render-email/src/index.ts`) behind `renderPromotionLocal` and `renderPromotionKlaviyo`.
+- The hand-built HTML in `functions/on-promotion-approved/index.ts`, which is what Klaviyo sends to real subscribers. The Function bundles the helpers from `@starter/render-email/escape` without pulling in mjml.
+
+Klaviyo Handlebars tokens such as `{{ unsubscribe_url }}` are emitted by the templates themselves, never taken from content, so escaping does not interfere with them. Subject line and preheader are sent to Klaviyo as JSON fields, not HTML.
+
+Tests: `packages/render-email/src/escape/escape.test.ts`, the `output escaping` block in `packages/render-email/src/index.test.ts`.
+
+### Whole-document sanitization of the preview
+
+`sanitizeEmailHtml(html)` in `packages/render-email/src/sanitize/index.ts` runs DOMPurify once over the complete rendered document (`WHOLE_DOCUMENT: true`) and additionally forbids `script`, `iframe`, `object`, `embed`, `form`, `input`, `textarea`, `select`, `button`, `base`, and `link`. DOMPurify's defaults remove inline event handlers and non-http(s) URLs. The preview route applies it to the final HTML, whether that HTML came straight from MJML or round-tripped through Klaviyo's template render API.
+
+It deliberately buffers the whole document. An earlier streaming version chunked the input at the last `>` and sanitized each chunk independently, which cannot tell a tag-closing `>` from one inside a quoted attribute; a payload split across the boundary would be sanitized as two harmless fragments. Emails are small, so buffering costs nothing.
+
+The sanitizer is preview-only: Outlook conditional comments (`<!--[if mso]>`) do not survive DOMPurify, so the send path relies on render-time escaping instead.
+
+Tests: `packages/render-email/src/sanitize/sanitize.test.ts` (including the chunk-boundary regression).
+
+### Preview route authentication
+
+`verifyPreviewSecret` in `frontend/app/api/preview/_auth.ts` compares the `sanity-preview-secret` (or `token`) query parameter against `SANITY_PREVIEW_SECRET` using `timingSafeEqual`.
+
+- **Production** (`NODE_ENV=production` or `VERCEL_ENV=production`) with the secret unset: the route refuses every request with HTTP 500 and logs `SANITY_PREVIEW_SECRET is not set; refusing preview requests in production`. The endpoint fails closed rather than silently becoming public.
+- **Non-production** with the secret unset: requests are allowed so local development works without setup, and a warning is logged once per process.
+- Secret set: a missing or wrong token gets HTTP 401.
+
+The Studio's "Open preview" links (`studio/sanity.config.ts`, `studio/plugins/campaign/views/CampaignGridView.tsx`) are built without a token. Once you set the secret, append `?sanity-preview-secret=<value>` to those links or switch to per-session secrets with `@sanity/preview-url-secret` (see below). Do not put the secret in a `SANITY_STUDIO_*` variable: those are compiled into the public Studio bundle.
+
+### Preview response headers
+
+Every HTML preview response carries `PREVIEW_SECURITY_HEADERS` from `_auth.ts`:
+
+```
+Content-Security-Policy: default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; frame-ancestors 'none'
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Permissions-Policy: geolocation=(), microphone=(), camera=()
 ```
 
-**Effect:** Browser enforces HTTPS for all future requests to this domain; prevents downgrade attacks.
+`default-src 'none'` with no `script-src` means that even if markup slipped past the sanitizer, the browser would not execute it. `frame-ancestors 'none'` also means the route cannot be embedded in an iframe; relax it to `'self'` if you build an in-app preview frame. The JSON variant of the route (`Accept: application/json`) returns `{html, previewStatus}` with `Access-Control-Allow-Origin: *` and no CSP, since the caller renders the HTML.
 
-### 2. Authentication (3 Paths, No Fallback)
+### GROQ parameterization
 
-#### Path A: Studio Session (OAuth)
+Document IDs reach GROQ as `$id` parameters (`client.fetch(query, {id})`), never by string interpolation, in the preview route and the Function.
 
-**Usage:** Internal calls from Studio (grid tiles, 1:1 preview during authoring).
+### Engagement webhook signature
 
-**Implementation:**
+`frontend/app/api/webhooks/engagement/route.ts` verifies Klaviyo's HMAC-SHA256 signature (`X-Klaviyo-Request-Signature` over `timestamp + body`) with a five-minute timestamp window and `timingSafeEqual` when `KLAVIYO_WEBHOOK_SECRET` is set. **When the variable is unset the webhook accepts unsigned requests**, including in production. Set it before exposing the route, or apply the same fail-closed pattern the preview route uses.
 
-```typescript
-import {createClient} from '@sanity/client'
+## Not implemented (recommended hardening)
 
-const client = createClient({
-  // OAuth token from browser session
-  token: req.headers.authorization?.replace('Bearer ', ''),
-})
+None of the following exists in the code. Earlier versions of this document described them as if they did.
 
-// Verify token is valid and scoped to this org
-const verified = await client.auth.verify()
-if (!verified) return res.status(401).send('Unauthorized')
+- **Per-link, expiring preview tokens.** The preview uses one shared secret. `@sanity/preview-url-secret` gives you per-session secrets stored in the dataset and validated by the frontend, so the Studio can mint links without shipping a secret in its bundle.
+- **Studio OAuth verification** on the preview route.
+- **Webhook secret required.** The engagement webhook fails open when `KLAVIYO_WEBHOOK_SECRET` is unset.
+- **SSRF allow-listing of asset hosts.** Only the URL scheme is checked. Exposure is low because the frontend never fetches content URLs server-side (image URLs come from `cdn.sanity.io` asset references; CTA and product URLs are links for the recipient), but if you add server-side fetching of authored URLs, add a host allow-list first.
+- **Rate limiting and request coalescing** on the preview route. Each request that has `KLAVIYO_API_KEY` set creates, renders, and deletes a Klaviyo template.
+- **Structured audit logging** and CSP violation reporting.
+- **Schema-level input validation** beyond Sanity's own `url` type (which allows only http/https in the Studio; the renderers enforce the same rule for content written through the API).
+
+## Configuration checklist
+
+- [ ] `SANITY_PREVIEW_SECRET` set in every deployed frontend environment (the route returns 500 in production without it). Generate with `openssl rand -hex 32`.
+- [ ] Studio preview links carry the secret, or `@sanity/preview-url-secret` is wired in.
+- [ ] `KLAVIYO_WEBHOOK_SECRET` set wherever the engagement webhook is exposed.
+- [ ] `SANITY_API_READ_TOKEN` is a Viewer token; the write token for the webhook (`SANITY_API_WRITE_TOKEN`) is scoped to the dataset.
+- [ ] `KLAVIYO_API_KEY` scoped as described in the README (Lists/Segments read, Templates/Campaigns read/write).
+- [ ] Frontend served over HTTPS; the route sets HSTS but TLS termination is the host's job.
+
+## Verifying
+
+```bash
+pnpm test        # escape, sanitize, and renderer tests
 ```
 
-**Flow:**
-
-1. Studio sends `Authorization: Bearer {oauth_token}`
-2. Preview service calls Sanity `GET /auth/verify` with token
-3. If valid and org-scoped, allow; otherwise reject 401
-
-#### Path B: Preview URL Secret (Signed Token)
-
-**Usage:** Shareable preview links for external reviewers; time-boxed.
-
-**Implementation:**
-
-```typescript
-import {verifyRequestSignature} from '@sanity/preview-url-secret'
-
-const token = req.query.token // PASETO or JWT ES256 signed
-const signature = req.query.sig
-
-const verified = verifyRequestSignature(token, signature, {
-  secret: process.env.SANITY_PREVIEW_SECRET, // Ed25519 private key
-  algorithm: 'PASETO',
-  clockTolerance: 30, // seconds
-})
-
-if (!verified) return res.status(401).send('Invalid token')
-
-// Decode token claims
-const claims = decodeToken(token) // { documentId, embeddingOrigin, exp, jti }
-if (Date.now() > claims.exp * 1000) return res.status(401).send('Token expired')
-```
-
-**Token claims:**
-
-- `documentId` — scoped to one promotion
-- `embeddingOrigin` — embedding domain (used for CSP `frame-ancestors`)
-- `exp` — expiration (Unix timestamp)
-- `jti` — unique ID (checked against revocation deny-list)
-
-**Revocation:** Keep a deny-list (Redis) of revoked JTIs; check on every request.
-
-#### Path C: Webhook Signature (HMAC-SHA256)
-
-**Usage:** Inbound engagement webhooks from ESP.
-
-**Implementation:**
-
-```typescript
-import crypto from 'crypto'
-
-function verifyKlaviyoSignature(body, signature, apiKey) {
-  const timestamp = req.headers['x-klaviyo-request-timestamp'] // Unix seconds
-  if (Math.abs(Date.now() / 1000 - timestamp) > 300) {
-    throw new Error('Timestamp outside 5-minute window')
-  }
-
-  const data = `${timestamp}.${body}` // String concatenation
-  const hash = crypto.createHmac('sha256', apiKey).update(data).digest('base64')
-
-  // Use timingSafeEqual to prevent timing attacks
-  return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(signature))
-}
-```
-
-**Note:** Each ESP has different signature algorithms. Implement per-ESP.
-
-#### No Fallback
-
-If a request doesn't match **all three** auth paths, return 401. No anonymous rendering.
-
-### 3. Input Validation
-
-**Zod schemas:**
-
-```typescript
-import {z} from 'zod'
-
-const PreviewParamsSchema = z.object({
-  promotionId: z.string().regex(/^[a-zA-Z0-9._-]{1,64}$/),
-  viewport: z.enum(['mobile', 'desktop']).optional(),
-  version: z.string().regex(/^\d+$/).optional(),
-})
-
-const parsed = PreviewParamsSchema.safeParse(req.query)
-if (!parsed.success) {
-  return res.status(400).json({error: 'Invalid parameters', issues: parsed.error.issues})
-}
-```
-
-**Document ID whitelist:** Prevent traversal attacks (`../../../etc/passwd` via ID).
-
-**GROQ parameterization:** Never interpolate document IDs directly into GROQ.
-
-```typescript
-// Good
-const promo = await client.fetch(`*[_id == $id][0]`, {id: promotionId})
-
-// Bad
-const promo = await client.fetch(`*[_id == "${promotionId}"][0]`) // SQL injection equivalent
-```
-
-### 4. Render-Time Defenses
-
-#### SSRF Prevention
-
-**Allow-list approach:**
-
-```typescript
-const ALLOWED_ORIGINS = [
-  'cdn.sanity.io',
-  'images.klaviyo.com',
-  'my-dam.aem.adobe.com', // Configured
-]
-
-const BLOCKED_HOSTS = [
-  '169.254.169.254', // AWS metadata
-  'metadata.google.internal', // GCP metadata
-  'metadata.azure.com', // Azure metadata
-]
-
-function isSafeUrl(url) {
-  const parsed = new URL(url)
-
-  // Check blocked hosts
-  if (BLOCKED_HOSTS.includes(parsed.hostname)) return false
-
-  // Check allow-list
-  const isAllowed = ALLOWED_ORIGINS.some((origin) => parsed.hostname.endsWith(origin))
-  if (!isAllowed) return false
-
-  return true
-}
-```
-
-Use this in MJML and Portable Text serializers; reject unsafe asset URLs before rendering.
-
-#### HTML Sanitization
-
-**DOMPurify with email config:**
-
-```typescript
-import DOMPurify from 'isomorphic-dompurify'
-
-const sanitized = DOMPurify.sanitize(html, {
-  ALLOWED_TAGS: ['p', 'div', 'span', 'a', 'img', 'table', 'tr', 'td', 'h1', 'h2', 'h3'],
-  ALLOWED_ATTR: ['href', 'src', 'alt', 'width', 'height', 'align'],
-  KEEP_CONTENT: true,
-  // Email-specific: don't allow event handlers, scripts, or frames
-  ALLOW_DATA_ATTR: false,
-  ALLOW_UNKNOWN_PROTOCOLS: false,
-})
-```
-
-**Application:** Sanitize Portable Text output BEFORE stub replacement (prevents attacker-provided content that looks like a Klavioy tag from being styled as one).
-
-#### Handlebars, Not eval()
-
-Preserve Handlebars syntax as static text in stubs — never evaluate it.
-
-```typescript
-// Good
-const stubbed = html.replace(
-  /{% coupon_code %}/g,
-  '<preview-stub>Resolves at send time</preview-stub>',
-)
-
-// Bad (don't do this!)
-const evaluated = eval(html) // 🔥
-```
-
-### 5. Output Headers (Every Response)
-
-```typescript
-app.use((req, res, next) => {
-  // CSP: no scripts, no frames, no forms
-  res.setHeader(
-    'Content-Security-Policy',
-    [
-      "default-src 'none'",
-      'img-src https: data:',
-      "style-src 'unsafe-inline' https:", // Email CSS is inline; unavoidable
-      'font-src https: data:',
-      "script-src 'none'",
-      `frame-ancestors ${getFrameAncestors(req)}`, // Dynamic per token
-      "form-action 'none'",
-      "base-uri 'none'",
-      "object-src 'none'",
-    ].join('; '),
-  )
-
-  res.setHeader('X-Content-Type-Options', 'nosniff')
-  res.setHeader('Referrer-Policy', 'no-referrer') // Preview tokens don't leak in Referer
-  res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=(), payment=()')
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
-  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin')
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN') // Fallback for non-CSP browsers
-  res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
-
-  next()
-})
-```
-
-**`frame-ancestors` is dynamic:**
-
-```typescript
-function getFrameAncestors(req) {
-  const token = req.query.token
-  const claims = decodeToken(token) // { embeddingOrigin }
-
-  // No wildcards
-  if (claims.embeddingOrigin === 'https://studio.sanity.io') {
-    return "'self'"
-  }
-  return `'none'` // Don't allow embedding by default
-}
-```
-
-**`script-src 'none'` is critical:** If XSS sneaks through sanitization, it cannot escalate to script execution.
-
-### 6. Rate Limiting (Three Tiers)
-
-#### Per-IP Global
-
-```typescript
-import RedisStore from 'rate-limit-redis'
-import rateLimit from 'express-rate-limit'
-
-const globalLimiter = rateLimit({
-  store: new RedisStore({client: redis, prefix: 'rl:ip:'}),
-  windowMs: 60 * 1000, // 1 minute
-  max: 60, // 60 requests per minute
-  keyGenerator: (req) => req.ip,
-  skip: (req) => req.user?.isAdmin, // Optional: skip for admins
-})
-
-app.use(globalLimiter)
-```
-
-#### Per-Token
-
-```typescript
-const tokenLimiter = rateLimit({
-  store: new RedisStore({client: redis, prefix: 'rl:token:'}),
-  windowMs: 60 * 1000,
-  max: 10, // 10 renders per token per minute
-  keyGenerator: (req) => req.query.token,
-})
-
-app.get('/v1/render/local/:id', tokenLimiter, renderLocalHandler)
-```
-
-#### Per-Document (Request Coalescing)
-
-```typescript
-const requestCache = new Map() // { 'endpoint:docId:hash' => Promise<result> }
-
-async function renderWithCoalescing(promotionId) {
-  const contentHash = await client.fetch(`*[_id == $id][0]._rev`, {id: promotionId})
-  const cacheKey = `render:${promotionId}:${contentHash}`
-
-  // If same request is in-flight, reuse it
-  if (requestCache.has(cacheKey)) {
-    return requestCache.get(cacheKey)
-  }
-
-  // Otherwise, fetch and cache
-  const promise = fetchAndRender(promotionId)
-  requestCache.set(cacheKey, promise)
-
-  try {
-    return await promise
-  } finally {
-    requestCache.delete(cacheKey) // Clean up after TTL
-  }
-}
-```
-
-**Effect:** Five reviewers open the same preview link at once → one upstream Klavioy API call, not five.
-
-### 7. Logging & Audit
-
-```typescript
-import winston from 'winston'
-
-const logger = winston.createLogger({
-  transports: [new winston.transports.File({filename: 'audit.log', level: 'info'})],
-})
-
-app.use((req, res, next) => {
-  const start = Date.now()
-  res.on('finish', () => {
-    logger.info({
-      timestamp: new Date().toISOString(),
-      method: req.method,
-      path: req.path,
-      statusCode: res.statusCode,
-      ip: req.ip,
-      duration: Date.now() - start,
-      promotionId: req.query.promotionId, // Only if auth succeeded
-      // REDACT: token, signature, previewContext values
-    })
-  })
-  next()
-})
-```
-
-**Security audit stream** (alerts):
-
-- Auth failures (which path, which reason)
-- Rate limit breaches
-- Webhook signature mismatches (ESP misconfig or attack)
-- SSRF attempts (blocked asset URLs)
-- CSP violations (browser reports via `report-to`)
-
-**Never log:**
-
-- Authorization header
-- Preview tokens or signatures
-- `previewContext` field values (may contain PII)
-- Rendered HTML bodies
-
-## Configuration Checklist
-
-- [ ] HTTPS enabled; HSTS preload pending
-- [ ] OAuth verify endpoint wired up
-- [ ] Preview token signing key (`SANITY_PREVIEW_SECRET`) rotated and in secure vault
-- [ ] ESP webhook algorithms implemented for each ESP (Klavioy HMAC-SHA256, Braze signed JWT, etc.)
-- [ ] DOMPurify allow-list configured for email HTML
-- [ ] SSRF allow-list matches actual DAM origins and asset CDNs
-- [ ] Rate-limit Redis cluster provisioned; keys prefixed by service
-- [ ] Audit logging sends to secure log aggregation (CloudWatch, Datadog, etc.)
-- [ ] CSP report-to endpoint wired up (collects CSP violations)
-- [ ] Preview token revocation deny-list implemented and checked on every request
-- [ ] Monitoring alerts for 401/403 spikes, rate-limit breaches, webhook signature failures
+There is no automated test for the preview route's authentication; exercise it manually with and without `SANITY_PREVIEW_SECRET` and with `NODE_ENV=production`.

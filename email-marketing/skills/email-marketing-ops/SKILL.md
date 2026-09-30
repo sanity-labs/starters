@@ -21,7 +21,7 @@ Generate N variants from one brief, refine with multi-turn AI, preview with accu
 
 **AI-augmented not AI-native**: AI generates variants and refines copy, but humans approve every promotion before send. Thread-based refinement preserves context across turns.
 
-**Security by design**: 7-layer defense (HTTPS+HSTS, auth 3-paths, input validation, render-time sanitization, CSP headers, rate limiting, audit logging) protects preview service and dispatch pipeline.
+**Security by design**: authored content is escaped at render time in both the preview renderer and the send Function (`@starter/render-email/escape`), previews are DOMPurify-sanitized as a whole document and served with a strict CSP, and the preview route is gated by `SANITY_PREVIEW_SECRET`, which is required in production. See `docs/SECURITY.md` for what is and is not implemented before adding controls.
 
 **Observable, not eventual**: Preview accuracy badges (X-Preview-Status) show which tokens are resolved vs. stubbed. Editors know before sending.
 
@@ -35,7 +35,7 @@ Read [references/architecture.md](references/architecture.md) for the full entry
 
 **Packages (domain logic)**
 
-- `packages/render-email/` — MJML streaming, sanitization, stub handling (`./streaming`, `./stubs`, `./sanitize`, `./types`)
+- `packages/render-email/` — MJML rendering, whole-document sanitization, escaping helpers, stub handling (`.`, `./sanitize`, `./escape`, `./stubs`, `./streaming`, `./types`)
 - `packages/esp-connector/` — EspConnector interface + KlaviyoConnector, payload dispatcher (`./klaviyo`, extensible to ./braze, ./ajo)
 - `packages/preview-middleware/` — Composable middleware: auth, rate-limit, security-headers, logging (`./auth`, `./rate-limit`, `./security-headers`, `./logging`)
 - `packages/eslint-config/`, `packages/tsconfig/`, `packages/sanity-types/` — Shared configs
@@ -101,13 +101,12 @@ Read [references/architecture.md](references/architecture.md) for the full entry
 
 **Rendering pipeline**:
 
-1. Fetch promotion + campaign context
-2. Build MJML from emailSlots
-3. Resolve previewContext tokens (sample data)
-4. Stub unresolved Klaviyo tags (fallback values)
-5. Render MJML → HTML
-6. Sanitize with DOMPurify (whitelist ~20 tags)
-7. Return with X-Preview-Status header
+1. Verify `SANITY_PREVIEW_SECRET` (fails closed in production when unset)
+2. Fetch promotion + campaign context (GROQ `$id` parameter)
+3. Build MJML from emailSlots, escaping every field and dropping non-http(s) URLs
+4. Render MJML → HTML; optionally round-trip through Klaviyo's template render API to resolve sample tokens
+5. Sanitize the whole document once with DOMPurify (`sanitizeEmailHtml`)
+6. Return with X-Preview-Status header and strict CSP headers
 
 **Entry point**: `packages/render-email/src/index.ts` (renderPromotionLocal, renderPromotionKlaviyo stubs)
 
@@ -150,20 +149,17 @@ Read [references/architecture.md](references/architecture.md) for the full entry
 
 ## Security & Operations
 
-### 7-Layer Defense for Preview Service
+### Security Controls That Exist
 
-1. **Transport** — HTTPS only, HSTS header enforced
-2. **Auth (3 paths)**
-   - Studio session: browser cookie + `createStudioAgent` auth inheritance
-   - Preview tokens: @sanity/preview-url-secret, time-bounded, per-link
-   - Webhook signatures: Klaviyo HMAC-SHA256, timestamp validation
-3. **Input validation** — Whitelist document IDs (Sanity format), enum status values
-4. **Render-time** — DOMPurify sanitization, MJML validation, Handlebars syntax preserved
-5. **Output headers** — CSP, X-Content-Type-Options, X-Frame-Options, Permissions-Policy, HSTS
-6. **Rate limiting** — Per-IP token bucket (100 req/min default), 429 w/ Retry-After
-7. **Audit logging** — Timestamp, method, path, status, IP, duration (PII redacted)
+1. **Output escaping** — `escapeHtml` + `safeHttpUrl` on every interpolated value, in the MJML renderer and in `functions/on-promotion-approved/`
+2. **Preview sanitization** — `sanitizeEmailHtml` (DOMPurify, whole document) before the preview route responds
+3. **Preview auth** — shared `SANITY_PREVIEW_SECRET`, constant-time compare, fails closed in production
+4. **Output headers** — CSP `default-src 'none'`, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, HSTS, Permissions-Policy
+5. **Webhook signatures** — Klaviyo HMAC-SHA256 with timestamp window when `KLAVIYO_WEBHOOK_SECRET` is set (fails open when unset)
 
-See [references/security.md](references/security.md) for threat model and configuration checklist.
+Not implemented: per-link expiring preview tokens, Studio OAuth on the preview route, SSRF host allow-listing, rate limiting, audit logging. When you add a field that is interpolated into HTML, route it through `@starter/render-email/escape` in every renderer.
+
+See [docs/SECURITY.md](../../docs/SECURITY.md) for the threat model and configuration checklist.
 
 ### Testing Strategy
 
@@ -208,8 +204,8 @@ These become part of local context for AI generation (via @sanity/context). If K
 
 ## References
 
-- [references/architecture.md](references/architecture.md) — project map and file entry points
-- [references/security.md](references/security.md) — 7-layer defense, threat model, config checklist
-- [references/testing.md](references/testing.md) — unit/integration/load testing examples
+- [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) — project map and file entry points
+- [docs/SECURITY.md](../../docs/SECURITY.md) — implemented controls, threat model, config checklist
+- [docs/TESTING.md](../../docs/TESTING.md) — unit/integration/load testing examples
 - [references/add-to-existing-studio.md](references/add-to-existing-studio.md) — brownfield: add email marketing to existing Sanity project
 - [README.md](../../README.md) — quick start, environment variables, Klaviyo API key setup

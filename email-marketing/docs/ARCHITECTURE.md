@@ -178,25 +178,20 @@ Background sync of Klaviyo lists and segments, no manual click required.
 
 ## Package Architecture
 
-All domain logic is in `packages/@starter/` (npm scope `@starter/`) with semantic, zero-dependency subpaths:
+Shared logic lives in `packages/` (npm scope `@starter/`) with semantic subpaths:
 
-### `@starter/render-email` (at `packages/@starter/render-email/`)
+### `@starter/render-email` (at `packages/render-email/`)
 
-Pure, platform-agnostic email rendering.
+Pure, platform-agnostic email rendering. This is the only domain package that exists today; the `esp-connector` and `preview-middleware` packages below describe a target design, not code in the repo.
 
 **Exports:**
 
-- `./streaming` — MJML compilation with streaming HTML output
-- `./stubs` — Handlebars stub replacement (Klavioy tags, personalization tokens)
-- `./sanitize` — DOMPurify with email-safe config
+- `.` — `renderPromotionLocal(promotion, previewContext)` and `renderPromotionKlaviyo(promotion)`: build MJML from `emailSlots` with every authored value escaped and every URL scheme-checked, compile to HTML
+- `./sanitize` — `sanitizeEmailHtml(html)`: DOMPurify over the whole rendered document, for browser previews
+- `./escape` — `escapeHtml(value)`, `safeHttpUrl(value)`: dependency-free helpers also bundled into the `on-promotion-approved` Function so preview and send escape identically
+- `./stubs` — `stubKlaviyoTags`, `resolvePreviewContext`, `buildPreviewStatus`: Handlebars stub replacement and accuracy metadata
+- `./streaming` — `renderMjmlStream`, `stubReplacer`, `streamToString`: async-iterable helpers (unused by the routes today)
 - `./types` — Shared TypeScript types
-
-**Key functions:**
-
-- `renderPromotionLocal(promotion, previewContext)` → Readable stream of HTML
-- `renderPromotionKlaviyo(promotion, apiKey)` → HTML with Klaviyo template verification
-- `sanitizeStream()` — Web stream transformer for DOMPurify
-- `StubReplacerStream` — Ring-buffer-based streaming token replacement
 
 ### `@starter/esp-connector` (at `packages/@starter/esp-connector/`)
 
@@ -312,15 +307,18 @@ Separate Next.js app that renders email HTML with four modes:
 | Klavioy verification  | CRM manager                   | Promotion ID                   | Preview token                | Klaviyo API render with stubs             |
 | Shareable review link | External reviewer (no Studio) | Promotion ID + signed token    | Time-boxed PASETO/JWT        | Local MJML or Klaviyo, embedded in iframe |
 
-**Streaming pipeline:**
+**Klaviyo preview pipeline** (`frontend/app/api/preview/klaviyo/[id]/route.ts`, the one route that exists today):
 
 ```
-renderMjmlStream(promotion)
-  .pipeThrough(sanitizeStream())        // DOMPurify, BEFORE stubs
-  .pipeThrough(new StubReplacerStream()) // Handlebars tag replacement
-  .pipeThrough(new TextEncoderStream())
-  .pipeTo(response.body)
+verifyPreviewSecret(request)              // SANITY_PREVIEW_SECRET; fails closed in production
+  → client.fetch(PROMOTION_RENDER_QUERY)  // $id parameter, never interpolated
+  → renderPromotionKlaviyo(promotion)     // MJML; fields escaped, URLs http(s)-only
+  → Klaviyo template render (optional)    // when KLAVIYO_API_KEY is set, resolves sample tokens
+  → sanitizeEmailHtml(html)               // DOMPurify once over the whole document
+  → Response + PREVIEW_SECURITY_HEADERS   // strict CSP, X-Frame-Options, nosniff, HSTS
 ```
+
+The HTML is buffered, not streamed: whole-document sanitizing is the point (see [SECURITY.md](./SECURITY.md)).
 
 **Stub tiers:**
 
@@ -381,27 +379,15 @@ Multi-promotion scheduling:
 
 ## Security Posture
 
-Seven layers of defense for preview and dispatch:
+Controls that exist in the code:
 
-1. **Transport** — HTTPS + HSTS (2-year max-age, preload, includeSubDomains)
-2. **Auth (3 paths, no fallback)**
-   - Studio OAuth (browser session)
-   - Preview token (signed PASETO/JWT ES256, scoped to `{docId, embeddingOrigin, exp, jti}`)
-   - Webhook signature (HMAC-SHA256, timestamp window, timingSafeEqual)
-3. **Input validation** — Zod schemas, document ID whitelist (`[a-zA-Z0-9._-]{1,64}`), enum enforcement
-4. **Render-time**
-   - SSRF prevention (allow-list: `cdn.sanity.io`, `images.klaviyo.com`, configured DAM origins; block metadata endpoints)
-   - HTML sanitization (DOMPurify with email config)
-   - Handlebars syntax preserved (not eval'd)
-5. **Output headers** (every response)
-   - CSP: `default-src 'none'; script-src 'none'; style-src 'unsafe-inline' https:; frame-ancestors [dynamic per token]`
-   - X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, CORS
-6. **Rate limiting** (three tiers)
-   - Per-IP: 60 req/min global
-   - Per-token: 10 renders/min
-   - Per-document: Coalesce concurrent requests (cache key: `(endpoint, docId, contentHash)`)
-7. **Audit logging** (structured)
-   - Timestamp, method, path, status, IP, duration
-   - Redact: auth header, signature, tokens, PII from previewContext
+1. **Output escaping** — `escapeHtml` and `safeHttpUrl` on every interpolated value in the MJML renderer and in the `on-promotion-approved` send Function
+2. **Preview sanitization** — `sanitizeEmailHtml` runs DOMPurify once over the whole rendered document before the preview route responds
+3. **Preview auth** — shared `SANITY_PREVIEW_SECRET` compared with `timingSafeEqual`; the route fails closed (500 + log) in production when the secret is unset
+4. **Output headers** — CSP `default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; frame-ancestors 'none'`, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, HSTS, Permissions-Policy on every HTML preview response
+5. **Webhook signature** — HMAC-SHA256 with a five-minute timestamp window and `timingSafeEqual` on the engagement webhook when `KLAVIYO_WEBHOOK_SECRET` is set
+6. **GROQ parameterization** — document IDs are passed as `$id`, never interpolated
 
-See [SECURITY.md](./SECURITY.md) for threat model and configuration checklist.
+Not implemented: per-link expiring preview tokens, Studio OAuth on the preview route, SSRF host allow-listing, rate limiting, request coalescing, audit logging.
+
+See [SECURITY.md](./SECURITY.md) for the threat model, file locations, and configuration checklist.
