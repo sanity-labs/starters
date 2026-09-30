@@ -17,7 +17,8 @@ jobs:
       SANITY_STUDIO_DATASET: production
     strategy:
       matrix:
-        node-version: [20, 22]
+        # The Sanity CLI (schema extract / typegen) requires Node >= 22.12.
+        node-version: [22]
     defaults:
       run:
         working-directory: agent-ready-content
