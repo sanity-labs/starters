@@ -1,19 +1,22 @@
 import type {PlaywrightContext} from 'racejar/playwright'
-import {Given as G, When as W, Then as T, type StepDefinitionCallback} from 'racejar'
+import {Given as G, When as W, Then as T, type StepDefinition} from 'racejar'
 
-export const Given = <A = undefined, B = undefined, C = undefined>(
-  text: string,
-  callback: StepDefinitionCallback<PlaywrightContext, A, B, C>,
-) => G<PlaywrightContext, A, B, C>(text, callback)
+// Racejar's conditional StepDefinitionCallback never gives a destructured first parameter
+// a contextual type.
+type Callback<A, B, C> = (
+  context: PlaywrightContext,
+  paramA: A,
+  paramB: B,
+  paramC: C,
+) => Promise<void> | void
 
-export const When = <A = undefined, B = undefined, C = undefined>(
+type StepFactory = <A = unknown, B = unknown, C = unknown>(
   text: string,
-  callback: StepDefinitionCallback<PlaywrightContext, A, B, C>,
-) => W<PlaywrightContext, A, B, C>(text, callback)
+  callback: Callback<A, B, C>,
+) => StepDefinition<PlaywrightContext, A, B, C>
 
-export const Then = <A = undefined, B = undefined, C = undefined>(
-  text: string,
-  callback: StepDefinitionCallback<PlaywrightContext, A, B, C>,
-) => T<PlaywrightContext, A, B, C>(text, callback)
+export const Given = G as StepFactory
+export const When = W as StepFactory
+export const Then = T as StepFactory
 
 export type {PlaywrightContext}

@@ -93,4 +93,4 @@ const testDefinitions = [
   }),
 ]
 
-Feature(featureText, testDefinitions)
+Feature({featureText, stepDefinitions: testDefinitions})
